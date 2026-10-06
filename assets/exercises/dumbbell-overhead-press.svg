@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-label="Dumbbell overhead press illustration">
+  <rect width="640" height="420" rx="32" fill="#f8f4ec"/>
+  <g fill="none" stroke="#687043" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="320" cy="92" r="34"/>
+    <path d="M320 128v118"/>
+    <path d="M320 160l-76-48"/>
+    <path d="M320 160l76-48"/>
+    <path d="M244 112l-34-26"/>
+    <path d="M396 112l34-26"/>
+    <path d="M320 246l-70 105"/>
+    <path d="M320 246l70 105"/>
+  </g>
+  <g stroke="#d87943" stroke-width="12" stroke-linecap="round">
+    <path d="M194 76v34"/><path d="M176 93h36"/>
+    <path d="M446 76v34"/><path d="M428 93h36"/>
+  </g>
+  <text x="320" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#687043">DUMBBELL OVERHEAD PRESS</text>
+</svg>

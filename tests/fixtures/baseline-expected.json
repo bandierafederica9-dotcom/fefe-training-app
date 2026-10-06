@@ -1,0 +1,533 @@
+{
+ "_note": "Expected outputs of the ORIGINAL baseline app (pre data-safety, commit 0cd063f) for the regression checks in daygiorno/unilateral/steps123. Captured without Git history: derived from the current app plus the relations the history-based tests verified (identical except: 5 decided unilateral additions now true; legacy canonicalPlanKeys dropped a colliding Day 1/Giorno 1).",
+ "unilateralPlan": [
+  [
+   "Giorno 1",
+   "Pull-up",
+   false
+  ],
+  [
+   "Giorno 1",
+   "Lat Pulldown presa larga",
+   false
+  ],
+  [
+   "Giorno 1",
+   "Chest Supported Row",
+   false
+  ],
+  [
+   "Giorno 1",
+   "Dumbbell Lateral Raise",
+   true
+  ],
+  [
+   "Giorno 1",
+   "Face Pull",
+   false
+  ],
+  [
+   "Giorno 1",
+   "Bayesian Cable Curl",
+   true
+  ],
+  [
+   "Giorno 2",
+   "Machine Hip Thrust",
+   false
+  ],
+  [
+   "Giorno 2",
+   "Barbell / DB RDL",
+   false
+  ],
+  [
+   "Giorno 2",
+   "Seated Leg Curl",
+   false
+  ],
+  [
+   "Giorno 2",
+   "Bulgarian Split Squat",
+   true
+  ],
+  [
+   "Giorno 2",
+   "Hip Abduction Seated",
+   false
+  ],
+  [
+   "Giorno 3",
+   "Frog Stand",
+   false
+  ],
+  [
+   "Giorno 3",
+   "DB Overhead Press",
+   false
+  ],
+  [
+   "Giorno 3",
+   "Machine Dip",
+   false
+  ],
+  [
+   "Giorno 3",
+   "Cable Lateral Raise",
+   false
+  ],
+  [
+   "Giorno 3",
+   "Face Pull",
+   false
+  ],
+  [
+   "Giorno 3",
+   "Overhead Triceps Extension",
+   false
+  ],
+  [
+   "Giorno 3",
+   "Hanging Knee Raise",
+   false
+  ],
+  [
+   "Giorno 4",
+   "L-Sit",
+   false
+  ],
+  [
+   "Giorno 4",
+   "KAS Glute Bridge",
+   false
+  ],
+  [
+   "Giorno 4",
+   "Cable Kickback",
+   false
+  ],
+  [
+   "Giorno 4",
+   "Back Extension Glute Bias",
+   false
+  ],
+  [
+   "Giorno 4",
+   "Hip Abduction Seated",
+   false
+  ],
+  [
+   "Giorno 4",
+   "Dead Bug",
+   false
+  ],
+  [
+   "Giorno 4",
+   "Vacuum addominale",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Bulgarian Split Squat",
+   true
+  ],
+  [
+   "Giorno 5",
+   "Leg Extension",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Lat Pulldown neutral/reverse",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Dumbbell Lateral Raise",
+   true
+  ],
+  [
+   "Giorno 5",
+   "Face Pull",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Single-Leg Plate Hop to Skater Jump",
+   true
+  ],
+  [
+   "Giorno 5",
+   "Hang Power Clean",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Depth Drop + Broad Jump",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Pin Squat",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Vertical Jump Assisted",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Cossack Squat",
+   false
+  ],
+  [
+   "Giorno 5",
+   "Single-Leg Hip Thrust",
+   true
+  ],
+  [
+   "Giorno 5",
+   "45° Glute-Ham Raise",
+   false
+  ],
+  [
+   "Core",
+   "Dead Bug",
+   false
+  ],
+  [
+   "Core",
+   "Hanging Knee Raise",
+   false
+  ],
+  [
+   "Core",
+   "Vacuum addominale",
+   false
+  ],
+  [
+   "Nuoto",
+   "Nuoto",
+   false
+  ],
+  [
+   "Casa",
+   "Glute Bridge",
+   false
+  ],
+  [
+   "Casa",
+   "Stacco Sumo con Manubrio",
+   false
+  ],
+  [
+   "Casa",
+   "Glute Bridge monopodalico",
+   true
+  ],
+  [
+   "Casa",
+   "Banded Clamshell",
+   false
+  ],
+  [
+   "Casa",
+   "Clamshell con manubrio",
+   false
+  ]
+ ],
+ "unilateralOldStyle": [
+  [
+   "Dumbbell Lateral Raise",
+   true
+  ],
+  [
+   "Bayesian Cable Curl",
+   true
+  ],
+  [
+   "Bulgarian Split Squat",
+   true
+  ],
+  [
+   "Single Arm Row",
+   true
+  ],
+  [
+   "Machine Hip Thrust",
+   false
+  ],
+  [
+   "Hip Abduction Seated",
+   false
+  ],
+  [
+   "Hip Adduction",
+   false
+  ],
+  [
+   "Single Leg Leg Press",
+   true
+  ],
+  [
+   "Cable Row",
+   false
+  ]
+ ],
+ "canonicalPlanKeysNonColliding": [
+  {
+   "Giorno 1": {
+    "t": "B",
+    "ex": [
+     [
+      "Face Pull",
+      "b",
+      2
+     ]
+    ]
+   },
+   "Giorno 2": {
+    "t": "A",
+    "ex": [
+     [
+      "Pull-up",
+      "a",
+      3
+     ]
+    ]
+   },
+   "Core": {
+    "t": "A",
+    "ex": [
+     [
+      "Pull-up",
+      "a",
+      3
+     ]
+    ]
+   },
+   "Swimming": {
+    "t": "B",
+    "ex": [
+     [
+      "Face Pull",
+      "b",
+      2
+     ]
+    ]
+   },
+   "Riposo": {
+    "ex": []
+   }
+  },
+  {
+   "Giorno 1": {
+    "t": "A",
+    "ex": [
+     [
+      "Pull-up",
+      "a",
+      3
+     ]
+    ]
+   },
+   "Giorno 5": {
+    "t": "B",
+    "ex": [
+     [
+      "Face Pull",
+      "b",
+      2
+     ]
+    ]
+   }
+  },
+  {
+   "Riposo": {},
+   "Giorno 3": {
+    "t": "A",
+    "ex": [
+     [
+      "Pull-up",
+      "a",
+      3
+     ]
+    ]
+   }
+  }
+ ],
+ "canonicalPlanKeysLegacyCollisionKeys": [
+  "Giorno 1"
+ ],
+ "doneCount": [
+  [
+   "Giorno 1",
+   0,
+   {
+    "done": 9,
+    "tot": 18
+   }
+  ],
+  [
+   "Giorno 1",
+   1,
+   {
+    "done": 9,
+    "tot": 18
+   }
+  ],
+  [
+   "Giorno 1",
+   2,
+   {
+    "done": 9,
+    "tot": 18
+   }
+  ],
+  [
+   "Giorno 2",
+   0,
+   {
+    "done": 8,
+    "tot": 16
+   }
+  ],
+  [
+   "Giorno 2",
+   1,
+   {
+    "done": 8,
+    "tot": 16
+   }
+  ],
+  [
+   "Giorno 2",
+   2,
+   {
+    "done": 8,
+    "tot": 16
+   }
+  ],
+  [
+   "Giorno 3",
+   0,
+   {
+    "done": 11,
+    "tot": 22
+   }
+  ],
+  [
+   "Giorno 3",
+   1,
+   {
+    "done": 10,
+    "tot": 22
+   }
+  ],
+  [
+   "Giorno 3",
+   2,
+   {
+    "done": 11,
+    "tot": 22
+   }
+  ],
+  [
+   "Giorno 4",
+   0,
+   {
+    "done": 11,
+    "tot": 21
+   }
+  ],
+  [
+   "Giorno 4",
+   1,
+   {
+    "done": 11,
+    "tot": 21
+   }
+  ],
+  [
+   "Giorno 4",
+   2,
+   {
+    "done": 10,
+    "tot": 21
+   }
+  ],
+  [
+   "Giorno 5",
+   0,
+   {
+    "done": 5,
+    "tot": 13
+   }
+  ],
+  [
+   "Giorno 5",
+   1,
+   {
+    "done": 6,
+    "tot": 13
+   }
+  ],
+  [
+   "Giorno 5",
+   2,
+   {
+    "done": 8,
+    "tot": 13
+   }
+  ],
+  [
+   "Core",
+   0,
+   {
+    "done": 4,
+    "tot": 9
+   }
+  ],
+  [
+   "Core",
+   1,
+   {
+    "done": 4,
+    "tot": 9
+   }
+  ],
+  [
+   "Core",
+   2,
+   {
+    "done": 5,
+    "tot": 9
+   }
+  ],
+  [
+   "Casa",
+   0,
+   {
+    "done": 8,
+    "tot": 15
+   }
+  ],
+  [
+   "Casa",
+   1,
+   {
+    "done": 8,
+    "tot": 15
+   }
+  ],
+  [
+   "Casa",
+   2,
+   {
+    "done": 7,
+    "tot": 15
+   }
+  ]
+ ]
+}

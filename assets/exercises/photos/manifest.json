@@ -1,0 +1,306 @@
+{
+  "count": 60,
+  "unique_assets": 59,
+  "exercises": [
+    {
+      "name": "Machine Hip Thrust",
+      "asset": "machine-hip-thrust.jpg",
+      "source_crop": "m1"
+    },
+    {
+      "name": "Barbell / DB RDL",
+      "asset": "barbell-db-rdl.jpg",
+      "source_crop": "w3"
+    },
+    {
+      "name": "KAS Glute Bridge",
+      "asset": "kas-glute-bridge.jpg",
+      "source_crop": "m4"
+    },
+    {
+      "name": "Seated Leg Curl",
+      "asset": "seated-leg-curl.jpg",
+      "source_crop": "m2"
+    },
+    {
+      "name": "Cable Kickback",
+      "asset": "cable-kickback.jpg",
+      "source_crop": "w15"
+    },
+    {
+      "name": "Hip Abduction Seated",
+      "asset": "hip-abduction-seated.jpg",
+      "source_crop": "w13"
+    },
+    {
+      "name": "Leg Press piedi alti",
+      "asset": "leg-press-piedi-alti.jpg",
+      "source_crop": "m3"
+    },
+    {
+      "name": "B-Stance RDL",
+      "asset": "b-stance-rdl.jpg",
+      "source_crop": "w10"
+    },
+    {
+      "name": "Leg Extension",
+      "asset": "leg-extension.jpg",
+      "source_crop": "w6"
+    },
+    {
+      "name": "Back Extension Glute Bias",
+      "asset": "back-extension-glute-bias.jpg",
+      "source_crop": "w19"
+    },
+    {
+      "name": "Machine Shoulder Press",
+      "asset": "machine-shoulder-press.jpg",
+      "source_crop": "m16"
+    },
+    {
+      "name": "Cable Lateral Raise (1 braccio)",
+      "asset": "cable-lateral-raise-1-braccio.jpg",
+      "source_crop": "m17"
+    },
+    {
+      "name": "Lat Pulldown presa stretta",
+      "asset": "lat-pulldown-presa-stretta.jpg",
+      "source_crop": "m12"
+    },
+    {
+      "name": "Chest Supported Row",
+      "asset": "chest-supported-row.jpg",
+      "source_crop": "m14"
+    },
+    {
+      "name": "Machine Lateral Raise",
+      "asset": "machine-lateral-raise.jpg",
+      "source_crop": "m18"
+    },
+    {
+      "name": "Bayesian Cable Curl",
+      "asset": "bayesian-cable-curl.jpg",
+      "source_crop": "m22"
+    },
+    {
+      "name": "Dumbbell Lateral Raise",
+      "asset": "dumbbell-lateral-raise.jpg",
+      "source_crop": "m19"
+    },
+    {
+      "name": "Machine Chest Press",
+      "asset": "machine-chest-press.jpg",
+      "source_crop": "w31"
+    },
+    {
+      "name": "Single Arm Row",
+      "asset": "single-arm-row.jpg",
+      "source_crop": "w27"
+    },
+    {
+      "name": "Reverse Pec Deck (delt post.)",
+      "asset": "reverse-pec-deck-delt-post.jpg",
+      "source_crop": "m15"
+    },
+    {
+      "name": "Incline Curl",
+      "asset": "incline-curl.jpg",
+      "source_crop": "m23"
+    },
+    {
+      "name": "Lat Pulldown",
+      "asset": "lat-pulldown.jpg",
+      "source_crop": "w24"
+    },
+    {
+      "name": "Machine Dip",
+      "asset": "machine-dip.jpg",
+      "source_crop": "w37"
+    },
+    {
+      "name": "Seated Cable Row",
+      "asset": "seated-cable-row.jpg",
+      "source_crop": "w26"
+    },
+    {
+      "name": "Single Arm Lat Pulldown",
+      "asset": "single-arm-lat-pulldown.jpg",
+      "source_crop": "m13"
+    },
+    {
+      "name": "Overhead Triceps Extension",
+      "asset": "overhead-triceps-extension.jpg",
+      "source_crop": "m24"
+    },
+    {
+      "name": "CORE · Cable Crunch",
+      "asset": "core-cable-crunch.jpg",
+      "source_crop": "m25"
+    },
+    {
+      "name": "Cable Crunch",
+      "asset": "cable-crunch.jpg",
+      "source_crop": "w53"
+    },
+    {
+      "name": "CORE · Hanging Knee Raise",
+      "asset": "core-hanging-knee-raise.jpg",
+      "source_crop": "m26"
+    },
+    {
+      "name": "Hanging Knee Raise",
+      "asset": "hanging-knee-raise.jpg",
+      "source_crop": "w54"
+    },
+    {
+      "name": "CORE · Vacuum addominale",
+      "asset": "core-vacuum-addominale.jpg",
+      "source_crop": "m27"
+    },
+    {
+      "name": "Vacuum addominale",
+      "asset": "vacuum-addominale.jpg",
+      "source_crop": "w57"
+    },
+    {
+      "name": "CORE · Dead Bug",
+      "asset": "core-dead-bug.jpg",
+      "source_crop": "w55"
+    },
+    {
+      "name": "Dead Bug",
+      "asset": "dead-bug.jpg",
+      "source_crop": "w55"
+    },
+    {
+      "name": "CORE · Plank",
+      "asset": "core-plank.jpg",
+      "source_crop": "w51"
+    },
+    {
+      "name": "Pallof Press (anti-rotazione)",
+      "asset": "pallof-press-anti-rotazione.jpg",
+      "source_crop": "w56"
+    },
+    {
+      "name": "Hip Abduction",
+      "asset": "hip-abduction.jpg",
+      "source_crop": "w13"
+    },
+    {
+      "name": "Cable Lateral Raise",
+      "asset": "cable-lateral-raise.jpg",
+      "source_crop": "m20"
+    },
+    {
+      "name": "Glute Bridge",
+      "asset": "glute-bridge.jpg",
+      "source_crop": "w9"
+    },
+    {
+      "name": "Stacco Sumo con Manubrio",
+      "asset": "stacco-sumo-con-manubrio.jpg",
+      "source_crop": "m8"
+    },
+    {
+      "name": "Glute Bridge monopodalico",
+      "asset": "glute-bridge-monopodalico.jpg",
+      "source_crop": "m6"
+    },
+    {
+      "name": "Banded Clamshell",
+      "asset": "banded-clamshell.jpg",
+      "source_crop": "m9"
+    },
+    {
+      "name": "Clamshell",
+      "asset": "clamshell.jpg",
+      "source_crop": "w17"
+    },
+    {
+      "name": "Monster Walk",
+      "asset": "monster-walk.jpg",
+      "source_crop": "w18"
+    },
+    {
+      "name": "Cable Step-Up",
+      "asset": "cable-step-up.jpg",
+      "source_crop": "m11"
+    },
+    {
+      "name": "Belt Squat Sumo",
+      "asset": "belt-squat-sumo.jpg",
+      "source_crop": "m7"
+    },
+    {
+      "name": "Reverse Hyperextension",
+      "asset": "reverse-hyperextension.jpg",
+      "source_crop": "w20"
+    },
+    {
+      "name": "Hip Adduction",
+      "asset": "hip-adduction.jpg",
+      "source_crop": "w14"
+    },
+    {
+      "name": "Calf Raise",
+      "asset": "calf-raise.jpg",
+      "source_crop": "w8"
+    },
+    {
+      "name": "Single Leg Leg Press",
+      "asset": "single-leg-leg-press.jpg",
+      "source_crop": "w22"
+    },
+    {
+      "name": "Cable Pullover",
+      "asset": "cable-pullover.jpg",
+      "source_crop": "w28"
+    },
+    {
+      "name": "Bulgarian Split Squat",
+      "asset": "bulgarian-split-squat.jpg",
+      "source_crop": "w11"
+    },
+    {
+      "name": "Hip Thrust monopodalico manubrio",
+      "asset": "hip-thrust-monopodalico-manubrio.jpg",
+      "source_crop": "m5"
+    },
+    {
+      "name": "Military Press",
+      "asset": "military-press.jpg",
+      "source_crop": "m21"
+    },
+    {
+      "name": "Clamshell con manubrio",
+      "asset": "clamshell-con-manubrio.jpg",
+      "source_crop": "m10"
+    },
+    {
+      "name": "Nuoto",
+      "asset": "nuoto.jpg",
+      "source_crop": "m28"
+    },
+    {
+      "name": "Pull-up",
+      "asset": "pull-up.jpg",
+      "source_crop": "w25"
+    },
+    {
+      "name": "L-Sit",
+      "asset": "l-sit.jpg",
+      "source_crop": "m33"
+    },
+    {
+      "name": "Frog Stand",
+      "asset": "frog-stand.jpg",
+      "source_crop": "m29"
+    },
+    {
+      "name": "Hanging Knee Raise",
+      "asset": "hanging-knee-raise.jpg",
+      "source_crop": "w54"
+    }
+  ]
+}

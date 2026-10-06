@@ -1,0 +1,455 @@
+{
+ "_note": "Intended Calisthenics Lab state (verified once against the pre-Lab commit aa8d120 when created): Lab content without IDs, and the rest seconds of every main-plan exercise (only the 4 timed holds differ from pre-Lab).",
+ "labContent": {
+  "Handstand": {
+   "Foundation": [
+    [
+     "Wrist Prep",
+     "2 x 30 sec",
+     2,
+     "mobility"
+    ],
+    [
+     "Wall Walk",
+     "3 x 3-5",
+     3,
+     "skill"
+    ],
+    [
+     "Chest-to-Wall Handstand",
+     "4 x 15-30 sec",
+     4,
+     "skill"
+    ],
+    [
+     "Wall Handstand Toe Taps",
+     "3 x 5/lato",
+     3,
+     "skill"
+    ]
+   ],
+   "Balance": [
+    [
+     "Wall Handstand Weight Shift",
+     "3 x 20-30 sec",
+     3,
+     "skill"
+    ],
+    [
+     "Handstand Toe Taps",
+     "3 x 5/lato",
+     3,
+     "skill"
+    ]
+   ]
+  },
+  "Pull-up": {
+   "Foundation": [
+    [
+     "Active Hang",
+     "3 x 15-30 sec",
+     3,
+     "skill"
+    ],
+    [
+     "Scapular Pull-up",
+     "3 x 5-8",
+     3,
+     "skill"
+    ],
+    [
+     "Assisted Pull-up",
+     "3 x 5-8",
+     3,
+     "skill"
+    ],
+    [
+     "Negative Pull-up",
+     "3 x 3-5",
+     3,
+     "skill"
+    ]
+   ],
+   "Strength": [
+    [
+     "Strict Pull-up",
+     "4 x 3-6",
+     4,
+     "skill"
+    ],
+    [
+     "Chest-to-Bar Pull-up",
+     "3 x 2-5",
+     3,
+     "skill"
+    ]
+   ]
+  },
+  "L-Sit": {
+   "Foundation": [
+    [
+     "Tuck Support",
+     "3 x 15-30 sec",
+     3,
+     "skill"
+    ],
+    [
+     "Tuck L-Sit",
+     "3 x 10-20 sec",
+     3,
+     "skill"
+    ],
+    [
+     "Single-Leg L-Sit",
+     "3 x 8-15 sec/lato",
+     3,
+     "skill"
+    ]
+   ],
+   "Progression": [
+    [
+     "L-Sit on Parallettes",
+     "3 x 8-20 sec",
+     3,
+     "skill"
+    ]
+   ]
+  },
+  "Frog Stand": {
+   "Foundation": [
+    [
+     "Frog Stand",
+     "4 x 10-20 sec",
+     4,
+     "skill"
+    ],
+    [
+     "Frog Stand Weight Shift",
+     "3 x 5/lato",
+     3,
+     "skill"
+    ],
+    [
+     "Frog Stand Toe Lift",
+     "3 x 3-5",
+     3,
+     "skill"
+    ]
+   ]
+  },
+  "Core & Compression": {
+   "Core Control": [
+    [
+     "Hollow Body Hold",
+     "3 x 20-30 sec",
+     3,
+     "skill"
+    ],
+    [
+     "Dead Bug",
+     "3 x 8-10/lato",
+     3,
+     "skill"
+    ]
+   ],
+   "Compression": [
+    [
+     "Hamstring Stretch Compression",
+     "3 x 8-12",
+     3,
+     "mobility"
+    ],
+    [
+     "Single-Leg Lift",
+     "3 x 8-12/lato",
+     3,
+     "mobility"
+    ]
+   ]
+  }
+ },
+ "mainRest": [
+  [
+   "Giorno 1",
+   "Pull-up",
+   "4 x 4-6 · RIR 1-2 · 180 sec",
+   180
+  ],
+  [
+   "Giorno 1",
+   "Lat Pulldown presa larga",
+   "3 x 6-8 · RIR 1-2 · 120 sec",
+   120
+  ],
+  [
+   "Giorno 1",
+   "Chest Supported Row",
+   "3 x 6-8 · RIR 1-2 · 120 sec",
+   120
+  ],
+  [
+   "Giorno 1",
+   "Dumbbell Lateral Raise",
+   "3 x 10-15 · RIR 1-2 · 75 sec",
+   75
+  ],
+  [
+   "Giorno 1",
+   "Face Pull",
+   "2 x 15-20 · RIR 1-2 · 60-75 sec",
+   75
+  ],
+  [
+   "Giorno 1",
+   "Bayesian Cable Curl",
+   "2-3 x 8-12 · RIR 1-2 · 75-90 sec",
+   90
+  ],
+  [
+   "Giorno 2",
+   "Machine Hip Thrust",
+   "4 x 5-8 · RIR 1-2 · 150-180 sec",
+   180
+  ],
+  [
+   "Giorno 2",
+   "Barbell / DB RDL",
+   "3 x 6-8 · RIR 1-2 · 150 sec",
+   150
+  ],
+  [
+   "Giorno 2",
+   "Seated Leg Curl",
+   "3 x 8-10 · RIR 1-2 · 90 sec",
+   90
+  ],
+  [
+   "Giorno 2",
+   "Bulgarian Split Squat",
+   "3 x 6-10/gamba · RIR 1-2 · 120 sec",
+   120
+  ],
+  [
+   "Giorno 2",
+   "Hip Abduction Seated",
+   "3 x 12-20 · RIR 1-2 · 60 sec",
+   60
+  ],
+  [
+   "Giorno 3",
+   "Frog Stand",
+   "4-5 x 5-20 sec · tecnica · 60-90 sec",
+   90
+  ],
+  [
+   "Giorno 3",
+   "DB Overhead Press",
+   "3 x 5-8 · RIR 1-2 · 120 sec",
+   120
+  ],
+  [
+   "Giorno 3",
+   "Machine Dip",
+   "3 x 6-10 · RIR 1-2 · 120 sec",
+   120
+  ],
+  [
+   "Giorno 3",
+   "Cable Lateral Raise",
+   "3 x 12-15 · RIR 1-2 · 75 sec",
+   75
+  ],
+  [
+   "Giorno 3",
+   "Face Pull",
+   "2 x 15-20 · RIR 1-2 · 60-75 sec",
+   75
+  ],
+  [
+   "Giorno 3",
+   "Overhead Triceps Extension",
+   "2-3 x 10-15 · RIR 1-2 · 75 sec",
+   75
+  ],
+  [
+   "Giorno 3",
+   "Hanging Knee Raise",
+   "3 x 8-12 · controllo · 60 sec",
+   60
+  ],
+  [
+   "Giorno 4",
+   "L-Sit",
+   "3 x 10-20 sec · tecnica · 60-90 sec",
+   90
+  ],
+  [
+   "Giorno 4",
+   "KAS Glute Bridge",
+   "3 x 8-12 · RIR 1-2 · 90 sec",
+   90
+  ],
+  [
+   "Giorno 4",
+   "Cable Kickback",
+   "3 x 10-15 · RIR 1-2 · 75 sec",
+   75
+  ],
+  [
+   "Giorno 4",
+   "Back Extension Glute Bias",
+   "3 x 8-12 · RIR 1-2 · 90 sec",
+   90
+  ],
+  [
+   "Giorno 4",
+   "Hip Abduction Seated",
+   "3 x 15-25 · RIR 1-2 · 45-60 sec",
+   60
+  ],
+  [
+   "Giorno 4",
+   "Dead Bug",
+   "3 x 8-10/lato · controllo · 45-60 sec",
+   60
+  ],
+  [
+   "Giorno 4",
+   "Vacuum addominale",
+   "3 x 15-30 sec · 30-45 sec",
+   45
+  ],
+  [
+   "Giorno 5",
+   "Bulgarian Split Squat",
+   "3 x 6-10/gamba · RIR 1-2 · 120 sec",
+   120
+  ],
+  [
+   "Giorno 5",
+   "Leg Extension",
+   "2 x 10-15 · RIR 1-2 · 75 sec",
+   75
+  ],
+  [
+   "Giorno 5",
+   "Lat Pulldown neutral/reverse",
+   "3 x 8-10 · RIR 1-2 · 90-120 sec",
+   120
+  ],
+  [
+   "Giorno 5",
+   "Dumbbell Lateral Raise",
+   "3 x 12-15 · RIR 1-2 · 75 sec",
+   75
+  ],
+  [
+   "Giorno 5",
+   "Face Pull",
+   "2 x 15-20 · RIR 1-2 · 60 sec",
+   60
+  ],
+  [
+   "Giorno 5",
+   "Single-Leg Plate Hop to Skater Jump",
+   "3-4 x 3/lato · esplosivo · 90 sec",
+   90
+  ],
+  [
+   "Giorno 5",
+   "Hang Power Clean",
+   "3 x 3 · tecnica · 120 sec",
+   120
+  ],
+  [
+   "Giorno 5",
+   "Depth Drop + Broad Jump",
+   "3 x 2 · qualità · 120 sec",
+   120
+  ],
+  [
+   "Giorno 5",
+   "Pin Squat",
+   "4 x 4-6 · RIR 1-2 · 150 sec",
+   150
+  ],
+  [
+   "Giorno 5",
+   "Vertical Jump Assisted",
+   "3 x 3 · esplosivo · 90 sec",
+   90
+  ],
+  [
+   "Giorno 5",
+   "Cossack Squat",
+   "3 x 6/lato · controllo · 75-90 sec",
+   90
+  ],
+  [
+   "Giorno 5",
+   "Single-Leg Hip Thrust",
+   "3 x 8/lato · RIR 1-2 · 90 sec",
+   90
+  ],
+  [
+   "Giorno 5",
+   "45° Glute-Ham Raise",
+   "3 x 8-12 · RIR 1-2 · 90 sec",
+   90
+  ],
+  [
+   "Core",
+   "Dead Bug",
+   "3 x 8-10/lato",
+   90
+  ],
+  [
+   "Core",
+   "Hanging Knee Raise",
+   "3 x 10-15",
+   90
+  ],
+  [
+   "Core",
+   "Vacuum addominale",
+   "3 x 15-20 sec",
+   90
+  ],
+  [
+   "Nuoto",
+   "Nuoto",
+   "minuti / vasche",
+   90
+  ],
+  [
+   "Casa",
+   "Glute Bridge",
+   "3 x 12-15 · RIR 1",
+   90
+  ],
+  [
+   "Casa",
+   "Stacco Sumo con Manubrio",
+   "3 x 12 · RIR 1-2",
+   90
+  ],
+  [
+   "Casa",
+   "Glute Bridge monopodalico",
+   "3 x 10-12/gamba · RIR 0-1",
+   90
+  ],
+  [
+   "Casa",
+   "Banded Clamshell",
+   "3 x 12-15/lato · RIR 0-1",
+   90
+  ],
+  [
+   "Casa",
+   "Clamshell con manubrio",
+   "3 x 12-15/lato · RIR 0-1",
+   90
+  ]
+ ]
+}
