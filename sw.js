@@ -1,4 +1,4 @@
-const CACHE = "fede-tracker-v64";
+const CACHE = "fede-tracker-v65";
 const FILES = [
   "./assets/css/app.css",
   "./assets/exercises/upper-generic.svg",
@@ -13,6 +13,9 @@ const FILES = [
   "./assets/exercises/dumbbell-lateral-raise.svg",
   "./assets/exercises/dumbbell-overhead-press.svg",
   "./assets/exercises/frog-stand.svg",
+  "./assets/exercises/frog-stand-weight-shift.svg",
+  "./assets/exercises/handstand-toe-taps.svg",
+  "./assets/exercises/wall-handstand-toe-taps.svg",
   "./assets/exercises/glute-bridge-monopodalico.svg",
   "./assets/exercises/glute-bridge.svg",
   "./assets/exercises/incline-curl.svg",

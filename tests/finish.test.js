@@ -89,7 +89,9 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     const pu = h.run('exerciseHTML()');
     // Media review pass gave Pull-up/Face Pull real videos; Nuoto (photo, no video) and a Lab drill without assets keep the fallbacks.
     T('B8 Nuoto (photo, no video): photo shown + search link kept', /media-photo[\s\S]{0,300}<img class="media-photo-img" src="assets\/exercises\/photos\/nuoto\.jpg"/.test(pu) && /youtube\.com\/results/.test(pu));
-    T('B8 Wall Handstand Toe Taps (no photo, no video): neutral placeholder kept', /placeholder-detail-art/.test(h.run('exCtx={day:LAB_CALISTHENICS_DAY,back:"calisthenics"};exIdx=3;exerciseHTML()')));
+    T('B8 Wall Handstand Toe Taps (no video): shows its own illustration, not the emoji placeholder', (() => {
+      const out = h.run('exCtx={day:LAB_CALISTHENICS_DAY,back:"calisthenics"};exIdx=3;exerciseHTML()');
+      return /wall-handstand-toe-taps\.svg/.test(out) && !/placeholder-detail-art/.test(out) && /youtube\.com\/results/.test(out); })());
     h.run('exCtx=null;data.day="Giorno 1";');
     T('B8 Hip Thrust (real video): FRAME VIDEO poster kept', /local-player-poster[\s\S]*FRAME VIDEO/.test(h.run('data.day="Giorno 2";exIdx=0;exerciseHTML()'))); }
 
@@ -100,8 +102,9 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     T('B9 Plank (unmapped) / Wall Handstand Weight Shift', th('Plank') === 'mobility-generic.svg' && th('Wall Handstand Weight Shift') === 'upper-generic.svg');
     T('B9 unmapped hip-thrust variants keep the glute illustration', th('Hip Thrust con elastico') === 'glute-bridge.svg');
     T('B9 Coach Cable Row / Romanian Deadlift / Leg Curl Machine use existing photos of the same movement', th('Cable Row') === 'photos/seated-cable-row.jpg' && th('Romanian Deadlift') === 'photos/barbell-db-rdl.jpg' && th('Leg Curl Machine') === 'photos/seated-leg-curl.jpg');
-    const REVIEWED = ['Face Pull', 'Reverse Lunge', 'Step-Up', 'Triceps Cable Pushdown', 'Ab Wheel', 'Mountain Climbers', 'Power Clean', 'Scapular Pull-up', 'Assisted Pull-up', 'Pull-up', 'Lat Pulldown presa larga', 'DB Overhead Press'];
-    T('B9 every mapped exercise keeps its previous image (except the 12 reviewed replacements)', (() => { const hb = H(REPO, {}, headHtml); const names = JSON.parse(hb.run('JSON.stringify(Object.keys(MUSCLE_DB).concat(Object.keys(EXDB)))')); return names.filter(n => hb.run(`exerciseAsset(${J(n)})`) && !REVIEWED.includes(n)).every(n => hb.run(`localThumbnail(${J(n)})`) === h.run(`localThumbnail(${J(n)})`)); })()); }
+    // + le tre illustrazioni dedicate disegnate per il restyle: prima cadevano sui generici.
+    const REVIEWED = ['Face Pull', 'Reverse Lunge', 'Step-Up', 'Triceps Cable Pushdown', 'Ab Wheel', 'Mountain Climbers', 'Power Clean', 'Scapular Pull-up', 'Assisted Pull-up', 'Pull-up', 'Lat Pulldown presa larga', 'DB Overhead Press', 'Wall Handstand Toe Taps', 'Handstand Toe Taps', 'Frog Stand Weight Shift'];
+    T('B9 every mapped exercise keeps its previous image (except the 15 reviewed replacements)', (() => { const hb = H(REPO, {}, headHtml); const names = JSON.parse(hb.run('JSON.stringify(Object.keys(MUSCLE_DB).concat(Object.keys(EXDB)))')); return names.filter(n => hb.run(`exerciseAsset(${J(n)})`) && !REVIEWED.includes(n)).every(n => hb.run(`localThumbnail(${J(n)})`) === h.run(`localThumbnail(${J(n)})`)); })()); }
 
   // ---------- B10: set-number badge follows the tick ----------
   { const h = H(REPO); const click = h.ctx.__listeners.document.filter(x => x.type === 'click');
@@ -153,7 +156,7 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     const guarded = ['doSave', 'doSaveNow', 'flushSave', 'save', 'getSetValue', 'getDoneValue', 'getSideSetValue', 'getSideDoneValue', 'setIsDone', 'setKey', 'sideSetKey', 'exerciseId', 'canonicalExerciseId', 'preparePlanExerciseIds', 'ensureUserPlan', 'setupDay5Variants', 'setDay5Variant', 'coachApplyPending', 'buildBackupObject', 'applyBackupImport', 'analyzeBackup', 'mergeDayRecord', 'parseBackupText', 'createSafetySnapshot', 'archiveStoredUserPlan', 'replaceUserPlanSafely', 'migrateLegacyHistory', 'syncRecordExerciseMap', 'load', 'applyServiceWorkerUpdate', 'onServiceWorkerControllerChange', 'showUpdateBanner'];
     const changed = guarded.filter(n => fn(headHtml, n) !== fn(html, n));
     T('data / storage / ID / plan / migration / import-export / SW functions byte-identical to HEAD', changed.length === 0, changed.join());
-    T('sw.js: only cache bump + new photo precache; manifest.json unchanged', (() => { const d = REF.diffLines('sw.js'); return REF.unchanged('manifest.json') && d.every(l => /^[-+]const CACHE = "fede-tracker-v6[234]";$/.test(l) || /^\+  "\.\/assets\/exercises\/photos\/[a-z0-9-]+\.jpg",$/.test(l) || /^\+  "\.\/assets\/css\/app\.css",$/.test(l)); })());
+    T('sw.js: only cache bump + new illustration/photo precache; manifest.json unchanged', (() => { const d = REF.diffLines('sw.js'); return REF.unchanged('manifest.json') && d.every(l => /^[-+]const CACHE = "fede-tracker-v6[2345]";$/.test(l) || /^\+  "\.\/assets\/exercises\/photos\/[a-z0-9-]+\.jpg",$/.test(l) || /^\+  "\.\/assets\/exercises\/[a-z0-9-]+\.svg",$/.test(l) || /^\+  "\.\/assets\/css\/app\.css",$/.test(l)); })());
     const h = H(REPO); boot(h); h.run('agenda=[];week=[];hist=[];strengthHist=[];calData={};'); const before = J(h.store);
     ['home', 'workout', 'agenda', 'calisthenics', 'mobility', 'nutri', 'evo', 'profile', 'power', 'finishers', 'accessories', 'exercise'].forEach(v => h.run(`view=${J(v)};exIdx=0;renderCore();`));
     T('rendering every view writes nothing', J(h.store) === before); }

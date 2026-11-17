@@ -47,7 +47,7 @@ const prof = (o) => J(Object.assign({ name: 'Test', goal: '', days: 5, duration:
       fetch: () => Promise.reject(new Error('offline')), Response: function (b, o) { this.status = o.status; }, Promise, console });
     vm.runInContext(src, ctx);
     T('sw.js parses (syntax error from main fixed)', true);
-    T('CACHE bumped to v64 (media review assets)', /const CACHE = "fede-tracker-v64";/.test(src));
+    T('CACHE bumped to v65 (restyle: three new illustrations)', /const CACHE = "fede-tracker-v65";/.test(src));
     T('precache: no seed file, icons included, all files exist', !/backup-seed/.test(src) && /"\.\/icon-192\.png"/.test(src) && /"\.\/icon-512\.png"/.test(src) && src.match(/"\.\/[^"]+"/g).every(f => fs.existsSync(REPO + '/' + f.slice(3, -1))));
     let waits = []; L.install({ waitUntil: p => waits.push(p) }); await Promise.all(waits);
     T('install does NOT call skipWaiting', skipped === 0);
