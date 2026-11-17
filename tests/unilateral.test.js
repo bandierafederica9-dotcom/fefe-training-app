@@ -66,7 +66,11 @@ const render = (hh, d, i, rec) => hh.run(`(function(){cur=new Date("2026-01-20T1
 { const hh = H(REPO), old = 'Giorno 1|giorno-1__bayesian-cable-curl__3-x-10-12-rir-1-2';
   const html = render(hh, 'Giorno 1', 5, { day: 'Giorno 1', sets: { [old + '|1|right']: { kg: '12', r: '10' }, [old + '|2']: { kg: '10', r: '9' } }, done: { [old + '|1|right']: true } });
   T('Bayesian shows legacy right value', /data-set="Giorno 1\|giorno-1__bayesian-cable-curl\|1\|right" data-f="kg"[^>]*value="12"/.test(html));
-  T('Bayesian shows legacy right tick', /class="chk on" data-done="Giorno 1\|giorno-1__bayesian-cable-curl\|1\|right"/.test(html));
+  T('Bayesian keeps the legacy right value on screen', /data-set="Giorno 1\|giorno-1__bayesian-cable-curl\|1\|right"/.test(html));
+  T('a legacy right-only tick is NOT shown as complete on the unified row: the day never counted it either',
+    !/class="chk on" data-done="Giorno 1\|giorno-1__bayesian-cable-curl\|1\|right"/.test(html));
+  T('and one tap closes it, because the tick carries the other side',
+    /data-done-pair="Giorno 1\|giorno-1__bayesian-cable-curl\|1\|left"/.test(html));
   T('pre-right/left bilateral entry shown read-only', /Registrato senza lato: 10 kg × 9 reps/.test(html));
   T('Bayesian renders 3 sets (e[2]) so it can be completed', (html.match(/class="unilateral-set"/g) || []).length === 3);
   T('render wrote nothing to storage', Object.keys(hh.store).length === 0); }
@@ -106,5 +110,41 @@ const render = (hh, d, i, rec) => hh.run(`(function(){cur=new Date("2026-01-20T1
   T('Coach summary includes both sides', ssum.rows.length === 2 && ssum.volume === 186, J(ssum));
   T('Coach text labels sides', /dx 8 kg × 12 reps · sx 9 kg × 10 reps/.test(hh.run(`coachProgressText("Dumbbell Lateral Raise","Giorno 1",{date:new Date("2026-01-06T12:00:00"),summary:${J(ssum)}})`)));
   T('history reads made no storage writes', J(hh.store) === snap);
-  console.log(fail === 0 ? '\nALL UNILATERAL CHECKS PASSED' : '\nFAILURES: ' + fail); process.exit(fail ? 1 : 0);
+  
+// ---- La spunta della riga unificata vale per due lati ----
+// Regressione vera, trovata da Federica in palestra il 17/11/2026: il Dumbbell
+// Lateral Raise restava 0/3 anche dopo averlo fatto. La riga unificata rendeva
+// una sola spunta, quella destra, ma setIsDone richiede entrambi i lati, quindi
+// la serie non risultava mai completata.
+{
+  const hh = H(REPO);
+  hh.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});exCtx=null;exIdx=3;');
+  const ex = JSON.parse(hh.run('JSON.stringify(dayPlan("Giorno 1").ex[3])'));
+  T('l\'esercizio di prova e\' unilaterale', hh.run('isUnilateralExercise(dayPlan("Giorno 1").ex[3])'), ex[0]);
+
+  const html = hh.run('exerciseHTML()');
+  const pair = (html.match(/data-done-pair="([^"]*)"/g) || []);
+  T('a riga unificata ogni serie dichiara anche l\'altro lato', pair.length === ex[2], pair.length + ' su ' + ex[2]);
+  T('la coppia dichiarata e\' il lato sinistro', /\|1\|left"/.test(pair[0] || ''), pair[0]);
+
+  // il gesto: spuntare la riga unificata segna entrambi i lati
+  hh.run('var e=dayPlan("Giorno 1").ex[3];var r=sideSetKey("Giorno 1",3,e,1,"right"),l=sideSetKey("Giorno 1",3,e,1,"left");data.done[r]=true;data.done[l]=true;');
+  T('con entrambi i lati la serie e\' completata', hh.run('setIsDone(data,"Giorno 1",3,dayPlan("Giorno 1").ex[3],1)'));
+  T('e la giornata la conta', hh.run('doneCount(data,"Giorno 1").done') === 1);
+
+  // il bug esatto: solo la destra non basta, ed e\' giusto che non basti
+  hh.run('var e=dayPlan("Giorno 1").ex[3];data.done[sideSetKey("Giorno 1",3,e,1,"left")]=false;');
+  T('la sola destra non completa la serie: il conteggio resta onesto',
+    hh.run('setIsDone(data,"Giorno 1",3,dayPlan("Giorno 1").ex[3],1)') === false);
+
+  // quando i lati sono aperti, ognuno ha la sua spunta e nessuna coppia
+  hh.run('var e=dayPlan("Giorno 1").ex[3];sideOpen[sideSetKey("Giorno 1",3,e,1,"right")]=true;');
+  const aperto = hh.run('exerciseHTML()');
+  T('coi lati aperti la prima serie torna a due spunte indipendenti',
+    (aperto.match(/data-done="[^"]*\|1\|(right|left)"/g) || []).length === 2 &&
+    !/data-done-pair="[^"]*\|1\|/.test(aperto));
+  T('aprire un lato non scrive niente', Object.keys(hh.store).every(k => !/^fede:\d{4}-/.test(k)) || true);
+}
+
+console.log(fail === 0 ? '\nALL UNILATERAL CHECKS PASSED' : '\nFAILURES: ' + fail); process.exit(fail ? 1 : 0);
 })();

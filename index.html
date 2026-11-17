@@ -2529,15 +2529,19 @@ function exerciseHTML(){
       const lv=getSideSetValue(data,day,exIdx,e,sn,'left');
       const differs=!!lv&&(String(lv.kg||'')!==String(rv.kg||'')||String(lv[cf.f]||'')!==String(rv[cf.f]||''));
       const open=differs||!!sideOpen[rid];
-      const sideBlock=function(side,id,v,label){
-        const on=getSideDoneValue(data,day,exIdx,e,sn,side);
+      // Riga unificata ('Destra e sinistra'): la spunta vale per due lati, perche'
+      // setIsDone li richiede entrambi per considerare fatta la serie.
+      const sideBlock=function(side,id,v,label,pair){
+        const on=pair
+          ? (getSideDoneValue(data,day,exIdx,e,sn,'right')&&getSideDoneValue(data,day,exIdx,e,sn,'left'))
+          : getSideDoneValue(data,day,exIdx,e,sn,side);
         return '<div class="side-block" style="display:grid;grid-template-columns:'+(exLoad(e)==='bodyweight'&&!String(v.kg||'').length?'1fr 34px':'1fr 1fr 34px')+';gap:7px;align-items:end;padding:8px 10px;margin-top:6px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.55)">'
           +'<div style="grid-column:1/-1;font-size:11px;font-weight:900;color:var(--navy)">'+label+'</div>'
           +'<div class="fld"><label>'+cf.l+'</label><input data-set="'+id+'" data-f="'+cf.f+'" type="number" inputmode="numeric" value="'+esc(countValue(v,cf))+'"></div>'
           +kgCell(e,id,v)
-          +'<button class="chk '+(on?'on':'')+'" data-done="'+id+'">'+(on?'✓':'')+'</button></div>';
+          +'<button class="chk '+(on?'on':'')+'" data-done="'+id+'"'+(pair?' data-done-pair="'+pair+'"':'')+'>'+(on?'✓':'')+'</button></div>';
       };
-      h+=sideBlock('right',rid,rv,open?sideLabel(e,'right'):'Destra e sinistra');
+      h+=sideBlock('right',rid,rv,open?sideLabel(e,'right'):'Destra e sinistra',open?null:lid);
       if(open){
         h+=sideBlock('left',lid,lv||{kg:'',r:''},sideLabel(e,'left'));
         if(differs)h+='<div class="side-gap">Asimmetria registrata</div>';
@@ -3739,6 +3743,9 @@ function bind(){
     // Toggle what the user SEES (the button state), so a set shown as done via a legacy key can be unticked.
     const shown=/(^|\s)on(\s|$)/.test(b.className);
     data.done[id]=!shown;
+    // Riga unificata: la spunta scrive entrambi i lati, altrimenti la serie non
+    // risulterebbe mai completata e la giornata resterebbe indietro.
+    const pair=b.dataset.donePair; if(pair)data.done[pair]=data.done[id];
     b.className='chk'+(data.done[id]?' on':'');
     b.textContent=data.done[id]?'✓':'';
     save();};});
