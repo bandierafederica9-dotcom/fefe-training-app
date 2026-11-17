@@ -85,9 +85,13 @@ const J = JSON.stringify;
     g1.carb === n1.carb + 1 && g1.prot === n1.prot, J(n1) + ' -> ' + J(g1));
 
   // ---------- 8) Costruire non scrive; salvare sì, ed è l'unico che scrive ----------
-  const prima = J(h.store);
+  const giorniPrima = Object.keys(h.store).filter(k => /^fede:\d{4}-/.test(k)).length;
   h.run('buildHTML();buildToggle("veg","Broccoli");buildHTML();buildTotals();buildAdviceText();buildDish();');
-  T('scegliere e guardare la ricetta non scrive niente', J(h.store) === prima);
+  T('scegliere e guardare la ricetta non tocca nessun giorno',
+    Object.keys(h.store).filter(k => /^fede:\d{4}-/.test(k)).length === giorniPrima);
+  T('l\'unica cosa che scrive \u00e8 la cena in costruzione',
+    Object.keys(h.store).every(k => /^fede:\d{4}-/.test(k) || k === 'fede:build' || k === 'fede:profile'),
+    Object.keys(h.store).join(','));
 
   {
     const hs = H(REPO);
@@ -230,6 +234,33 @@ const J = JSON.stringify;
     T('con una persona non compare la riga "a testa"', !/a testa<\/em>/.test(hp.run('buildDishHTML()')));
     const sel = hp.run('buildHTML()');
     T('il selettore offre da 1 a 4 persone', (sel.match(/data-buildpeople="/g) || []).length === 4);
+  }
+
+  // ---------- 12) Dove si rivede il piatto ----------
+  {
+    const hd = H(REPO);
+    hd.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});');
+    hd.run('buildSel={prot:"",carb:[],fat:[],veg:[]};buildPeople=2;buildGym=false;');
+    ['prot|Manzo magro','carb|Patata','fat|Olio di oliva','veg|Melanzane'].forEach(k => {
+      const [r, n] = k.split('|'); hd.run('buildToggle(' + J(r) + ',' + J(n) + ');'); });
+    const titolo = JSON.parse(hd.run('JSON.stringify(buildDish())')).titolo;
+    hd.run('buildSaveToDiary();doSaveNow&&doSaveNow();');
+    T('il nome del piatto resta col giorno, non solo gli ingredienti',
+      JSON.parse(hd.run('JSON.stringify(data.dishLog)'))[0].t === titolo, titolo);
+    T('e viaggia nel backup del giorno', (JSON.parse(hd.store['fede:2026-01-21'] || '{}').dishLog || []).length === 1);
+    hd.run('view="diario";');
+    const diario = hd.run('diarioHTML()');
+    T('il diario mostra il piatto sopra i suoi ingredienti', diario.indexOf(titolo) > -1 && /diary-dish/.test(diario));
+    T('e dice per quante persone era', /dosi per 2/.test(diario));
+    T('il titolo sta sotto Cena, non sotto Colazione',
+      diario.indexOf(titolo) > diario.indexOf('Cena'), 'posizione');
+
+    // la selezione sopravvive alla chiusura dell'app
+    T('la cena in costruzione viene salvata', !!hd.store['fede:build'], Object.keys(hd.store).join(','));
+    const hr = H(REPO, { 'fede:build': hd.store['fede:build'] });
+    T('riaprendo l\'app la ricetta \u00e8 ancora l\u00ec',
+      hr.run('buildSel.prot') === 'Manzo magro' && hr.run('buildPeople') === 2, hr.run('JSON.stringify(buildSel)'));
+    T('e non porta con s\u00e9 nessun dato datato', !/\d{4}-\d{2}-\d{2}/.test(hd.store['fede:build']));
   }
 
   console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');

@@ -2885,11 +2885,22 @@ let buildGym=false;
 // Per quante persone si cucina. Moltiplica solo i grammi da mettere in pentola:
 // kcal e proteine restano a testa, perche' il bersaglio e' suo, non della tavola.
 let buildPeople=1;
+// La ricetta costruita sopravvive alla chiusura dell'app: tornarci e non
+// trovare piu' niente e' il motivo per cui sembrava che non salvasse.
+const BUILD_KEY='fede:build';
+function buildPersist(){try{localStorage.setItem(BUILD_KEY,JSON.stringify(
+  {sel:buildSel,people:buildPeople,gym:buildGym}));}catch(e){}}
+function buildRestore(){try{const r=JSON.parse(localStorage.getItem(BUILD_KEY)||'null');
+  if(!r||!r.sel)return;
+  buildSel={prot:r.sel.prot||'',carb:r.sel.carb||[],fat:r.sel.fat||[],veg:r.sel.veg||[]};
+  buildPeople=+r.people||1; buildGym=!!r.gym;}catch(e){}}
+buildRestore();
 function buildGramsFor(role,name){return buildItemTotals(role,name).g*buildPeople;}
 function buildToggle(role,name){
-  if(role==='prot'){buildSel.prot=buildSel.prot===name?'':name;return;}
+  if(role==='prot'){buildSel.prot=buildSel.prot===name?'':name;buildPersist();return;}
   const a=buildSel[role], i=a.indexOf(name);
   if(i>-1)a.splice(i,1); else a.push(name);
+  buildPersist();
 }
 function buildChosen(){
   const out=[];
@@ -3034,7 +3045,11 @@ function buildSaveToDiary(){
   if(!data.food)data.food={};
   if(!Array.isArray(data.food['Cena']))data.food['Cena']=[];
   voci.forEach(function(v){data.food['Cena'].push(v);});
-  save();
+  // Il nome del piatto resta col giorno: altrimenti nel diario restano sei
+  // righe di ingredienti e nessuna traccia di cosa fosse.
+  if(!Array.isArray(data.dishLog))data.dishLog=[];
+  data.dishLog.push({slot:'Cena',t:d.titolo,people:buildPeople});
+  buildPersist(); save();
   return {ok:true,n:voci.length,titolo:d.titolo};
 }
 let buildSaved='';
@@ -3128,7 +3143,9 @@ function nutriHTML(){
 function diarioHTML(){
   const t=tot(data);let h='<div class="pagehd"><button class="back" data-back="nutri">‹</button><h2>'+(getAppLanguage()==='en'?'Food diary':'Diario alimentare')+'<span class="sm">'+fmtLong(cur)+'</span></h2></div><div class="wrap">';
   h+='<div class="card"><div class="note">'+(getAppLanguage()==='en'?'Record what you actually ate. The official 7-day plan is not changed by diary entries.':'Registra ciò che hai realmente mangiato. Il piano ufficiale dei 7 giorni non viene modificato dal diario.')+'</div></div>';
-  MEALS.forEach(function(m){const name=m[0];let sub=0;(data.food[name]||[]).forEach(function(i){sub+=+i.kcal||0;});h+='<div class="mealhdr">'+m[1]+' '+name+' <span class="subkc" data-sub="'+esc(name)+'">· '+sub+' kcal</span></div><div class="card">';(data.food[name]||[]).forEach(function(it,i){const known=FOODDB[it.n],custom=it.custom||(it.n&&!known);h+='<div class="fitem">';if(custom){h+='<div class="frow1"><input data-m="'+name+'" data-i="'+i+'" data-f="n" placeholder="nome alimento" value="'+esc(it.n)+'"><button class="fback" data-back2="'+name+'|'+i+'">☰</button></div>';}else{h+='<div class="frow1"><select data-m="'+name+'" data-i="'+i+'" data-f="n"><option value="">— scegli alimento —</option>'+FOODLIST.map(function(f){return '<option value="'+esc(f)+'"'+(f===it.n?' selected':'')+'>'+f+'</option>';}).join('')+'<option value="__custom__">✏️ Altro (scrivi tu)</option></select></div>';}h+='<div class="frow2"><div><label>grammi</label><input data-m="'+name+'" data-i="'+i+'" data-f="g" type="number" inputmode="numeric" placeholder="0" value="'+esc(it.g)+'"></div><div><label>kcal</label><input data-m="'+name+'" data-i="'+i+'" data-f="kcal" type="number" inputmode="numeric" placeholder="0" value="'+esc(it.kcal)+'"'+(known?' readonly':'')+'></div><div><label>prot</label><input data-m="'+name+'" data-i="'+i+'" data-f="p" type="number" inputmode="decimal" placeholder="0" value="'+esc(it.p)+'"'+(known?' readonly':'')+'></div><button class="x" data-del="'+name+'|'+i+'">×</button></div>';if(known)h+='<div class="fhint">'+known.kcal+' kcal · '+known.p+' g proteine per 100 g</div>';h+='</div>';});h+='<button class="addbtn" data-add="'+name+'">+ aggiungi alimento</button></div>';});
+  MEALS.forEach(function(m){const name=m[0];let sub=0;(data.food[name]||[]).forEach(function(i){sub+=+i.kcal||0;});h+='<div class="mealhdr">'+m[1]+' '+name+' <span class="subkc" data-sub="'+esc(name)+'">· '+sub+' kcal</span></div><div class="card">'
+      +((data.dishLog||[]).filter(function(x){return x&&x.slot===name&&x.t;})
+        .map(function(x){return '<div class="diary-dish">'+esc(x.t)+(x.people>1?' · dosi per '+x.people:'')+'</div>';}).join(''));(data.food[name]||[]).forEach(function(it,i){const known=FOODDB[it.n],custom=it.custom||(it.n&&!known);h+='<div class="fitem">';if(custom){h+='<div class="frow1"><input data-m="'+name+'" data-i="'+i+'" data-f="n" placeholder="nome alimento" value="'+esc(it.n)+'"><button class="fback" data-back2="'+name+'|'+i+'">☰</button></div>';}else{h+='<div class="frow1"><select data-m="'+name+'" data-i="'+i+'" data-f="n"><option value="">— scegli alimento —</option>'+FOODLIST.map(function(f){return '<option value="'+esc(f)+'"'+(f===it.n?' selected':'')+'>'+f+'</option>';}).join('')+'<option value="__custom__">✏️ Altro (scrivi tu)</option></select></div>';}h+='<div class="frow2"><div><label>grammi</label><input data-m="'+name+'" data-i="'+i+'" data-f="g" type="number" inputmode="numeric" placeholder="0" value="'+esc(it.g)+'"></div><div><label>kcal</label><input data-m="'+name+'" data-i="'+i+'" data-f="kcal" type="number" inputmode="numeric" placeholder="0" value="'+esc(it.kcal)+'"'+(known?' readonly':'')+'></div><div><label>prot</label><input data-m="'+name+'" data-i="'+i+'" data-f="p" type="number" inputmode="decimal" placeholder="0" value="'+esc(it.p)+'"'+(known?' readonly':'')+'></div><button class="x" data-del="'+name+'|'+i+'">×</button></div>';if(known)h+='<div class="fhint">'+known.kcal+' kcal · '+known.p+' g proteine per 100 g</div>';h+='</div>';});h+='<button class="addbtn" data-add="'+name+'">+ aggiungi alimento</button></div>';});
   h+='<div class="card" style="margin-top:10px"><div style="display:flex;gap:14px;text-align:center"><div style="flex:1"><div style="font-size:22px;font-weight:800" id="totkc">'+t.kc+'</div><div style="font-size:10.5px;color:var(--dim);font-weight:700">KCAL TOTALI</div></div><div style="flex:1"><div style="font-size:22px;font-weight:800" id="totpr">'+t.pr+' g</div><div style="font-size:10.5px;color:var(--dim);font-weight:700">PROTEINE</div></div></div></div></div>';return h;
 }
 function refreshFoodTotals(){const t=tot(data);const a=document.getElementById('totkc');if(a)a.textContent=t.kc;const b=document.getElementById('totpr');if(b)b.textContent=t.pr+' g';MEALS.forEach(function(m){let sub=0;(data.food[m[0]]||[]).forEach(function(i){sub+=+i.kcal||0;});const el=document.querySelector('[data-sub="'+m[0]+'"]');if(el)el.textContent='· '+sub+' kcal';});}
@@ -4050,17 +4067,17 @@ function bind(){
     const p=b.dataset.opt.split('|');mealOpt[p[0]]=+p[1];render();};});
   // Costruisci la cena: stato in memoria, nessuna scrittura.
   document.querySelectorAll('[data-build]').forEach(function(b){b.onclick=function(){
-    const p=b.dataset.build.split('|');buildToggle(p[0],p.slice(1).join('|'));render();};});
+    const p=b.dataset.build.split('|');buildToggle(p[0],p.slice(1).join('|'));buildPersist();render();};});
   document.querySelectorAll('[data-buildmode]').forEach(function(b){b.onclick=function(){
-    buildGym=b.dataset.buildmode==='gym';render();};});
+    buildGym=b.dataset.buildmode==='gym';buildPersist();render();};});
   document.querySelectorAll('[data-buildsave]').forEach(function(b){b.onclick=function(){
     const r=buildSaveToDiary();
     buildSaved=r.ok?('Salvata: '+r.n+' voci nella cena di oggi. La trovi in Diario.'):r.error;
     render();};});
   document.querySelectorAll('[data-buildpeople]').forEach(function(b){b.onclick=function(){
-    buildPeople=+b.dataset.buildpeople||1;render();};});
+    buildPeople=+b.dataset.buildpeople||1;buildPersist();render();};});
   document.querySelectorAll('[data-buildclear]').forEach(function(b){b.onclick=function(){
-    buildSel={prot:'',carb:[],fat:[],veg:[]};render();};});
+    buildSel={prot:'',carb:[],fat:[],veg:[]};buildPersist();render();};});
   document.querySelectorAll('[data-diet-section]').forEach(function(b){b.onclick=function(){window.__dietSection=b.dataset.dietSection;render();};});
   document.querySelectorAll('[data-diet-day]').forEach(function(b){b.onclick=function(){const dk=+b.dataset.dietDay;const mon=new Date(cur);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));mon.setHours(12,0,0,0);const target=new Date(mon);target.setDate(mon.getDate()+((dk+6)%7));cur=target;window.__dietSection='today';load().then(function(){render();});};});
   document.querySelectorAll('[data-diet-done]').forEach(function(b){b.onclick=function(){const slot=b.dataset.dietDone;const on=!isDietDone(cur,slot);setDietDone(cur,slot,on);render();};});
