@@ -131,7 +131,7 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     T('Coach panel: enter class only on the closed->open render', !/mc-enter/.test(h.run('miniCoachOpen=false;miniCoachHTML()')) && /mc-enter/.test(h.run('miniCoachOpen=true;miniCoachHTML()')) && !/mc-enter/.test(h.run('miniCoachHTML()')) && !/mc-enter/.test(h.run('miniCoachHTML()')) && /mc-enter/.test(h.run('miniCoachOpen=false;miniCoachHTML();miniCoachOpen=true;miniCoachHTML()'))); }
 
   // ---------- CSS P1 layer ----------
-  { const css = html.slice(html.indexOf('<style>') + 7, html.indexOf('</style>'));
+  { const css = require('./appsource').css();
     const p0 = css.slice(css.indexOf('/* ================= MOTION · P0'), css.indexOf('/* ================= MOTION · P1'));
     const p1 = css.slice(css.indexOf('/* ================= MOTION · P1'));
     T('P1 layer appended after the P0 layer', p0.length > 0 && p1.length > 0 && css.indexOf('MOTION · P1') > css.indexOf('MOTION · P0'));
@@ -151,7 +151,7 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     const guarded = ['doSave', 'doSaveNow', 'flushSave', 'save', 'getSetValue', 'getDoneValue', 'getSideSetValue', 'getSideDoneValue', 'setIsDone', 'setKey', 'sideSetKey', 'exerciseId', 'canonicalExerciseId', 'preparePlanExerciseIds', 'ensureUserPlan', 'setupDay5Variants', 'setDay5Variant', 'coachApplyPending', 'buildBackupObject', 'applyBackupImport', 'analyzeBackup', 'mergeDayRecord', 'parseBackupText', 'createSafetySnapshot', 'archiveStoredUserPlan', 'replaceUserPlanSafely', 'migrateLegacyHistory', 'syncRecordExerciseMap', 'load', 'applyServiceWorkerUpdate', 'onServiceWorkerControllerChange', 'showUpdateBanner'];
     const changed = guarded.filter(n => fn(headHtml, n) !== fn(html, n));
     T('data / storage / ID / plan / migration / import-export / SW functions byte-identical to HEAD', changed.length === 0, changed.join());
-    T('sw.js: only cache bump + new photo precache; manifest.json unchanged', (() => { const d = REF.diffLines('sw.js'); return REF.unchanged('manifest.json') && d.every(l => /^[-+]const CACHE = "fede-tracker-v6[23]";$/.test(l) || /^\+  "\.\/assets\/exercises\/photos\/[a-z0-9-]+\.jpg",$/.test(l)); })());
+    T('sw.js: only cache bump + new photo precache; manifest.json unchanged', (() => { const d = REF.diffLines('sw.js'); return REF.unchanged('manifest.json') && d.every(l => /^[-+]const CACHE = "fede-tracker-v6[234]";$/.test(l) || /^\+  "\.\/assets\/exercises\/photos\/[a-z0-9-]+\.jpg",$/.test(l) || /^\+  "\.\/assets\/css\/app\.css",$/.test(l)); })());
     const h = H(REPO); boot(h); h.run('agenda=[];week=[];hist=[];strengthHist=[];calData={};'); const before = J(h.store);
     ['home', 'workout', 'agenda', 'calisthenics', 'mobility', 'nutri', 'evo', 'profile', 'power', 'finishers', 'accessories', 'exercise'].forEach(v => h.run(`view=${J(v)};exIdx=0;renderCore();`));
     T('rendering every view writes nothing', J(h.store) === before); }

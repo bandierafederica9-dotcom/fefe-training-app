@@ -36,7 +36,7 @@ T('Needs-Review / kept photos unchanged', J(['Chest Supported Row', 'Bayesian Ca
 T('No-good-asset exercises keep placeholders', ['Wall Handstand Toe Taps', 'Handstand Toe Taps', 'Frog Stand Weight Shift', 'L-Sit on Parallettes', 'Cossack Squat', 'Ski Erg'].every(n => /\.svg$/.test(h.run(`localThumbnail(${J(n)})`))));
 
 // ---------- 2) Service Worker ----------
-T('SW cache version is fede-tracker-v63', /const CACHE = "fede-tracker-v63";/.test(sw));
+T('SW cache version is fede-tracker-v64', /const CACHE = "fede-tracker-v64";/.test(sw));
 T('every precached file exists', (sw.match(/"\.\/[^"]+"/g) || []).every(f => fs.existsSync(path.join(REPO, f.slice(3, -1)))));
 
 // ---------- 3) Approved videos ----------
