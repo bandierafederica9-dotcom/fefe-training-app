@@ -2847,6 +2847,109 @@ function dietNutriChip(n){
 /* ================= NUTRIZIONE ================= */
 function has(m,name){return (data.food[m]||[]).some(function(i){return i.n===name;});}
 
+/* ================= COSTRUISCI LA CENA =================
+   Quando in casa non c'e' quello che il piano prevede. Le righe di una colonna
+   si equivalgono: una porzione di proteine vale 40 g di proteine, una di
+   carboidrati 230 kcal, una di grassi 130. Cosi' si sceglie senza calcolare.
+   Tutto viene da DIET_NUTRI: nessun valore scritto a mano, niente da tenere
+   allineato. Lo stato e' in memoria: questa schermata non scrive mai. */
+const BUILD_ROLES={
+  prot:{unit:40, label:'Proteine', hint:'una riga = 40 g di proteine', items:[
+    'Tonno al naturale','Albumi pastorizzati','Baccal\u00e0 fresco','Petto di tacchino',
+    'Proteina ISO ChocoMonkey','Pollo','Yogurt proteico senza lattosio','Pesce spada',
+    'Manzo magro','Formaggio Havarti Light','Tofu','Uova']},
+  carb:{kcal:230, label:'Carboidrati', hint:'una riga = 230 kcal', items:[
+    'Riso basmati crudo','Pasta senza glutine','Pane tostato senza glutine','Fajitas di mais',
+    'Pane di mais','Gnocchi','Patata dolce','Mais dolce','Patata','Quinoa','Ceci cotti']},
+  fat:{kcal:130, label:'Grassi', hint:'una riga = 130 kcal', items:[
+    'Olio di oliva','Noci','Mandorle','Burro di arachidi','Anacardi','Semi di lino',
+    'Avocado','Cioccolato fondente']},
+  veg:{grams:200, label:'Verdure', hint:'libere, 200 g a porzione', items:[
+    'Melanzane','Funghi','Broccoli','Spinaci','Zucchine','Asparagi','Peperone rosso',
+    'Peperone verde','Pomodoro','Pomodorini','Cetriolo','Lattuga','Songino','Carota','Cipolla']}
+};
+function buildRound(g){return g>=50?Math.round(g/5)*5:Math.round(g);}
+function buildPortion(role,name){
+  const v=DIET_NUTRI[name]; if(!v)return 0;
+  const r=BUILD_ROLES[role];
+  if(r.grams)return r.grams;
+  if(r.unit)return v[1]?buildRound(4000/v[1]):0;
+  return v[0]?buildRound(r.kcal*100/v[0]):0;
+}
+function buildItemTotals(role,name){
+  const v=DIET_NUTRI[name]||[0,0], g=buildPortion(role,name);
+  return {g:g, kcal:Math.round(v[0]*g/100), prot:Math.round(v[1]*g/100)};
+}
+let buildSel={prot:'',carb:'',fat:[],veg:[]};
+let buildGym=false;
+function buildToggle(role,name){
+  if(role==='prot'||role==='carb'){buildSel[role]=buildSel[role]===name?'':name;return;}
+  const a=buildSel[role], i=a.indexOf(name);
+  if(i>-1)a.splice(i,1); else a.push(name);
+}
+function buildChosen(){
+  const out=[];
+  if(buildSel.prot)out.push(['prot',buildSel.prot]);
+  if(buildSel.carb)out.push(['carb',buildSel.carb]);
+  buildSel.fat.forEach(function(n){out.push(['fat',n]);});
+  buildSel.veg.forEach(function(n){out.push(['veg',n]);});
+  return out;
+}
+function buildTotals(){
+  let kcal=0,prot=0;
+  buildChosen().forEach(function(x){const t=buildItemTotals(x[0],x[1]);kcal+=t.kcal;prot+=t.prot;});
+  return {kcal:kcal,prot:prot};
+}
+// Il bersaglio della cena: una sera normale o una da palestra.
+function buildTarget(){return buildGym?{kcal:900,prot:50}:{kcal:640,prot:45};}
+function buildAdviceText(){
+  const t=buildTotals(), g=buildTarget();
+  if(!buildSel.prot&&!buildSel.carb&&!buildSel.fat.length)
+    return 'Scegli una riga per colonna. Le righe di una stessa colonna si equivalgono: non devi fare conti.';
+  if(!buildSel.prot)return 'Manca la proteina: \u00e8 la colonna che regge il piatto.';
+  const dk=t.kcal-g.kcal, dp=t.prot-g.prot;
+  if(dp<-8)return 'Poche proteine per una cena: aggiungi una seconda riga dalla prima colonna, o passa a una pi\u00f9 magra.';
+  if(dk<-180)return 'Leggera di '+Math.abs(dk)+' kcal: aggiungi un grasso, o met\u00e0 porzione di carboidrati in pi\u00f9.';
+  if(dk>200)return 'Pi\u00f9 ricca del necessario di '+dk+' kcal: togli un grasso, o scegli una proteina pi\u00f9 magra.';
+  return 'Cena equilibrata per ' + (buildGym?'un giorno di palestra':'una sera normale') + '.';
+}
+function buildColumnHTML(role){
+  const r=BUILD_ROLES[role];
+  const multi=(role==='fat'||role==='veg');
+  const sel=multi?buildSel[role]:[buildSel[role]].filter(Boolean);
+  let h='<div class="build-col"><div class="build-col-head"><b>'+r.label+'</b><span>'+r.hint+'</span></div>';
+  r.items.forEach(function(n){
+    if(!DIET_NUTRI[n])return;
+    const t=buildItemTotals(role,n), on=sel.indexOf(n)>-1;
+    h+='<button class="build-row'+(on?' on':'')+'" data-build="'+role+'|'+esc(n)+'">'
+      +'<span class="build-name">'+esc(n)+'</span>'
+      +'<span class="build-qty">'+t.g+' g</span>'
+      +'<span class="build-kcal">'+t.kcal+' kcal'+(role==='prot'?'':'')+'</span></button>';
+  });
+  return h+'</div>';
+}
+function buildHTML(){
+  const t=buildTotals(), g=buildTarget();
+  let h='<div class="card"><div class="note">Quando in casa non c\u2019\u00e8 quello che il piano prevede. '
+    +'Una riga per colonna e la cena \u00e8 fatta: le righe di una stessa colonna valgono uguale.</div>'
+    +'<div class="build-mode">'
+    +'<button class="'+(!buildGym?'on':'')+'" data-buildmode="normal">Sera normale</button>'
+    +'<button class="'+(buildGym?'on':'')+'" data-buildmode="gym">Giorno di palestra</button></div></div>';
+  h+='<div class="build-total"><div><b>'+t.kcal+' kcal</b><span>obiettivo '+g.kcal+'</span></div>'
+    +'<div><b>'+t.prot+' g</b><span>proteine, obiettivo '+g.prot+'</span></div></div>';
+  h+='<div class="card build-advice">'+esc(buildAdviceText())+'</div>';
+  const chosen=buildChosen();
+  if(chosen.length){
+    h+='<div class="card"><div class="sect" style="margin-top:0">Il tuo piatto</div>';
+    chosen.forEach(function(x){const t2=buildItemTotals(x[0],x[1]);
+      h+='<div class="build-line"><span>'+esc(x[1])+'</span><b>'+t2.g+' g</b></div>';});
+    h+='<button class="btn ghost" data-buildclear="1" style="margin-top:10px">Ricomincia</button></div>';
+  }
+  ['prot','carb','fat','veg'].forEach(function(r){h+=buildColumnHTML(r);});
+  h+='<div class="card"><div class="note">Le porzioni sono calcolate dai valori del piano, con le stesse tabelle standard del resto della scheda. Per due persone raddoppia tutto.</div></div>';
+  return h;
+}
+
 function nutriHTML(){
   const d=dietDayForDate(cur), sum=nutritionDoneCount(), pct=Math.round(sum.done/sum.total*100);
   const section=window.__dietSection||'today';
@@ -2854,7 +2957,7 @@ function nutriHTML(){
   let h=hdr(getAppLanguage()==='en'?'Nutrition plan':'Piano nutrizionale',(getAppLanguage()==='en'?'Official 7-day plan':'Piano ufficiale 7 giorni')+' · 17 July 2025');
   h+='<div class="wrap">';
   h+='<div class="nutri-hero"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><div style="font-size:10px;color:var(--rose-d);font-weight:900;text-transform:uppercase;letter-spacing:.06em">'+(getAppLanguage()==='en'?'Today':'Oggi')+'</div><h2 style="margin:3px 0 0">'+esc(getAppLanguage()==='en'?d.en:d.n)+'</h2><div class="note" style="margin-top:5px">'+sum.done+'/'+sum.total+' '+(getAppLanguage()==='en'?'meals completed':'pasti completati')+'</div><div class="nutri-totals">'+dayNutri.kcal+' kcal \u00b7 '+dayNutri.prot+' g '+(getAppLanguage()==='en'?'protein':'proteine')+'<span>'+dietGapLabel(dayNutri)+'</span></div></div><div style="font-size:28px;font-weight:900">'+pct+'%</div></div>'+dietProgressBar(pct)+'</div>';
-  h+='<div class="diet-section-tabs">'+[['today',getAppLanguage()==='en'?'Today':'Oggi'],['week',getAppLanguage()==='en'?'Week':'Settimana'],['recipes',getAppLanguage()==='en'?'Recipes':'Ricette'],['shopping',getAppLanguage()==='en'?'Shopping list':'Lista della spesa'],['allergens',getAppLanguage()==='en'?'Allergens':'Allergeni'],['diary',getAppLanguage()==='en'?'Food diary':'Diario']].map(function(x){return '<button data-diet-section="'+x[0]+'" class="'+(section===x[0]?'on':'')+'">'+x[1]+'</button>';}).join('')+'</div>';
+  h+='<div class="diet-section-tabs">'+[['today',getAppLanguage()==='en'?'Today':'Oggi'],['week',getAppLanguage()==='en'?'Week':'Settimana'],['recipes',getAppLanguage()==='en'?'Recipes':'Ricette'],['shopping',getAppLanguage()==='en'?'Shopping list':'Lista della spesa'],['allergens',getAppLanguage()==='en'?'Allergens':'Allergeni'],['build',getAppLanguage()==='en'?'Build dinner':'Costruisci'],['diary',getAppLanguage()==='en'?'Food diary':'Diario']].map(function(x){return '<button data-diet-section="'+x[0]+'" class="'+(section===x[0]?'on':'')+'">'+x[1]+'</button>';}).join('')+'</div>';
   if(section==='today'){
     h+='<div class="nutri-daybar">'+DIET_DAYS.map(function(x){const active=x.k===d.k;return '<button class="'+(active?'on':'')+'" data-diet-day="'+x.k+'">'+(getAppLanguage()==='en'?x.en:x.n)+'</button>';}).join('')+'</div>';
     h+='<div class="nutri-meals-grid">';
@@ -2870,6 +2973,8 @@ function nutriHTML(){
     h+='<div class="card"><div class="note">'+(getAppLanguage()==='en'?'Weekly quantities taken directly from the diet plan.':'Quantità settimanali prese direttamente dal piano dietetico.')+'</div>';Object.keys(DIET_SHOPPING).forEach(function(cat){h+='<div class="shop-cat">'+esc(dietEnglishText(cat))+'</div>'+DIET_SHOPPING[cat].map(function(item){const key='fede:shop:'+item;const on=localStorage.getItem(key)==='1';return '<label class="shop-item"><input type="checkbox" data-shop="'+esc(item)+'" '+(on?'checked':'')+'><span>'+esc(item)+'</span></label>';}).join('');});h+='</div>';
   } else if(section==='allergens'){
     DIET_DAYS.forEach(function(x){h+='<div class="card" style="margin-bottom:8px"><b>'+esc(getAppLanguage()==='en'?x.en:x.n)+'</b><div class="note" style="margin-top:6px">'+esc(DIET_ALLERGENS[x.k])+'</div></div>';});
+  } else if(section==='build'){
+    h+=buildHTML();
   } else if(section==='diary'){
     h+='<div class="card"><div class="note">'+(getAppLanguage()==='en'?'The official plan stays separate from what you actually eat. Use the diary to record real intake.':'Il piano ufficiale resta separato da ciò che mangi realmente. Usa il diario per registrare l’assunzione effettiva.')+'</div></div><button class="btn" data-go="diario" style="margin-top:8px">📖 '+(getAppLanguage()==='en'?'Open food diary':'Apri diario alimentare')+'</button>';
   }
@@ -3798,6 +3903,13 @@ function bind(){
   // nutrizione: opzioni
   document.querySelectorAll('[data-opt]').forEach(function(b){b.onclick=function(){
     const p=b.dataset.opt.split('|');mealOpt[p[0]]=+p[1];render();};});
+  // Costruisci la cena: stato in memoria, nessuna scrittura.
+  document.querySelectorAll('[data-build]').forEach(function(b){b.onclick=function(){
+    const p=b.dataset.build.split('|');buildToggle(p[0],p.slice(1).join('|'));render();};});
+  document.querySelectorAll('[data-buildmode]').forEach(function(b){b.onclick=function(){
+    buildGym=b.dataset.buildmode==='gym';render();};});
+  document.querySelectorAll('[data-buildclear]').forEach(function(b){b.onclick=function(){
+    buildSel={prot:'',carb:'',fat:[],veg:[]};render();};});
   document.querySelectorAll('[data-diet-section]').forEach(function(b){b.onclick=function(){window.__dietSection=b.dataset.dietSection;render();};});
   document.querySelectorAll('[data-diet-day]').forEach(function(b){b.onclick=function(){const dk=+b.dataset.dietDay;const mon=new Date(cur);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));mon.setHours(12,0,0,0);const target=new Date(mon);target.setDate(mon.getDate()+((dk+6)%7));cur=target;window.__dietSection='today';load().then(function(){render();});};});
   document.querySelectorAll('[data-diet-done]').forEach(function(b){b.onclick=function(){const slot=b.dataset.dietDone;const on=!isDietDone(cur,slot);setDietDone(cur,slot,on);render();};});
