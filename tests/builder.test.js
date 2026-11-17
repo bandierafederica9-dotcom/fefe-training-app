@@ -63,7 +63,7 @@ const J = JSON.stringify;
   T('con le porzioni giuste dice che la cena è completa',
     h.run('buildAdviceText()') === 'Cena completa per un giorno di palestra.', h.run('buildAdviceText()'));
   h.run('buildSel={prot:"",carb: [],fat:[],veg:[]};');
-  T('a mani vuote spiega come si usa', /una riga per colonna/i.test(h.run('buildAdviceText()')));
+  T('a mani vuote spiega come si usa, in porzioni', /una porzione per colonna/i.test(h.run('buildAdviceText()')), h.run('buildAdviceText()'));
   h.run('buildSel={prot:"",carb: ["Patata"],fat:[],veg:[]};');
   T('senza proteina lo dice subito, contando in porzioni',
     /Manca 1 proteina/.test(h.run('buildAdviceText()')), h.run('buildAdviceText()'));

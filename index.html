@@ -2917,7 +2917,7 @@ function buildCountsText(){
 function buildAdviceText(){
   const c=buildCounts(), g=buildTarget();
   if(!c.prot&&!c.carb&&!c.fat&&!c.veg)
-    return 'Tocca una riga per colonna. Una porzione vale sempre quanto un\u2019altra della stessa colonna: non devi pesare col pensiero.';
+    return 'Tocca una porzione per colonna. Una porzione vale sempre quanto un\u2019altra della stessa colonna: non devi pesare col pensiero.';
   if(!c.prot)return 'Manca 1 proteina: \u00e8 la colonna che regge il piatto.';
   const manca=[],troppi=[];
   ['carb','fat','veg'].forEach(function(r){const d=g[r]-c[r]; if(d>0)manca.push('+'+buildWord(r,d));});
@@ -3066,7 +3066,7 @@ function buildColumnHTML(role){
 function buildHTML(){
   const t=buildTotals(), g=buildTarget();
   let h='<div class="card"><div class="note">Quando in casa non c\u2019\u00e8 quello che il piano prevede. '
-    +'Una riga per colonna e la cena \u00e8 fatta: le righe di una stessa colonna valgono uguale.</div>'
+    +'Una porzione per colonna e la cena \u00e8 fatta: dentro una colonna le porzioni valgono uguale.</div>'
     +'<div class="build-mode">'
     +'<button class="'+(!buildGym?'on':'')+'" data-buildmode="normal">Sera normale</button>'
     +'<button class="'+(buildGym?'on':'')+'" data-buildmode="gym">Giorno di palestra</button></div></div>';
