@@ -3002,6 +3002,21 @@ function buildIngredientsHTML(){
     h+='<div class="build-line"><span>'+esc(x[1])+'</span><b>'+t.g+' g</b></div>';});
   return h+'<div class="note" style="margin-top:8px">Per due persone raddoppia tutto. Sale, pepe, aglio, limone ed erbe a piacere: non cambiano i conti.</div></div>';
 }
+// Salva la ricetta nel diario di oggi: una voce per ingrediente, cosi' il
+// diario resta modificabile riga per riga come tutto il resto.
+function buildSaveToDiary(){
+  const d=buildDish(); if(!d)return {ok:false,error:'Scegli prima una proteina.'};
+  const voci=buildChosen().map(function(x){const t=buildItemTotals(x[0],x[1]);
+    return {n:x[1], g:t.g, kcal:t.kcal, p:t.prot};});
+  if(!voci.length)return {ok:false,error:'Non c\u2019\u00e8 niente da salvare.'};
+  if(!data.food)data.food={};
+  if(!Array.isArray(data.food['Cena']))data.food['Cena']=[];
+  voci.forEach(function(v){data.food['Cena'].push(v);});
+  save();
+  return {ok:true,n:voci.length,titolo:d.titolo};
+}
+let buildSaved='';
+
 function buildDishHTML(){
   const d=buildDish();
   if(!d)return '<div class="card build-dish build-dish-empty"><div class="build-dish-head">Che cena fare</div>'
@@ -3013,7 +3028,9 @@ function buildDishHTML(){
     +buildIngredientsHTML()
     +'<div class="build-ing-head" style="margin-top:14px">Procedimento</div><ol>';
   d.passi.forEach(function(x){h+='<li>'+esc(x)+'</li>';});
-  return h+'</ol></div>';
+  h+='</ol><button class="btn" data-buildsave="1" style="margin-top:14px">Salvala nella cena di oggi</button>';
+  if(buildSaved)h+='<div class="note" style="margin-top:9px">'+esc(buildSaved)+'</div>';
+  return h+'</div>';
 }
 
 function buildColumnHTML(role){
@@ -4006,6 +4023,10 @@ function bind(){
     const p=b.dataset.build.split('|');buildToggle(p[0],p.slice(1).join('|'));render();};});
   document.querySelectorAll('[data-buildmode]').forEach(function(b){b.onclick=function(){
     buildGym=b.dataset.buildmode==='gym';render();};});
+  document.querySelectorAll('[data-buildsave]').forEach(function(b){b.onclick=function(){
+    const r=buildSaveToDiary();
+    buildSaved=r.ok?('Salvata: '+r.n+' voci nella cena di oggi. La trovi in Diario.'):r.error;
+    render();};});
   document.querySelectorAll('[data-buildclear]').forEach(function(b){b.onclick=function(){
     buildSel={prot:'',carb:'',fat:[],veg:[]};render();};});
   document.querySelectorAll('[data-diet-section]').forEach(function(b){b.onclick=function(){window.__dietSection=b.dataset.dietSection;render();};});

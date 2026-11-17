@@ -72,10 +72,38 @@ const J = JSON.stringify;
   h.run('buildGym=true;'); const g1 = JSON.parse(h.run('JSON.stringify(buildTarget())'));
   T('il giorno di palestra chiede di più', g1.kcal > n1.kcal && g1.prot >= n1.prot, J(n1) + ' -> ' + J(g1));
 
-  // ---------- 8) Non scrive mai ----------
+  // ---------- 8) Costruire non scrive; salvare sì, ed è l'unico che scrive ----------
   const prima = J(h.store);
-  h.run('buildHTML();buildToggle("veg","Broccoli");buildHTML();buildTotals();buildAdviceText();');
-  T('costruire una cena non tocca lo storico né nient\'altro', J(h.store) === prima);
+  h.run('buildHTML();buildToggle("veg","Broccoli");buildHTML();buildTotals();buildAdviceText();buildDish();');
+  T('scegliere e guardare la ricetta non scrive niente', J(h.store) === prima);
+
+  {
+    const hs = H(REPO);
+    hs.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});');
+    T('senza proteina non si salva', JSON.parse(hs.run('JSON.stringify(buildSaveToDiary())')).ok === false);
+    hs.run('buildSel={prot:"Manzo magro",carb:"Patata",fat:["Olio di oliva"],veg:["Melanzane"]};');
+    const r = JSON.parse(hs.run('JSON.stringify(buildSaveToDiary())'));
+    T('salva una voce per ingrediente', r.ok === true && r.n === 4, J(r));
+    const cena = JSON.parse(hs.run('JSON.stringify(data.food.Cena)'));
+    T('ogni voce porta nome, grammi, kcal e proteine nei campi giusti',
+      cena.length === 4 && cena.every(v => v.n && !/\d+ g$/.test(v.n) && v.g > 0
+        && typeof v.kcal === 'number' && typeof v.p === 'number'), J(cena[0]));
+    T('i grammi stanno nel campo grammi, non nascosti nel nome',
+      cena[0].n === 'Manzo magro' && cena[0].g === 190, J(cena[0]));
+    T('i totali del diario corrispondono alla ricetta',
+      JSON.parse(hs.run('JSON.stringify(tot(data))')).kc === JSON.parse(hs.run('JSON.stringify(buildTotals())')).kcal);
+    T('finisce nella cena, non in un pasto a caso',
+      hs.run('(data.food.Colazione||[]).length') === 0 && hs.run('(data.food.Pranzo||[]).length') === 0);
+    hs.run('doSaveNow&&doSaveNow();');
+    T('una volta scaricato, il salvataggio finisce nel giorno corrente',
+      Object.keys(hs.store).some(k => k === 'fede:2026-01-21'), Object.keys(hs.store).join(','));
+    T('e il giorno riletto contiene la cena',
+      (JSON.parse(hs.store['fede:2026-01-21'] || '{}').food || {}).Cena.length === 4);
+    T('e non tocca nessun altro giorno', Object.keys(hs.store).filter(k => /^fede:\d{4}-/.test(k)).length === 1);
+    // salvare due volte aggiunge, non sostituisce: il diario e' un registro
+    hs.run('buildSaveToDiary();');
+    T('un secondo salvataggio aggiunge invece di sovrascrivere', hs.run('data.food.Cena.length') === 8);
+  }
 
   // ---------- 9) La schermata ----------
   h.run('buildSel={prot:"Pollo",carb:"Riso basmati crudo",fat:["Olio di oliva"],veg:["Zucchine"]};');
