@@ -459,3 +459,19 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline-offset:0
 
 /* a weight recorded before the bodyweight rule existed: shown, not editable */
 .fld-legacy .legacy-kg{font-size:14px;font-weight:800;color:var(--dim,#6b727a);padding:9px 0}
+
+/* ===== Right vs left, in Progressi ===== */
+.asym-card{padding:14px}
+.asym-intro{font-size:11.5px;color:var(--dim,#6b727a);font-weight:700;line-height:1.5;margin-bottom:12px}
+.asym-row{display:grid;grid-template-columns:1fr;gap:4px;padding:10px 0;border-top:1px solid var(--line,#eee7dc)}
+.asym-row:first-of-type{border-top:0}
+.asym-name{font-size:13.5px;font-weight:800;color:var(--navy,#1e2340)}
+.asym-bar{height:8px;border-radius:5px;background:#eee7dc;overflow:hidden}
+.asym-bar i{display:block;height:100%;background:#b5884e;border-radius:5px}
+.asym-val{font-size:12px;font-weight:800;color:var(--navy,#1e2340)}
+.asym-val span{font-weight:700;color:var(--dim,#6b727a)}
+.asym-n{font-size:10.5px;font-weight:700;color:var(--dim,#6b727a)}
+.asym-note{font-size:10.5px;color:var(--dim,#6b727a);font-weight:700;margin-top:10px}
+.side-open{margin-top:6px;width:100%;min-height:44px;background:#fff;border:1px dashed var(--line,#e5ded2);
+  border-radius:12px;font:inherit;font-size:12px;font-weight:800;color:var(--dim,#6b727a);cursor:pointer}
+.side-gap{font-size:11px;font-weight:800;color:#b5884e;margin-top:6px}

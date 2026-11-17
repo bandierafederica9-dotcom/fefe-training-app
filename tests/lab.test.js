@@ -79,7 +79,7 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
       h.run('sideLabel(["Frog Stand Weight Shift"],"right")') === 'Lato destro' && h.run('sideLabel(["Single-Leg L-Sit"],"left")') === 'Gamba sinistra' && h.run('sideLabel(["Cable Kickback"],"right")') === 'Gamba destra' && h.run('sideLabel(["Banded Clamshell"],"left")') === 'Gamba sinistra' && h.run('sideLabel(["Cossack Squat"],"right")') === 'Gamba destra' && h.run('sideLabel(["Handstand Toe Taps"],"right")') === 'Braccio destro' && h.run('sideLabel(["Cable Lateral Raise"],"left")') === 'Braccio sinistro' && h.run('sideLabel(["Bulgarian Split Squat"],"right")') === 'Gamba destra');
     boot(h); h.run(`exCtx={day:${J(LAB)},back:"calisthenics"};`);
     const i = lab.findIndex(e => e[0] === 'Single-Leg L-Sit'); const html = h.run(`exIdx=${i};exerciseHTML()`);
-    T('Single-Leg L-Sit: right/left rows with Sec fields', /data-set="Lab Calisthenics\|lab-calisthenics__single-leg-l-sit\|1\|right" data-f="sec"/.test(html) && /data-set="Lab Calisthenics\|lab-calisthenics__single-leg-l-sit\|1\|left" data-f="sec"/.test(html) && /Gamba destra/.test(html));
+    T('Single-Leg L-Sit: one Sec row, the left side behind a tap', /data-set="Lab Calisthenics\|lab-calisthenics__single-leg-l-sit\|1\|right" data-f="sec"/.test(html) && !/data-set="Lab Calisthenics\|lab-calisthenics__single-leg-l-sit\|1\|left"/.test(html) && /Destra e sinistra/.test(html) && /data-sideopen=/.test(html));
     const one = { day: 'Giorno 1', done: { ['Lab Calisthenics|lab-calisthenics__single-leg-l-sit|1|right']: true } }, both = { day: 'Giorno 1', done: { ['Lab Calisthenics|lab-calisthenics__single-leg-l-sit|1|right']: true, ['Lab Calisthenics|lab-calisthenics__single-leg-l-sit|1|left']: true } };
     T('Lab unilateral completion needs both sides', h.run(`exDone(${J(one)},${J(LAB)},${i}).n`) === 0 && h.run(`exDone(${J(both)},${J(LAB)},${i}).n`) === 1);
     // main-plan exercise newly unilateral: legacy bilateral data stays readable and counted
@@ -161,12 +161,12 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     const norm = s => s.replace(/<div class="exercise-media">[\s\S]*?<\/a><\/div>/, '<MEDIA>').replace(/ (loading="lazy"|decoding="async")/g, '').replace(/id="restTimer">\d\d:\d\d</, 'id="restTimer">--:--<').replace(/<a class="vidbtn"[^>]*>▶ (Guarda il video|Cerca video guida)<\/a>/, ''); // media review pass: video button follows the new links
     ['Giorno 1', 'Giorno 2', 'Giorno 3', 'Giorno 4', 'Giorno 5', 'Core', 'Casa', 'Nuoto'].forEach((day, di) => {
       const hc = H(REPO), hb = H(REPO, {}, headHtml);
-      JSON.parse(hc.run(`JSON.stringify(PLAN[${J(day)}].ex)`)).forEach((e, i) => { if (decided.has(e[4]) || /\bsec\b/.test(e[1].split('·')[0]) || hc.run(`exLoad(${J(e)})`) === 'bodyweight') return; // + timed exercises use Sec, + bodyweight exercises no longer show a kg field (both decided, tested above)
+      JSON.parse(hc.run(`JSON.stringify(PLAN[${J(day)}].ex)`)).forEach((e, i) => { if (decided.has(e[4]) || /\bsec\b/.test(e[1].split('·')[0]) || hc.run(`exLoad(${J(e)})`) === 'bodyweight' || hc.run(`isUnilateralExercise(${J(e)})`)) return; // timed use Sec, bodyweight drop the kg field, and unilateral sets are entered once with the left behind a tap - all three decided and tested above
         for (let v = 0; v < 2; v++) { const rec = { day, sets: {}, done: {} };
           for (let s = 1; s <= 5; s++) { const k = day + '|' + e[4] + '|' + s; if ((i + s + v + di) % 3 === 0) { rec.sets[k] = { kg: String(10 + s), r: String(5 + v) }; rec.done[k] = true; } }
           const run = hh => hh.run(`(function(){profile=getProfile();cur=new Date("2026-01-20T12:00:00");key="k";data=norm(${J(rec)});exIdx=${i};lastExLoading=false;lastEx=null;exerciseTab="video";return exerciseHTML();})()`);
           n++; if (norm(run(hc)) !== norm(run(hb))) mism.push(day + ':' + e[0]); } }); });
-    T('main exercise screen identical to HEAD outside the media block (' + n + ' renders; decided right/left, timed and bodyweight excluded)', mism.length === 0, [...new Set(mism)].join()); }
+    T('main exercise screen identical to HEAD outside the media block (' + n + ' renders; decided right/left, timed, bodyweight and unilateral excluded)', mism.length === 0, [...new Set(mism)].join()); }
 
   // ---------- 12) Storage safety, import/export, migrations ----------
   { const added = curHtml.slice(curHtml.indexOf('<script>')).split('\n').filter(l => headHtml.indexOf(l) < 0);
