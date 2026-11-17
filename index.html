@@ -3144,7 +3144,13 @@ function evoHTML(){
       '<div class="mgrid" style="margin-top:14px">'+
       '<div><label>Peso di partenza</label><input id="gws" type="number" inputmode="decimal" placeholder="0" value="'+esc(goals.wStart)+'"></div>'+
       '<div><label>Peso obiettivo</label><input id="gwg" type="number" inputmode="decimal" placeholder="0" value="'+esc(goals.wGoal)+'"></div>'+
-      '</div></div>';
+      '<div><label>Calorie al giorno</label><input id="gk" type="number" inputmode="numeric" placeholder="2000" value="'+esc(goals.kcal)+'"></div>'+
+      '<div><label>Proteine al giorno (g)</label><input id="gp" type="number" inputmode="numeric" placeholder="110" value="'+esc(goals.prot)+'"></div>'+
+      '</div>'+
+      ((+goals.kcal&&+goals.kcal!==DIET_TARGET.kcal)||(+goals.prot&&+goals.prot!==DIET_TARGET.prot)
+        ? '<div class="note" style="margin-top:10px">Indicazione della PT: <b>'+DIET_TARGET.kcal+' kcal</b> e almeno <b>'+DIET_TARGET.prot+' g</b> di proteine. Ora hai '+(+goals.kcal||0)+' kcal e '+(+goals.prot||0)+' g: se vuoi allinearti, cambia i due campi qui sopra.</div>'
+        : '<div class="note" style="margin-top:10px">Allineato all\u2019indicazione della PT: '+DIET_TARGET.kcal+' kcal e almeno '+DIET_TARGET.prot+' g di proteine.</div>')+
+      '</div>';
     h+='<div class="card"><div class="note">In definizione un calo di 0,3-0,5 kg a settimana preserva la massa muscolare. Scendere più in fretta significa perdere anche muscolo, che è esattamente ciò che ti serve per la clessidra.</div></div>';
   }
 
