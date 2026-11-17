@@ -91,6 +91,11 @@ const J = JSON.stringify;
   // ---------- 10) Dalla scelta al piatto ----------
   const dish = sel => { h.run('buildSel=' + J(sel) + ';'); return JSON.parse(h.run('JSON.stringify(buildDish())')); };
   T('senza proteina non propone nessun piatto', h.run('buildSel={prot:"",carb:"Patata",fat:[],veg:[]};buildDish()') === null);
+  T('ma lo dice invece di mostrare il vuoto', (() => {
+    h.run('buildSel={prot:"",carb:"Patata",fat:[],veg:["Melanzane"]};');
+    const v = h.run('buildDishHTML()');
+    return /Che cena fare/.test(v) && /Scegli una <b>proteina<\/b>/.test(v);
+  })());
 
   const d1 = dish({ prot: 'Manzo magro', carb: 'Patata', fat: ['Olio di oliva', 'Noci'], veg: ['Melanzane', 'Funghi'] });
   T('il titolo elenca in italiano, con una sola congiunzione',

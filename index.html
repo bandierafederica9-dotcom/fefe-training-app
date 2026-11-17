@@ -2987,7 +2987,9 @@ function buildDish(){
 }
 function buildDishHTML(){
   const d=buildDish();
-  if(!d)return '';
+  if(!d)return '<div class="card build-dish build-dish-empty"><div class="build-dish-head">Che cena fare</div>'
+    +'<p>Scegli una <b>proteina</b> qui sotto e il piatto compare qui, con i passi e i tempi. '
+    +'\u00c8 la colonna che regge la cena: senza, non c\u2019\u00e8 un piatto da proporti.</p></div>';
   let h='<div class="card build-dish"><div class="build-dish-head">Che cena fare</div><h3>'+esc(d.titolo)+'</h3><ol>';
   d.passi.forEach(function(x){h+='<li>'+esc(x)+'</li>';});
   return h+'</ol><div class="note" style="margin-top:10px">\u00c8 uno schema, non una ricetta fissa: aglio, limone ed erbe aggiungili a piacere, non cambiano i conti.</div></div>';
