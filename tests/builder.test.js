@@ -127,7 +127,7 @@ const J = JSON.stringify;
   T('ogni ingrediente porta la sua etichetta di porzione', (html.match(/class="build-tag"/g) || []).length === 4);
   T('ogni riga è un pulsante grande', (html.match(/class="build-row/g) || []).length === Object.keys(roles).reduce((a, r) => a + roles[r].items.length, 0));
   T('dichiara da dove vengono le porzioni', /valori del piano/.test(html));
-  T('dice come si fa per due', /raddoppia/.test(html));
+  T('la scheda dichiara per quante persone sono i grammi', /sono per una persona/.test(html));
   T('la lista degli ingredienti non e\' piu\' duplicata fuori dalla ricetta',
     (html.match(/Ingredienti/g) || []).length === 1 && !/Il tuo piatto/.test(html));
   const nutri = h.run('nutriHTML()');
@@ -192,7 +192,45 @@ const J = JSON.stringify;
     && /Procedimento/.test(dishHtml) && (dishHtml.match(/<li>/g) || []).length >= 3);
   T('la resa e\' dichiarata a persona', /kcal \u00b7 \d+ g di proteine \u00b7 a persona/.test(dishHtml), (dishHtml.match(/build-dish-meta">[^<]*/) || [''])[0]);
   T('gli ingredienti portano le grammature', /<b>300 g<\/b>/.test(dishHtml));
-  T('dice come si fa per due dentro la ricetta', /raddoppia/.test(dishHtml));
+  T('dichiara per quante persone sono i grammi, invece di dire "raddoppia"',
+    /I grammi qui sopra sono per una persona/.test(dishHtml) && !/raddoppia/.test(dishHtml), (dishHtml.match(/In porzioni[^<]*/) || [''])[0]);
+
+  // ---------- 11) Per quante persone ----------
+  {
+    const hp = H(REPO);
+    hp.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});');
+    hp.run('buildSel={prot:"Manzo magro",carb:["Patata"],fat:["Olio di oliva"],veg:["Melanzane"]};buildGym=false;buildPeople=1;');
+    const uno = JSON.parse(hp.run('JSON.stringify(buildTotals())'));
+    const g1 = hp.run('buildGramsFor("prot","Manzo magro")');
+    hp.run('buildPeople=3;');
+    T('i grammi si moltiplicano per le persone', hp.run('buildGramsFor("prot","Manzo magro")') === g1 * 3);
+    T('kcal e proteine restano a testa: il bersaglio \u00e8 suo, non della tavola',
+      J(JSON.parse(hp.run('JSON.stringify(buildTotals())'))) === J(uno));
+    T('le porzioni contate non cambiano con le persone',
+      hp.run('buildCountsText()') === '1 proteina \u00b7 1 carboidrato \u00b7 1 grasso \u00b7 1 verdura');
+    T('e nemmeno il consiglio', /Cena completa/.test(hp.run('buildAdviceText()')), hp.run('buildAdviceText()'));
+
+    const passi = JSON.parse(hp.run('JSON.stringify(buildDish().passi)'));
+    T('i passi della ricetta citano i grammi della pentola', /570 g/.test(J(passi)), J(passi).slice(0, 120));
+
+    const html = hp.run('buildDishHTML()');
+    T('la lista mostra il totale e, accanto, quanto tocca a testa',
+      /570 g/.test(html) && /190 g a testa/.test(html));
+    T('e dichiara per quante persone sono i grammi', /per 3 persone/.test(html));
+
+    // quello che finisce nel diario e' la SUA porzione, non la pentola
+    hp.run('buildSaveToDiary();doSaveNow&&doSaveNow();');
+    const cena = JSON.parse(hp.run('JSON.stringify(data.food.Cena)'));
+    T('nel diario finisce la porzione a testa, non il totale della pentola',
+      cena[0].g === 190 && cena[0].kcal === uno.kcal - 0 + 0 - (uno.kcal - cena[0].kcal), J(cena[0]));
+    T('i valori salvati sono quelli di una persona',
+      cena.reduce((a, v) => a + v.kcal, 0) === uno.kcal, cena.reduce((a, v) => a + v.kcal, 0) + ' vs ' + uno.kcal);
+
+    hp.run('buildPeople=1;');
+    T('con una persona non compare la riga "a testa"', !/a testa<\/em>/.test(hp.run('buildDishHTML()')));
+    const sel = hp.run('buildHTML()');
+    T('il selettore offre da 1 a 4 persone', (sel.match(/data-buildpeople="/g) || []).length === 4);
+  }
 
   console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
