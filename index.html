@@ -57,10 +57,9 @@ const PLAN = {
     ["L-Sit","3 x 10-20 sec · tecnica · 60-90 sec",3,"skill","giorno-4__l-sit"],
     ["KAS Glute Bridge","3 x 8-12 · RIR 1-2 · 90 sec",3,null,"giorno-4__kas-glute-bridge"],
     ["Cable Kickback","3 x 10-15 · RIR 1-2 · 75 sec",3,null,"giorno-4__cable-kickback"],
-    ["Back Extension Glute Bias","3 x 8-12 · RIR 1-2 · 90 sec",3,null,"giorno-4__back-extension-glute-bias"],
     ["Hip Abduction Seated","3 x 15-25 · RIR 1-2 · 45-60 sec",3,null,"giorno-4__hip-abduction-seated"],
-    ["Dead Bug","3 x 8-10/lato · controllo · 45-60 sec",3,null,"giorno-4__dead-bug"],
-    ["Vacuum addominale","3 x 15-30 sec · 30-45 sec",3,null,"giorno-4__vacuum-addominale"]]},
+    ["Hip Adduction","3 x 15-25 · RIR 1-2 · 45-60 sec",3,null,"giorno-4__hip-adduction"],
+    ["Cable Crunch","2-3 x 15-20 · controllo · 60 sec",3,null,"giorno-4__cable-crunch"]]},
   "Giorno 5":{t:"Day 5 A — Strength / Hypertrophy",em:"🔥",memo:"Scegli A per forza + lean mass oppure B per power/force. Non fare entrambe nella stessa settimana.",variant:"A",ex:[
     ["Bulgarian Split Squat","3 x 6-10/gamba · RIR 1-2 · 120 sec",3,null,"giorno-5__bulgarian-split-squat"],
     ["Leg Extension","2 x 10-15 · RIR 1-2 · 75 sec",2,null,"giorno-5__leg-extension"],
@@ -127,13 +126,19 @@ const LAB_LADDER=(function(){
   return out;
 })();
 function labStepKey(skill){return 'fede:lab:step:'+skill;}
-function labStep(skill){
+// null until she has chosen a rung. Nothing is guessed: until then the plan's own
+// prescription stands, so a fresh device never quietly demotes her to rung one.
+function labStepRaw(skill){
   const n=LAB_LADDER[skill]?LAB_LADDER[skill].length:0;
-  if(!n)return 0;
-  let v=0; try{v=parseInt(localStorage.getItem(labStepKey(skill))||'0',10);}catch(e){v=0;}
-  if(!(v>=0))v=0;
+  if(!n)return null;
+  let raw=null; try{raw=localStorage.getItem(labStepKey(skill));}catch(e){raw=null;}
+  if(raw===null||raw==='')return null;
+  const v=parseInt(raw,10);
+  if(!(v>=0))return 0;
   return Math.min(v,n-1);
 }
+function labStep(skill){const v=labStepRaw(skill);return v===null?0:v;}
+function labHasStep(skill){return labStepRaw(skill)!==null;}
 function labSetStep(skill,i){
   const n=LAB_LADDER[skill]?LAB_LADDER[skill].length:0;
   if(!n)return 0;
@@ -145,11 +150,36 @@ function labSetStep(skill,i){
 function labCurrent(skill){
   const rungs=LAB_LADDER[skill]||[]; if(!rungs.length)return null;
   const i=labStep(skill);
-  return {skill:skill,index:i,total:rungs.length,level:rungs[i].level,
+  return {skill:skill,index:i,total:rungs.length,level:rungs[i].level,chosen:labHasStep(skill),
           current:rungs[i],next:(i+1<rungs.length)?rungs[i+1]:null};
 }
 // Today's Lab session: the current rung of every skill. Four skills, four items.
 function labSessionToday(){return LAB_SKILLS.map(labCurrent).filter(Boolean);}
+
+/* ===== The skill is the first exercise of the day, at her rung =====
+   Not a separate section: she never opened the Lab, but when a skill leads a gym
+   day she does it two times out of three. So the plan keeps its slot and the
+   ladder decides which rung fills it. The id stays the day's own, so her history
+   for that slot is continuous even when the rung changes. */
+const SKILL_FOR_DAY={'Giorno 3':'Frog Stand','Giorno 4':'L-Sit'};
+function skillOfDay(day){return SKILL_FOR_DAY[String(day)]||null;}
+// The plan entry for today's rung of that skill, shaped like any other exercise.
+function skillEntryForDay(day){
+  const skill=skillOfDay(day); if(!skill)return null;
+  if(!labHasStep(skill))return null;            // she has not placed herself yet
+  const cur=labCurrent(skill); if(!cur)return null;
+  const r=cur.current;
+  return [r.name,r.pres,3,'skill',String(day).toLowerCase().replace(/\s+/g,'-')+'__skill'];
+}
+// Swap the plan's leading skill for the rung she is on. Pure: returns a copy.
+function withSkillRung(day,dp){
+  const e=skillEntryForDay(day);
+  if(!e||!dp||!Array.isArray(dp.ex)||!dp.ex.length)return dp;
+  if(String(dp.ex[0][3])!=='skill')return dp;      // only ever the leading skill slot
+  const out={};Object.keys(dp).forEach(function(k){out[k]=dp[k];});
+  out.ex=dp.ex.slice(); out.ex[0]=e;
+  return out;
+}
 
 /* ===== Lab attendance: done, or skipped, never nagged ===== */
 function labMarkKey(date){return 'fede:lab:mark:'+date;}
@@ -1189,6 +1219,11 @@ function planForUser(){return userPlan||PLAN;}
 // Safe accessor: never assume a PLAN day (e.g. Core, Nuoto, Casa) exists in the personalised plan.
 // Falls back to the default PLAN day, then to an empty day. Read-only.
 function dayPlan(day){
+  if(isLabDay(day))return LAB_CALISTHENICS_PLAN;
+  if(skillOfDay(day))return withSkillRung(day,dayPlanRaw(day));
+  return dayPlanRaw(day);
+}
+function dayPlanRaw(day){
   if(isLabDay(day))return LAB_CALISTHENICS_PLAN;
   const up=planForUser(), p=(up&&up[day])||PLAN[day];
   if(p&&Array.isArray(p.ex))return p;

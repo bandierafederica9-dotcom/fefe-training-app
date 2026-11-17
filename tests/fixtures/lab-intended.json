@@ -1,5 +1,5 @@
 {
- "_note": "Intended Calisthenics Lab state (verified once against the pre-Lab commit aa8d120 when created): Lab content without IDs, and the rest seconds of every main-plan exercise (only the 4 timed holds differ from pre-Lab).",
+ "_note": "Intended Calisthenics Lab state (verified once against the pre-Lab commit aa8d120 when created): Lab content without IDs, and the rest seconds of every main-plan exercise (only the 4 timed holds differ from pre-Lab). Giorno 4 restructured 2026-11-17: its entries regenerated; every other day byte-identical.",
  "labContent": {
   "Handstand": {
    "Foundation": [
@@ -297,27 +297,21 @@
   ],
   [
    "Giorno 4",
-   "Back Extension Glute Bias",
-   "3 x 8-12 · RIR 1-2 · 90 sec",
-   90
-  ],
-  [
-   "Giorno 4",
    "Hip Abduction Seated",
    "3 x 15-25 · RIR 1-2 · 45-60 sec",
    60
   ],
   [
    "Giorno 4",
-   "Dead Bug",
-   "3 x 8-10/lato · controllo · 45-60 sec",
+   "Hip Adduction",
+   "3 x 15-25 · RIR 1-2 · 45-60 sec",
    60
   ],
   [
    "Giorno 4",
-   "Vacuum addominale",
-   "3 x 15-30 sec · 30-45 sec",
-   45
+   "Cable Crunch",
+   "2-3 x 15-20 · controllo · 60 sec",
+   60
   ],
   [
    "Giorno 5",

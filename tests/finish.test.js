@@ -76,7 +76,7 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
   // ---------- B7: timed exercises use Sec everywhere ----------
   { const h = H(REPO); boot(h, { day: 'Giorno 3' }); h.run('exCtx=null;exIdx=0;');
     T('B7 Frog Stand set field is Sec', /<label>Sec<\/label><input data-set="Giorno 3\|giorno-3__frog-stand\|1" data-f="sec"/.test(h.run('exerciseHTML()')));
-    T('B7 main timed exercises: Frog Stand, L-Sit, both Vacuum', ['Giorno 3', 'Giorno 4', 'Core'].map(d => h.run(`PLAN[${J(d)}].ex.filter(e=>isTimedExercise(e)).map(e=>e[0]).join(",")`)).join('|') === 'Frog Stand|L-Sit,Vacuum addominale|Vacuum addominale');
+    T('B7 main timed exercises: Frog Stand, L-Sit, Vacuum in Core', ['Giorno 3', 'Giorno 4', 'Core'].map(d => h.run(`PLAN[${J(d)}].ex.filter(e=>isTimedExercise(e)).map(e=>e[0]).join(",")`)).join('|') === 'Frog Stand|L-Sit|Vacuum addominale');
     const rec = { day: 'Giorno 3', sets: { 'Giorno 3|giorno-3__frog-stand|1': { kg: '', r: '', sec: '20' }, 'Giorno 3|giorno-3__machine-dip|1': { kg: '30', r: '8' } }, done: {} };
     T('B7 a seconds-only set counts as a set; kg volume unchanged', h.run(`JSON.stringify(vol(${J(rec)}))`) === J({ v: 240, s: 2 }));
     h.run('lastEx={1:{kg:"",r:"",sec:"20"},2:{kg:"",r:"",sec:"20"},3:{kg:"",r:"",sec:"20"},4:{kg:"",r:"",sec:"20"},5:{kg:"",r:"",sec:"20"}};lastExDate=new Date();');

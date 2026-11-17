@@ -1,5 +1,6 @@
-const CACHE = "fede-tracker-v63";
+const CACHE = "fede-tracker-v64";
 const FILES = [
+  "./assets/css/app.css",
   "./assets/exercises/upper-generic.svg",
   "./assets/exercises/power-generic.svg",
   "./assets/exercises/mobility-generic.svg",

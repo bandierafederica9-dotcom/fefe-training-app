@@ -1,5 +1,5 @@
 {
- "_note": "Expected outputs of the ORIGINAL baseline app (pre data-safety, commit 0cd063f) for the regression checks in daygiorno/unilateral/steps123. Captured without Git history: derived from the current app plus the relations the history-based tests verified (identical except: 5 decided unilateral additions now true; legacy canonicalPlanKeys dropped a colliding Day 1/Giorno 1).",
+ "_note": "Expected outputs of the ORIGINAL baseline app (pre data-safety, commit 0cd063f) for the regression checks in daygiorno/unilateral/steps123. Captured without Git history: derived from the current app plus the relations the history-based tests verified (identical except: 5 decided unilateral additions now true; legacy canonicalPlanKeys dropped a colliding Day 1/Giorno 1). Giorno 4 restructured on 2026-11-17 (decided): Back Extension Glute Bias, Dead Bug and Vacuum addominale out; Hip Adduction and Cable Crunch in. Only Giorno 4 entries were recomputed.",
  "unilateralPlan": [
   [
    "Giorno 1",
@@ -108,22 +108,17 @@
   ],
   [
    "Giorno 4",
-   "Back Extension Glute Bias",
-   false
-  ],
-  [
-   "Giorno 4",
    "Hip Abduction Seated",
    false
   ],
   [
    "Giorno 4",
-   "Dead Bug",
+   "Hip Adduction",
    false
   ],
   [
    "Giorno 4",
-   "Vacuum addominale",
+   "Cable Crunch",
    false
   ],
   [
@@ -437,24 +432,24 @@
    "Giorno 4",
    0,
    {
-    "done": 11,
-    "tot": 21
+    "done": 10,
+    "tot": 18
    }
   ],
   [
    "Giorno 4",
    1,
    {
-    "done": 11,
-    "tot": 21
+    "done": 9,
+    "tot": 18
    }
   ],
   [
    "Giorno 4",
    2,
    {
-    "done": 10,
-    "tot": 21
+    "done": 8,
+    "tot": 18
    }
   ],
   [

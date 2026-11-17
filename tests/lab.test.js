@@ -141,7 +141,7 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     const changed = descs.filter(x => h.run(`restSecondsForExercise(${J(x[2])})`) !== hb.run(`restSecondsForExercise(${J(x[2])})`)).map(x => x[0] + ':' + x[1] + ' ' + hb.run(`restSecondsForExercise(${J(x[2])})`) + '→' + h.run(`restSecondsForExercise(${J(x[2])})`));
     const rest = descs.map(x => [x[0], x[1], x[2], h.run(`restSecondsForExercise(${J(x[2])})`)]);
     T('main-plan rest seconds match the intended fixture (every exercise)', J(rest) === J(INTENDED.mainRest), J(rest.filter((r, i) => J(r) !== J(INTENDED.mainRest[i]))));
-    T('timed holds rest after the hold, never the hold time', ['Giorno 3:Frog Stand:90', 'Giorno 4:L-Sit:90', 'Giorno 4:Vacuum addominale:45', 'Core:Vacuum addominale:90'].every(k => { const [d, n, sec] = k.split(':'); return rest.some(r => r[0] === d && r[1] === n && r[3] === +sec); }));
+    T('timed holds rest after the hold, never the hold time', ['Giorno 3:Frog Stand:90', 'Giorno 4:L-Sit:90', 'Core:Vacuum addominale:90'].every(k => { const [d, n, sec] = k.split(':'); return rest.some(r => r[0] === d && r[1] === n && r[3] === +sec); }));
     T('every non-timed main exercise keeps its explicit/derived rest (fixture)', descs.every((x, i) => /\bsec\b/.test(x[2].split('·')[0]) || rest[i][3] === INTENDED.mainRest[i][3]) && J(changed) === J([]), J(changed));
     T('Lab holds use 90 s rest, never the hold time', lab.filter(e => /sec/.test(e[1])).every(e => h.run(`restSecondsForExercise(${J(e[1])})`) === 90));
     T('explicit rest segments respected', h.run('restSecondsForExercise("4 x 4-6 · RIR 1-2 · 180 sec")') === 180 && h.run('restSecondsForExercise("4-5 x 5-20 sec · tecnica · 60-90 sec")') === 90); }
