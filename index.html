@@ -2978,21 +2978,42 @@ function buildDish(){
   if(crudi.length)passi.push(crudi.map(function(n){return qty('fat',n);}).join(' e ')+': a crudo sul piatto, a fine cottura.');
   // 5) chiusura
   if(kp!=='uova'&&V.length)passi.push('Rimetti le verdure in padella con la proteina, mescola e servi'+(kc==='lesso'&&C?' con '+C.toLowerCase()+' a parte.':'.'));
-  const pulito=function(x){return String(x).replace(/ crud[oa]$/i,'').replace(/ cotti$/i,'');};
-  const parti=nome.slice(0,2); const testa=pulito(parti[0]);
-  const coda=parti.slice(1).map(function(x){return pulito(x).toLowerCase();})
-    .concat(V.map(function(x){return x.toLowerCase();}));
-  const titolo=testa+(coda.length?' con '+elenco(coda):'');
+  const pulito=function(x){return String(x).replace(/ crud[oa]$/i,'').replace(/ cotti$/i,'')
+    .replace(/^Petto di /,'').replace(/ fresco$/i,'').replace(/ magro$/i,'')
+    .replace(/ al naturale$/i,'').replace(/ senza lattosio$/i,'');};
+  const pl=pulito(P).toLowerCase();
+  const forma={carne:'Padellata di ',pesce:'',uova:'',tofu:'Saltato di ','pesce-pronto':'Insalata di ',
+               freddo:'Piatto freddo con ',formaggio:''}[kp];
+  const chiusa={pesce:' alla piastra',uova:' in padella',formaggio:''}[kp]||'';
+  let testa=(forma||'')+pl+chiusa;
+  if(kp==='uova')testa='Uova in padella';
+  testa=testa.charAt(0).toUpperCase()+testa.slice(1);
+  const conVerdure=V.map(function(x){return x.toLowerCase();});
+  const contorno=C?pulito(C).toLowerCase()+(kc==='forno'?' al forno':''):'';
+  let titolo=testa;
+  if(conVerdure.length)titolo+=' con '+elenco(conVerdure);
+  if(contorno)titolo+=(conVerdure.length?', ':' con ')+contorno;
   return {titolo:titolo.charAt(0).toUpperCase()+titolo.slice(1), passi:passi, olio:olio};
+}
+function buildIngredientsHTML(){
+  const c=buildChosen(); if(!c.length)return '';
+  let h='<div class="build-ing"><div class="build-ing-head">Ingredienti</div>';
+  c.forEach(function(x){const t=buildItemTotals(x[0],x[1]);
+    h+='<div class="build-line"><span>'+esc(x[1])+'</span><b>'+t.g+' g</b></div>';});
+  return h+'<div class="note" style="margin-top:8px">Per due persone raddoppia tutto. Sale, pepe, aglio, limone ed erbe a piacere: non cambiano i conti.</div></div>';
 }
 function buildDishHTML(){
   const d=buildDish();
   if(!d)return '<div class="card build-dish build-dish-empty"><div class="build-dish-head">Che cena fare</div>'
     +'<p>Scegli una <b>proteina</b> qui sotto e il piatto compare qui, con i passi e i tempi. '
     +'\u00c8 la colonna che regge la cena: senza, non c\u2019\u00e8 un piatto da proporti.</p></div>';
-  let h='<div class="card build-dish"><div class="build-dish-head">Che cena fare</div><h3>'+esc(d.titolo)+'</h3><ol>';
+  const t=buildTotals();
+  let h='<div class="card build-dish"><div class="build-dish-head">La ricetta di stasera</div><h3>'+esc(d.titolo)+'</h3>'
+    +'<div class="build-dish-meta">'+t.kcal+' kcal \u00b7 '+t.prot+' g di proteine \u00b7 a persona</div>'
+    +buildIngredientsHTML()
+    +'<div class="build-ing-head" style="margin-top:14px">Procedimento</div><ol>';
   d.passi.forEach(function(x){h+='<li>'+esc(x)+'</li>';});
-  return h+'</ol><div class="note" style="margin-top:10px">\u00c8 uno schema, non una ricetta fissa: aglio, limone ed erbe aggiungili a piacere, non cambiano i conti.</div></div>';
+  return h+'</ol></div>';
 }
 
 function buildColumnHTML(role){
@@ -3021,13 +3042,7 @@ function buildHTML(){
     +'<div><b>'+t.prot+' g</b><span>proteine, obiettivo '+g.prot+'</span></div></div>';
   h+='<div class="card build-advice">'+esc(buildAdviceText())+'</div>';
   h+=buildDishHTML();
-  const chosen=buildChosen();
-  if(chosen.length){
-    h+='<div class="card"><div class="sect" style="margin-top:0">Il tuo piatto</div>';
-    chosen.forEach(function(x){const t2=buildItemTotals(x[0],x[1]);
-      h+='<div class="build-line"><span>'+esc(x[1])+'</span><b>'+t2.g+' g</b></div>';});
-    h+='<button class="btn ghost" data-buildclear="1" style="margin-top:10px">Ricomincia</button></div>';
-  }
+  if(buildChosen().length)h+='<div class="card"><button class="btn ghost" data-buildclear="1">Ricomincia</button></div>';
   ['prot','carb','fat','veg'].forEach(function(r){h+=buildColumnHTML(r);});
   h+='<div class="card"><div class="note">Le porzioni sono calcolate dai valori del piano, con le stesse tabelle standard del resto della scheda. Per due persone raddoppia tutto.</div></div>';
   return h;

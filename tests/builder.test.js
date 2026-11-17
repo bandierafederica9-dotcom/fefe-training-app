@@ -80,11 +80,13 @@ const J = JSON.stringify;
   // ---------- 9) La schermata ----------
   h.run('buildSel={prot:"Pollo",carb:"Riso basmati crudo",fat:["Olio di oliva"],veg:["Zucchine"]};');
   const html = h.run('buildHTML()');
-  T('mostra il piatto scelto', /Il tuo piatto/.test(html) && /Pollo/.test(html) && /175 g/.test(html));
+  T('mostra gli ingredienti scelti dentro la ricetta', /Ingredienti/.test(html) && /Pollo/.test(html) && /175 g/.test(html));
   T('mostra i due totali con i rispettivi obiettivi', /obiettivo \d+/.test(html) && (html.match(/build-total/g) || []).length >= 1);
   T('ogni riga è un pulsante grande', (html.match(/class="build-row/g) || []).length === Object.keys(roles).reduce((a, r) => a + roles[r].items.length, 0));
   T('dichiara da dove vengono le porzioni', /valori del piano/.test(html));
   T('dice come si fa per due', /raddoppia/.test(html));
+  T('la lista degli ingredienti non e\' piu\' duplicata fuori dalla ricetta',
+    (html.match(/Ingredienti/g) || []).length === 1 && !/Il tuo piatto/.test(html));
   const nutri = h.run('nutriHTML()');
   T('la scheda è raggiungibile dalla nutrizione', /data-diet-section="build"/.test(nutri));
 
@@ -98,8 +100,19 @@ const J = JSON.stringify;
   })());
 
   const d1 = dish({ prot: 'Manzo magro', carb: 'Patata', fat: ['Olio di oliva', 'Noci'], veg: ['Melanzane', 'Funghi'] });
-  T('il titolo elenca in italiano, con una sola congiunzione',
-    d1.titolo === 'Manzo magro con patata al forno, melanzane e funghi', d1.titolo);
+  T('il nome dice come si cuoce, non elenca la spesa',
+    d1.titolo === 'Padellata di manzo con melanzane e funghi, patata al forno', d1.titolo);
+  T('il nome perde le parole da etichetta (magro, fresco, al naturale, petto di)', (() => {
+    const n = [
+      dish({ prot: 'Petto di tacchino', carb: '', fat: [], veg: [] }).titolo,
+      dish({ prot: 'Bacca\u006c\u00e0 fresco', carb: '', fat: [], veg: [] }).titolo,
+      dish({ prot: 'Tonno al naturale', carb: '', fat: [], veg: [] }).titolo].join(' | ');
+    return !/magro|fresco|al naturale|Petto di/.test(n); })());
+  T('ogni tipo di proteina ha la sua forma', (() => {
+    const f = k => dish({ prot: k, carb: '', fat: [], veg: [] }).titolo;
+    return /^Padellata di/.test(f('Manzo magro')) && /alla piastra$/.test(f('Pesce spada'))
+      && /^Uova in padella$/.test(f('Uova')) && /^Saltato di/.test(f('Tofu'))
+      && /^Insalata di/.test(f('Tonno al naturale')); })());
   T('i passi citano le grammature scelte', /190 g/.test(J(d1.passi)) && /300 g/.test(J(d1.passi)));
   T('la carne si sigilla, non si lessa', /sigillarlo/.test(J(d1.passi)));
   T('le noci vanno a crudo, non in padella', /Noci 20 g: a crudo/.test(J(d1.passi)));
@@ -131,8 +144,12 @@ const J = JSON.stringify;
 
   h.run('buildSel={prot:"Pollo",carb:"Patata",fat:[],veg:["Zucchine"]};');
   const dishHtml = h.run('buildDishHTML()');
-  T('la schermata mostra il piatto con i passi numerati', /Che cena fare/.test(dishHtml) && (dishHtml.match(/<li>/g) || []).length >= 3);
-  T('e dichiara che \u00e8 uno schema, non una ricetta fissa', /uno schema/.test(dishHtml));
+  T('si legge come una ricetta: nome, resa, ingredienti, procedimento',
+    /La ricetta di stasera/.test(dishHtml) && /Ingredienti/.test(dishHtml)
+    && /Procedimento/.test(dishHtml) && (dishHtml.match(/<li>/g) || []).length >= 3);
+  T('la resa e\' dichiarata a persona', /kcal \u00b7 \d+ g di proteine \u00b7 a persona/.test(dishHtml), (dishHtml.match(/build-dish-meta">[^<]*/) || [''])[0]);
+  T('gli ingredienti portano le grammature', /<b>300 g<\/b>/.test(dishHtml));
+  T('dice come si fa per due dentro la ricetta', /raddoppia/.test(dishHtml));
 
   console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
