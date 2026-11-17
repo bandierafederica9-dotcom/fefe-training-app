@@ -686,3 +686,6 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .build-line b{text-align:right;white-space:nowrap}
 .diary-dish{font-size:12.5px;font-weight:800;color:var(--rose-d);background:var(--rose-l);
   border-radius:10px;padding:8px 11px;margin-bottom:9px}
+.build-saved{margin-top:11px;padding:12px 13px;border-radius:14px;background:var(--card);
+  border:1px solid var(--rose-b);font-size:12.5px;font-weight:700;color:var(--ink)}
+.build-saved .btn{margin-top:10px;width:100%}

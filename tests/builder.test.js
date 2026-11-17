@@ -263,6 +263,23 @@ const J = JSON.stringify;
     T('e non porta con s\u00e9 nessun dato datato', !/\d{4}-\d{2}-\d{2}/.test(hd.store['fede:build']));
   }
 
+  // ---------- 13) La conferma porta dov'è ----------
+  {
+    const hc = H(REPO);
+    hc.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});');
+    hc.run('buildSel={prot:"Pollo",carb:["Patata"],fat:[],veg:[]};');
+    hc.run('var r=buildSaveToDiary();buildSavedOk=!!r.ok;buildSaved=r.ok?("Salvata nella cena di oggi: "+r.n+" voci.") : r.error;');
+    const ok = hc.run('buildDishHTML()');
+    T('la conferma dice quante voci ha salvato', /Salvata nella cena di oggi: 2 voci/.test(ok));
+    T('e porta al diario invece di dire soltanto dov\'\u00e8', /data-go="diario"/.test(ok));
+
+    // su errore niente pulsante: non c'è niente da andare a vedere
+    hc.run('buildSel={prot:"",carb:[],fat:[],veg:[]};var r2=buildSaveToDiary();buildSavedOk=!!r2.ok;buildSaved=r2.ok?"":r2.error;');
+    const ko = hc.run('buildDishHTML()');
+    T('se il salvataggio non riesce lo dice', /Scegli prima una proteina/.test(ko), (ko.match(/build-saved[^<]*<\/div>|build-saved">[^<]*/) || [''])[0]);
+    T('e non offre un pulsante che non porta a niente', !/data-go="diario"/.test(ko));
+  }
+
   console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
 })();
