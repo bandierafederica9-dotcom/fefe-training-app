@@ -36,9 +36,12 @@ const J = JSON.stringify;
   T('l\'olio torna 15 g', tot('fat', 'Olio di oliva').g === 15);
 
   // ---------- 4) La scelta ----------
-  h.run('buildSel={prot:"",carb:"",fat:[],veg:[]};buildGym=false;');
+  h.run('buildSel={prot:"",carb: [],fat:[],veg:[]};buildGym=false;');
   h.run('buildToggle("prot","Pollo");buildToggle("prot","Manzo magro");');
-  T('la proteina è a scelta singola: la seconda sostituisce la prima', h.run('buildSel.prot') === 'Manzo magro');
+  T('la proteina resta a scelta singola: la seconda sostituisce la prima', h.run('buildSel.prot') === 'Manzo magro');
+  T('i carboidrati invece si sommano, perché una cena può averne due', (() => {
+    h.run('buildSel.carb=[];buildToggle("carb","Patata");buildToggle("carb","Pane di mais");');
+    return h.run('buildSel.carb.length') === 2; })());
   h.run('buildToggle("prot","Manzo magro");');
   T('ritoccare la stessa la deseleziona', h.run('buildSel.prot') === '');
   h.run('buildToggle("fat","Noci");buildToggle("fat","Olio di oliva");');
@@ -47,7 +50,7 @@ const J = JSON.stringify;
   T('e si tolgono uno per uno', h.run('JSON.stringify(buildSel.fat)') === J(['Olio di oliva']));
 
   // ---------- 5) I totali ----------
-  h.run('buildSel={prot:"Manzo magro",carb:"Patata",fat:["Olio di oliva","Noci"],veg:["Melanzane","Funghi"]};');
+  h.run('buildSel={prot:"Manzo magro",carb: ["Patata"],fat:["Olio di oliva","Noci"],veg:["Melanzane","Funghi"]};');
   const t = JSON.parse(h.run('JSON.stringify(buildTotals())'));
   const atteso = ['prot|Manzo magro', 'carb|Patata', 'fat|Olio di oliva', 'fat|Noci', 'veg|Melanzane', 'veg|Funghi']
     .reduce((a, k) => { const [r, n] = k.split('|'); const x = tot(r, n); return { kcal: a.kcal + x.kcal, prot: a.prot + x.prot }; }, { kcal: 0, prot: 0 });
@@ -56,21 +59,30 @@ const J = JSON.stringify;
   T('e supera le 50 g di proteine', t.prot >= 50, String(t.prot));
 
   // ---------- 6) Il consiglio dice la cosa giusta ----------
-  h.run('buildGym=true;');
-  T('con il piatto pieno dice che è equilibrata', /equilibrata/.test(h.run('buildAdviceText()')), h.run('buildAdviceText()'));
-  h.run('buildSel={prot:"",carb:"",fat:[],veg:[]};');
+  h.run('buildGym=true;buildSel={prot:"Manzo magro",carb:["Patata","Riso basmati crudo"],fat:["Olio di oliva"],veg:["Melanzane"]};');
+  T('con le porzioni giuste dice che la cena è completa',
+    h.run('buildAdviceText()') === 'Cena completa per un giorno di palestra.', h.run('buildAdviceText()'));
+  h.run('buildSel={prot:"",carb: [],fat:[],veg:[]};');
   T('a mani vuote spiega come si usa', /una riga per colonna/i.test(h.run('buildAdviceText()')));
-  h.run('buildSel={prot:"",carb:"Patata",fat:[],veg:[]};');
-  T('senza proteina lo dice subito', /Manca la proteina/.test(h.run('buildAdviceText()')));
-  h.run('buildGym=false;buildSel={prot:"Tonno al naturale",carb:"",fat:[],veg:[]};');
-  T('troppo leggera: lo quantifica', /Leggera di \d+ kcal/.test(h.run('buildAdviceText()')), h.run('buildAdviceText()'));
-  h.run('buildSel={prot:"Uova",carb:"Patata",fat:["Olio di oliva","Noci","Avocado"],veg:[]};buildGym=false;');
-  T('troppo ricca: lo quantifica', /Più ricca/.test(h.run('buildAdviceText()')), h.run('buildAdviceText()'));
+  h.run('buildSel={prot:"",carb: ["Patata"],fat:[],veg:[]};');
+  T('senza proteina lo dice subito, contando in porzioni',
+    /Manca 1 proteina/.test(h.run('buildAdviceText()')), h.run('buildAdviceText()'));
+  h.run('buildGym=false;buildSel={prot:"Tonno al naturale",carb: [],fat:[],veg:[]};');
+  T('quel che manca lo elenca in porzioni, una per una',
+    h.run('buildAdviceText()') === 'Per una sera normale aggiungi: +1 carboidrato, +1 grasso, +1 verdura.', h.run('buildAdviceText()'));
+  h.run('buildSel={prot:"Uova",carb:["Patata"],fat:["Olio di oliva","Noci","Avocado"],veg:["Zucchine"]};buildGym=false;');
+  T('e quel che avanza allo stesso modo',
+    h.run('buildAdviceText()') === 'Più ricca del necessario: togli −2 grassi.', h.run('buildAdviceText()'));
+  T('il plurale è giusto: 2 grassi, non 2 grasso', /2 grassi/.test(h.run('buildAdviceText()')));
+  T('e al singolare resta singolare', (() => {
+    h.run('buildSel={prot:"Uova",carb:["Patata"],fat:["Olio di oliva","Noci"],veg:["Zucchine"]};');
+    return /1 grasso(?!i)/.test(h.run('buildAdviceText()')); })(), h.run('buildAdviceText()'));
 
   // ---------- 7) Il bersaglio cambia col giorno ----------
   h.run('buildGym=false;'); const n1 = JSON.parse(h.run('JSON.stringify(buildTarget())'));
   h.run('buildGym=true;'); const g1 = JSON.parse(h.run('JSON.stringify(buildTarget())'));
-  T('il giorno di palestra chiede di più', g1.kcal > n1.kcal && g1.prot >= n1.prot, J(n1) + ' -> ' + J(g1));
+  T('il giorno di palestra chiede una porzione in più, non calorie astratte',
+    g1.carb === n1.carb + 1 && g1.prot === n1.prot, J(n1) + ' -> ' + J(g1));
 
   // ---------- 8) Costruire non scrive; salvare sì, ed è l'unico che scrive ----------
   const prima = J(h.store);
@@ -81,7 +93,7 @@ const J = JSON.stringify;
     const hs = H(REPO);
     hs.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});');
     T('senza proteina non si salva', JSON.parse(hs.run('JSON.stringify(buildSaveToDiary())')).ok === false);
-    hs.run('buildSel={prot:"Manzo magro",carb:"Patata",fat:["Olio di oliva"],veg:["Melanzane"]};');
+    hs.run('buildSel={prot:"Manzo magro",carb: ["Patata"],fat:["Olio di oliva"],veg:["Melanzane"]};');
     const r = JSON.parse(hs.run('JSON.stringify(buildSaveToDiary())'));
     T('salva una voce per ingrediente', r.ok === true && r.n === 4, J(r));
     const cena = JSON.parse(hs.run('JSON.stringify(data.food.Cena)'));
@@ -106,10 +118,13 @@ const J = JSON.stringify;
   }
 
   // ---------- 9) La schermata ----------
-  h.run('buildSel={prot:"Pollo",carb:"Riso basmati crudo",fat:["Olio di oliva"],veg:["Zucchine"]};');
+  h.run('buildGym=false;buildSel={prot:"Pollo",carb:["Riso basmati crudo"],fat:["Olio di oliva"],veg:["Zucchine"]};');
   const html = h.run('buildHTML()');
   T('mostra gli ingredienti scelti dentro la ricetta', /Ingredienti/.test(html) && /Pollo/.test(html) && /175 g/.test(html));
-  T('mostra i due totali con i rispettivi obiettivi', /obiettivo \d+/.test(html) && (html.match(/build-total/g) || []).length >= 1);
+  T('in cima mostra la cena contata in porzioni', /La tua cena/.test(html) && /1 proteina/.test(html));
+  T('e accanto il bersaglio in porzioni', /per una sera normale: 1 proteina/.test(html));
+  T('le calorie restano come riferimento, non come bersaglio', /di riferimento/.test(html));
+  T('ogni ingrediente porta la sua etichetta di porzione', (html.match(/class="build-tag"/g) || []).length === 4);
   T('ogni riga è un pulsante grande', (html.match(/class="build-row/g) || []).length === Object.keys(roles).reduce((a, r) => a + roles[r].items.length, 0));
   T('dichiara da dove vengono le porzioni', /valori del piano/.test(html));
   T('dice come si fa per due', /raddoppia/.test(html));
@@ -120,24 +135,24 @@ const J = JSON.stringify;
 
   // ---------- 10) Dalla scelta al piatto ----------
   const dish = sel => { h.run('buildSel=' + J(sel) + ';'); return JSON.parse(h.run('JSON.stringify(buildDish())')); };
-  T('senza proteina non propone nessun piatto', h.run('buildSel={prot:"",carb:"Patata",fat:[],veg:[]};buildDish()') === null);
+  T('senza proteina non propone nessun piatto', h.run('buildSel={prot:"",carb: ["Patata"],fat:[],veg:[]};buildDish()') === null);
   T('ma lo dice invece di mostrare il vuoto', (() => {
-    h.run('buildSel={prot:"",carb:"Patata",fat:[],veg:["Melanzane"]};');
+    h.run('buildSel={prot:"",carb: ["Patata"],fat:[],veg:["Melanzane"]};');
     const v = h.run('buildDishHTML()');
     return /Che cena fare/.test(v) && /Scegli una <b>proteina<\/b>/.test(v);
   })());
 
-  const d1 = dish({ prot: 'Manzo magro', carb: 'Patata', fat: ['Olio di oliva', 'Noci'], veg: ['Melanzane', 'Funghi'] });
+  const d1 = dish({ prot: 'Manzo magro', carb: ['Patata'], fat: ['Olio di oliva', 'Noci'], veg: ['Melanzane', 'Funghi'] });
   T('il nome dice come si cuoce, non elenca la spesa',
     d1.titolo === 'Padellata di manzo con melanzane e funghi, patata al forno', d1.titolo);
   T('il nome perde le parole da etichetta (magro, fresco, al naturale, petto di)', (() => {
     const n = [
-      dish({ prot: 'Petto di tacchino', carb: '', fat: [], veg: [] }).titolo,
-      dish({ prot: 'Bacca\u006c\u00e0 fresco', carb: '', fat: [], veg: [] }).titolo,
-      dish({ prot: 'Tonno al naturale', carb: '', fat: [], veg: [] }).titolo].join(' | ');
+      dish({ prot: 'Petto di tacchino', carb: [], fat: [], veg: [] }).titolo,
+      dish({ prot: 'Bacca\u006c\u00e0 fresco', carb: [], fat: [], veg: [] }).titolo,
+      dish({ prot: 'Tonno al naturale', carb: [], fat: [], veg: [] }).titolo].join(' | ');
     return !/magro|fresco|al naturale|Petto di/.test(n); })());
   T('ogni tipo di proteina ha la sua forma', (() => {
-    const f = k => dish({ prot: k, carb: '', fat: [], veg: [] }).titolo;
+    const f = k => dish({ prot: k, carb: [], fat: [], veg: [] }).titolo;
     return /^Padellata di/.test(f('Manzo magro')) && /alla piastra$/.test(f('Pesce spada'))
       && /^Uova in padella$/.test(f('Uova')) && /^Saltato di/.test(f('Tofu'))
       && /^Insalata di/.test(f('Tonno al naturale')); })());
@@ -145,32 +160,32 @@ const J = JSON.stringify;
   T('la carne si sigilla, non si lessa', /sigillarlo/.test(J(d1.passi)));
   T('le noci vanno a crudo, non in padella', /Noci 20 g: a crudo/.test(J(d1.passi)));
 
-  const d2 = dish({ prot: 'Uova', carb: 'Patata dolce', fat: [], veg: ['Peperone rosso'] });
+  const d2 = dish({ prot: 'Uova', carb: ['Patata dolce'], fat: [], veg: ['Peperone rosso'] });
   T('con le uova il metodo cambia: conche e coperchio', /conche/.test(J(d2.passi)) && /Coperchio/.test(J(d2.passi)));
 
-  const d3 = dish({ prot: 'Tonno al naturale', carb: 'Ceci cotti', fat: ['Olio di oliva'], veg: ['Lattuga'] });
+  const d3 = dish({ prot: 'Tonno al naturale', carb: ['Ceci cotti'], fat: ['Olio di oliva'], veg: ['Lattuga'] });
   T('il tonno in scatola non si cuoce', /non cuocerlo/.test(J(d3.passi)));
   T('e i ceci non finiscono in forno', !/Forno/.test(J(d3.passi)));
 
-  const d4 = dish({ prot: 'Bacca\u006c\u00e0 fresco', carb: 'Riso basmati crudo', fat: [], veg: ['Broccoli'] });
+  const d4 = dish({ prot: 'Bacca\u006c\u00e0 fresco', carb: ['Riso basmati crudo'], fat: [], veg: ['Broccoli'] });
   T('il pesce si fa per lato', /per lato/.test(J(d4.passi)));
   T('nel titolo il riso si legge come a tavola, senza "crudo"',
     /riso basmati(?! crudo)/.test(d4.titolo) && !/crudo/.test(d4.titolo), d4.titolo);
 
-  const d5 = dish({ prot: 'Tofu', carb: '', fat: [], veg: [] });
+  const d5 = dish({ prot: 'Tofu', carb: [], fat: [], veg: [] });
   T('il tofu si rosola', /rosolato/.test(J(d5.passi)));
   T('senza contorni resta comunque un piatto', d5.passi.length >= 1 && !!d5.titolo);
 
   // lo stesso tipo si cucina allo stesso modo
-  const pollo = dish({ prot: 'Pollo', carb: '', fat: [], veg: [] });
-  const tacchino = dish({ prot: 'Petto di tacchino', carb: '', fat: [], veg: [] });
+  const pollo = dish({ prot: 'Pollo', carb: [], fat: [], veg: [] });
+  const tacchino = dish({ prot: 'Petto di tacchino', carb: [], fat: [], veg: [] });
   T('due carni diverse condividono il metodo', pollo.passi[0].replace(/Pollo \d+ g/, 'X') === tacchino.passi[0].replace(/Petto di tacchino \d+ g/, 'X'));
 
   T('ogni proteina del costruttore sa come si cucina',
     JSON.parse(h.run('JSON.stringify(BUILD_ROLES.prot.items)')).every(n => !!h.run('buildKind(' + J(n) + ')')),
     JSON.parse(h.run('JSON.stringify(BUILD_ROLES.prot.items)')).filter(n => !h.run('buildKind(' + J(n) + ')')).join(','));
 
-  h.run('buildSel={prot:"Pollo",carb:"Patata",fat:[],veg:["Zucchine"]};');
+  h.run('buildSel={prot:"Pollo",carb: ["Patata"],fat:[],veg:["Zucchine"]};');
   const dishHtml = h.run('buildDishHTML()');
   T('si legge come una ricetta: nome, resa, ingredienti, procedimento',
     /La ricetta di stasera/.test(dishHtml) && /Ingredienti/.test(dishHtml)

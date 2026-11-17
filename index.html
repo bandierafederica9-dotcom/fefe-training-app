@@ -2854,17 +2854,17 @@ function has(m,name){return (data.food[m]||[]).some(function(i){return i.n===nam
    Tutto viene da DIET_NUTRI: nessun valore scritto a mano, niente da tenere
    allineato. Lo stato e' in memoria: questa schermata non scrive mai. */
 const BUILD_ROLES={
-  prot:{unit:40, label:'Proteine', hint:'una riga = 40 g di proteine', items:[
+  prot:{unit:40, label:'Proteine', hint:'1 porzione = 40 g di proteine', items:[
     'Tonno al naturale','Albumi pastorizzati','Baccal\u00e0 fresco','Petto di tacchino',
     'Proteina ISO ChocoMonkey','Pollo','Yogurt proteico senza lattosio','Pesce spada',
     'Manzo magro','Formaggio Havarti Light','Tofu','Uova']},
-  carb:{kcal:230, label:'Carboidrati', hint:'una riga = 230 kcal', items:[
+  carb:{kcal:230, label:'Carboidrati', hint:'1 porzione = 230 kcal', items:[
     'Riso basmati crudo','Pasta senza glutine','Pane tostato senza glutine','Fajitas di mais',
     'Pane di mais','Gnocchi','Patata dolce','Mais dolce','Patata','Quinoa','Ceci cotti']},
-  fat:{kcal:130, label:'Grassi', hint:'una riga = 130 kcal', items:[
+  fat:{kcal:130, label:'Grassi', hint:'1 porzione = 130 kcal', items:[
     'Olio di oliva','Noci','Mandorle','Burro di arachidi','Anacardi','Semi di lino',
     'Avocado','Cioccolato fondente']},
-  veg:{grams:200, label:'Verdure', hint:'libere, 200 g a porzione', items:[
+  veg:{grams:200, label:'Verdure', hint:'1 porzione = 200 g', items:[
     'Melanzane','Funghi','Broccoli','Spinaci','Zucchine','Asparagi','Peperone rosso',
     'Peperone verde','Pomodoro','Pomodorini','Cetriolo','Lattuga','Songino','Carota','Cipolla']}
 };
@@ -2880,17 +2880,17 @@ function buildItemTotals(role,name){
   const v=DIET_NUTRI[name]||[0,0], g=buildPortion(role,name);
   return {g:g, kcal:Math.round(v[0]*g/100), prot:Math.round(v[1]*g/100)};
 }
-let buildSel={prot:'',carb:'',fat:[],veg:[]};
+let buildSel={prot:'',carb:[],fat:[],veg:[]};
 let buildGym=false;
 function buildToggle(role,name){
-  if(role==='prot'||role==='carb'){buildSel[role]=buildSel[role]===name?'':name;return;}
+  if(role==='prot'){buildSel.prot=buildSel.prot===name?'':name;return;}
   const a=buildSel[role], i=a.indexOf(name);
   if(i>-1)a.splice(i,1); else a.push(name);
 }
 function buildChosen(){
   const out=[];
   if(buildSel.prot)out.push(['prot',buildSel.prot]);
-  if(buildSel.carb)out.push(['carb',buildSel.carb]);
+  buildSel.carb.forEach(function(n){out.push(['carb',n]);});
   buildSel.fat.forEach(function(n){out.push(['fat',n]);});
   buildSel.veg.forEach(function(n){out.push(['veg',n]);});
   return out;
@@ -2901,18 +2901,32 @@ function buildTotals(){
   return {kcal:kcal,prot:prot};
 }
 // Il bersaglio della cena: una sera normale o una da palestra.
-function buildTarget(){return buildGym?{kcal:900,prot:50}:{kcal:640,prot:45};}
-function buildAdviceText(){
-  const t=buildTotals(), g=buildTarget();
-  if(!buildSel.prot&&!buildSel.carb&&!buildSel.fat.length)
-    return 'Scegli una riga per colonna. Le righe di una stessa colonna si equivalgono: non devi fare conti.';
-  if(!buildSel.prot)return 'Manca la proteina: \u00e8 la colonna che regge il piatto.';
-  const dk=t.kcal-g.kcal, dp=t.prot-g.prot;
-  if(dp<-8)return 'Poche proteine per una cena: aggiungi una seconda riga dalla prima colonna, o passa a una pi\u00f9 magra.';
-  if(dk<-180)return 'Leggera di '+Math.abs(dk)+' kcal: aggiungi un grasso, o met\u00e0 porzione di carboidrati in pi\u00f9.';
-  if(dk>200)return 'Pi\u00f9 ricca del necessario di '+dk+' kcal: togli un grasso, o scegli una proteina pi\u00f9 magra.';
-  return 'Cena equilibrata per ' + (buildGym?'un giorno di palestra':'una sera normale') + '.';
+function buildTarget(){return buildGym
+  ? {prot:1,carb:2,fat:1,veg:1}
+  : {prot:1,carb:1,fat:1,veg:1};}
+function buildCounts(){return {prot:buildSel.prot?1:0, carb:buildSel.carb.length,
+  fat:buildSel.fat.length, veg:buildSel.veg.length};}
+const BUILD_WORD={prot:['proteina','proteine'],carb:['carboidrato','carboidrati'],
+  fat:['grasso','grassi'],veg:['verdura','verdure']};
+function buildWord(role,n){return n+' '+BUILD_WORD[role][n===1?0:1];}
+function buildCountsText(){
+  const c=buildCounts(), out=[];
+  ['prot','carb','fat','veg'].forEach(function(r){if(c[r])out.push(buildWord(r,c[r]));});
+  return out.join(' \u00b7 ');
 }
+function buildAdviceText(){
+  const c=buildCounts(), g=buildTarget();
+  if(!c.prot&&!c.carb&&!c.fat&&!c.veg)
+    return 'Tocca una riga per colonna. Una porzione vale sempre quanto un\u2019altra della stessa colonna: non devi pesare col pensiero.';
+  if(!c.prot)return 'Manca 1 proteina: \u00e8 la colonna che regge il piatto.';
+  const manca=[],troppi=[];
+  ['carb','fat','veg'].forEach(function(r){const d=g[r]-c[r]; if(d>0)manca.push('+'+buildWord(r,d));});
+  ['carb','fat'].forEach(function(r){const d=c[r]-g[r]; if(d>0)troppi.push('\u2212'+buildWord(r,d));});
+  if(manca.length)return 'Per '+(buildGym?'un giorno di palestra':'una sera normale')+' aggiungi: '+manca.join(', ')+'.';
+  if(troppi.length)return 'Pi\u00f9 ricca del necessario: togli '+troppi.join(', ')+'.';
+  return 'Cena completa per '+(buildGym?'un giorno di palestra':'una sera normale')+'.';
+}
+
 /* Dalla scelta al piatto. Niente modelli e niente chiamate: sono regole sul
    TIPO di ingrediente, perche' il metodo di cottura dipende da quello, non dal
    nome. Due proteine diverse dello stesso tipo si cucinano uguale. */
@@ -2931,7 +2945,7 @@ const BUILD_KIND={
 function buildKind(n){return BUILD_KIND[n]||'';}
 // Il piatto: un titolo e dei passi, composti dalle scelte vere.
 function buildDish(){
-  const P=buildSel.prot, C=buildSel.carb, V=buildSel.veg.slice(), F=buildSel.fat.slice();
+  const P=buildSel.prot, Cs=buildSel.carb.slice(), C=Cs[0]||'', V=buildSel.veg.slice(), F=buildSel.fat.slice();
   if(!P)return null;
   const kp=buildKind(P), kc=buildKind(C), g=buildItemTotals.bind(null);
   const qty=function(role,n){return n+' '+buildItemTotals(role,n).g+' g';};
@@ -2952,6 +2966,7 @@ function buildDish(){
     passi.push(qty('carb',C)+': tienilo da parte, va aggiunto alla fine senza cottura.');
   }
   // 2) le verdure
+  if(Cs.length>1)passi.push(Cs.slice(1).map(function(n){return qty('carb',n);}).join(' e ')+': a parte, come da confezione.');
   if(V.length)passi.push(V.map(function(n){return qty('veg',n);}).join(' e ')+': in padella larga a fuoco vivo con poco olio, 6-8 minuti, finch\u00e9 prendono colore. Mettile da parte.');
   // 3) la proteina, secondo il tipo
   if(kp==='carne'){
@@ -2999,8 +3014,8 @@ function buildIngredientsHTML(){
   const c=buildChosen(); if(!c.length)return '';
   let h='<div class="build-ing"><div class="build-ing-head">Ingredienti</div>';
   c.forEach(function(x){const t=buildItemTotals(x[0],x[1]);
-    h+='<div class="build-line"><span>'+esc(x[1])+'</span><b>'+t.g+' g</b></div>';});
-  return h+'<div class="note" style="margin-top:8px">Per due persone raddoppia tutto. Sale, pepe, aglio, limone ed erbe a piacere: non cambiano i conti.</div></div>';
+    h+='<div class="build-line"><span><i class="build-tag">'+BUILD_WORD[x[0]][0]+'</i>'+esc(x[1])+'</span><b>'+t.g+' g</b></div>';});
+  return h+'<div class="note" style="margin-top:8px">In porzioni: '+buildCountsText()+'. Per due persone raddoppia tutto. Sale, pepe, aglio, limone ed erbe a piacere: non cambiano i conti.</div></div>';
 }
 // Salva la ricetta nel diario di oggi: una voce per ingrediente, cosi' il
 // diario resta modificabile riga per riga come tutto il resto.
@@ -3055,8 +3070,12 @@ function buildHTML(){
     +'<div class="build-mode">'
     +'<button class="'+(!buildGym?'on':'')+'" data-buildmode="normal">Sera normale</button>'
     +'<button class="'+(buildGym?'on':'')+'" data-buildmode="gym">Giorno di palestra</button></div></div>';
-  h+='<div class="build-total"><div><b>'+t.kcal+' kcal</b><span>obiettivo '+g.kcal+'</span></div>'
-    +'<div><b>'+t.prot+' g</b><span>proteine, obiettivo '+g.prot+'</span></div></div>';
+  const tgt=['prot','carb','fat','veg'].map(function(r){return buildWord(r,g[r]);}).join(' \u00b7 ');
+  h+='<div class="build-portions"><div class="build-portions-head">La tua cena</div>'
+    +'<b>'+(buildCountsText()||'ancora niente')+'</b>'
+    +'<span>per '+(buildGym?'un giorno di palestra':'una sera normale')+': '+tgt+'</span></div>';
+  h+='<div class="build-total"><div><b>'+t.kcal+' kcal</b><span>di riferimento</span></div>'
+    +'<div><b>'+t.prot+' g</b><span>proteine</span></div></div>';
   h+='<div class="card build-advice">'+esc(buildAdviceText())+'</div>';
   h+=buildDishHTML();
   if(buildChosen().length)h+='<div class="card"><button class="btn ghost" data-buildclear="1">Ricomincia</button></div>';
@@ -4028,7 +4047,7 @@ function bind(){
     buildSaved=r.ok?('Salvata: '+r.n+' voci nella cena di oggi. La trovi in Diario.'):r.error;
     render();};});
   document.querySelectorAll('[data-buildclear]').forEach(function(b){b.onclick=function(){
-    buildSel={prot:'',carb:'',fat:[],veg:[]};render();};});
+    buildSel={prot:'',carb:[],fat:[],veg:[]};render();};});
   document.querySelectorAll('[data-diet-section]').forEach(function(b){b.onclick=function(){window.__dietSection=b.dataset.dietSection;render();};});
   document.querySelectorAll('[data-diet-day]').forEach(function(b){b.onclick=function(){const dk=+b.dataset.dietDay;const mon=new Date(cur);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));mon.setHours(12,0,0,0);const target=new Date(mon);target.setDate(mon.getDate()+((dk+6)%7));cur=target;window.__dietSection='today';load().then(function(){render();});};});
   document.querySelectorAll('[data-diet-done]').forEach(function(b){b.onclick=function(){const slot=b.dataset.dietDone;const on=!isDietDone(cur,slot);setDietDone(cur,slot,on);render();};});

@@ -670,3 +670,9 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .build-ing{background:var(--card);border-radius:14px;padding:11px 13px}
 .build-ing-head{font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:var(--rose-d);margin-bottom:6px}
 .build-dish ol{margin:6px 0 0;padding-left:20px}
+.build-portions{background:var(--rose);border-radius:18px;padding:14px 16px;margin-bottom:10px;color:#fff}
+.build-portions-head{font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;opacity:.85}
+.build-portions b{display:block;margin-top:5px;font-size:17px;font-weight:900;line-height:1.3}
+.build-portions span{display:block;margin-top:6px;font-size:11.5px;font-weight:700;opacity:.9}
+.build-tag{display:inline-block;margin-right:7px;padding:2px 7px;border-radius:999px;background:var(--rose-l);
+  color:var(--rose-d);font-size:9.5px;font-weight:900;font-style:normal;text-transform:uppercase;letter-spacing:.04em}
