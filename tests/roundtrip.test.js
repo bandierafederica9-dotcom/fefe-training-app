@@ -134,5 +134,18 @@ T('re-importing the same backup finds it identical, not new', second.add === 0 &
   T('history is untouched by an add', Object.keys(g.store).every((k) => !/^fede:\d{4}-/.test(k)), Object.keys(g.store).join(','));
 }
 
+// ---- Il selettore file non deve nascondere un backup salvato come .txt ----
+{
+  const fs2 = require('fs');
+  const src = fs2.readFileSync(require('path').resolve(__dirname, '..', 'index.html'), 'utf8');
+  const m = src.match(/id="impfile"\s+accept="([^"]*)"/);
+  T('il campo file dichiara un filtro', !!m);
+  const acc = m ? m[1] : '';
+  T('accetta .json', /(^|,)\.json(,|$)/.test(acc) && /application\/json/.test(acc));
+  T('accetta anche .txt: un backup rinominato resta lo stesso JSON', /(^|,)\.txt(,|$)/.test(acc) && /text\/plain/.test(acc), acc);
+  T('il file viene letto come testo, non come JSON tipizzato', /r\.readAsText\(f\)/.test(src));
+  T('il contenuto finisce nel riquadro, che e\' il solo percorso di import', /ex\.value=String\(r\.result\|\|''\)/.test(src));
+}
+
 console.log(fail ? '\n' + fail + ' FAILED (add)' : '\nadd: all good');
 process.exit(fail ? 1 : 0);
