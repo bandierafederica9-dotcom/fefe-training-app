@@ -53,5 +53,34 @@ T('a safety snapshot was taken before writing, and stored', !!out.snapshotKey &&
 const second = JSON.parse(h.run(`JSON.stringify((function(){const r=analyzeBackup(parseBackupText(${J(backupText)}).backup);return {add:r.add.length,identical:r.identical.length,conflict:r.conflict.length};})())`));
 T('re-importing the same backup finds it identical, not new', second.add === 0 && second.conflict === 0, J(second));
 
-console.log(fail ? '\n' + fail + ' FAILED' : '\nall good');
+
+/* ---- the Lab ladder: a rung per skill, saved, never inferred ---- */
+{
+  const g = H(REPO, {});
+  g.run('profile=getProfile();');
+  const skills = JSON.parse(g.run('JSON.stringify(LAB_SKILLS)'));
+  T('every skill has a ladder with at least two rungs', skills.length > 0 && skills.every((s) => JSON.parse(g.run(`JSON.stringify(LAB_LADDER[${J(s)}].length)`)) >= 2), skills.join(','));
+  T('a fresh device starts every skill on the first rung', skills.every((s) => JSON.parse(g.run(`labStep(${J(s)})`)) === 0));
+  const first = skills[0];
+  g.run(`labSetStep(${J(first)},1)`);
+  T('the chosen rung is stored and read back', JSON.parse(g.run(`labStep(${J(first)})`)) === 1);
+  T('it is stored under its own fede:lab:* key', Object.keys(g.store).some((k) => k.indexOf('fede:lab:step:') === 0), Object.keys(g.store).join(','));
+  const n = JSON.parse(g.run(`LAB_LADDER[${J(first)}].length`));
+  g.run(`labSetStep(${J(first)},999)`);
+  T('it can never go past the top of the ladder', JSON.parse(g.run(`labStep(${J(first)})`)) === n - 1);
+  g.run(`labSetStep(${J(first)},-5)`);
+  T('nor below the first rung', JSON.parse(g.run(`labStep(${J(first)})`)) === 0);
+  const session = JSON.parse(g.run('JSON.stringify(labSessionToday())'));
+  T("today's session is one exercise per skill", session.length === skills.length, String(session.length));
+  T('every item knows where it stands and what comes next', session.every((c) => c.current && typeof c.index === 'number' && (c.next || c.index === c.total - 1)));
+
+  // attendance: recorded, never nagged
+  g.run("labSetMark('2099-02-01','skipped'); labSetMark('2099-02-03','done');");
+  const wk = JSON.parse(g.run("JSON.stringify(labWeekSummary(['2099-02-01','2099-02-02','2099-02-03']))"));
+  T('a skipped Lab is recorded and counted', wk.skipped === 1 && wk.done === 1 && wk.offered === 2, J(wk));
+  T('a day with no Lab offered counts for nothing', wk.offered === 2);
+  T('the Lab is offered on days 3 and 4 only', JSON.parse(g.run("JSON.stringify([labOfferedOn('Giorno 3'),labOfferedOn('Giorno 4'),labOfferedOn('Giorno 1'),labOfferedOn('Giorno 5')])")).join() === 'true,true,false,false');
+}
+
+console.log(fail ? '\n' + fail + ' FAILED (lab)' : '\nlab: all good');
 process.exit(fail ? 1 : 0);

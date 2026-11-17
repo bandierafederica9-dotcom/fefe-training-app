@@ -108,6 +108,70 @@ const CALISTHENICS_LIBRARY={
 const LAB_CALISTHENICS_DAY='Lab Calisthenics';
 const LAB_CALISTHENICS_PLAN=(function(){const ex=[];Object.keys(CALISTHENICS_LIBRARY).forEach(function(g){Object.keys(CALISTHENICS_LIBRARY[g]).forEach(function(c){CALISTHENICS_LIBRARY[g][c].forEach(function(e){ex.push(e);});});});return {t:'Calisthenics Lab',em:'🤸',ex:ex};})();
 function isLabDay(day){return day===LAB_CALISTHENICS_DAY;}
+
+/* ===== Lab: one ladder per skill, and where she stands on it =====
+   CALISTHENICS_LIBRARY is skill -> level -> [[name, prescription, sets, type, id], ...].
+   Flattened in declaration order it is a progression: the ladder for that skill.
+   Her current rung is stored per skill, device-local, and never inferred from history —
+   moving up is an explicit choice, like every other decision in this app. */
+const LAB_SKILLS=Object.keys(CALISTHENICS_LIBRARY);
+const LAB_LADDER=(function(){
+  const out={};
+  LAB_SKILLS.forEach(function(skill){
+    const rungs=[];
+    Object.keys(CALISTHENICS_LIBRARY[skill]).forEach(function(level){
+      CALISTHENICS_LIBRARY[skill][level].forEach(function(e){rungs.push({ex:e,level:level,id:e[4],name:e[0],pres:e[1]});});
+    });
+    out[skill]=rungs;
+  });
+  return out;
+})();
+function labStepKey(skill){return 'fede:lab:step:'+skill;}
+function labStep(skill){
+  const n=LAB_LADDER[skill]?LAB_LADDER[skill].length:0;
+  if(!n)return 0;
+  let v=0; try{v=parseInt(localStorage.getItem(labStepKey(skill))||'0',10);}catch(e){v=0;}
+  if(!(v>=0))v=0;
+  return Math.min(v,n-1);
+}
+function labSetStep(skill,i){
+  const n=LAB_LADDER[skill]?LAB_LADDER[skill].length:0;
+  if(!n)return 0;
+  const v=Math.max(0,Math.min(parseInt(i,10)||0,n-1));
+  try{localStorage.setItem(labStepKey(skill),String(v));}catch(e){}
+  return v;
+}
+// Where she is and what comes next, for one skill.
+function labCurrent(skill){
+  const rungs=LAB_LADDER[skill]||[]; if(!rungs.length)return null;
+  const i=labStep(skill);
+  return {skill:skill,index:i,total:rungs.length,level:rungs[i].level,
+          current:rungs[i],next:(i+1<rungs.length)?rungs[i+1]:null};
+}
+// Today's Lab session: the current rung of every skill. Four skills, four items.
+function labSessionToday(){return LAB_SKILLS.map(labCurrent).filter(Boolean);}
+
+/* ===== Lab attendance: done, or skipped, never nagged ===== */
+function labMarkKey(date){return 'fede:lab:mark:'+date;}
+function labMark(date){try{return localStorage.getItem(labMarkKey(date))||'';}catch(e){return '';}}
+function labSetMark(date,what){
+  // 'done' | 'skipped' | '' (cleared). Recorded so the weekly summary can be honest;
+  // nothing in the app warns about it.
+  try{ if(what)localStorage.setItem(labMarkKey(date),what); else localStorage.removeItem(labMarkKey(date)); }catch(e){}
+}
+// The Lab is offered on the days the gym plan pairs it with, at the top, already open.
+const LAB_OFFERED_ON=['Giorno 3','Giorno 4'];
+function labOfferedOn(day){return LAB_OFFERED_ON.indexOf(String(day))>=0;}
+function labWeekSummary(dates){
+  // dates: the dates of the week, newest or oldest first, it does not matter.
+  let done=0,skipped=0,offered=0;
+  (dates||[]).forEach(function(d){
+    const m=labMark(d);
+    if(m==='done'){done++;offered++;}
+    else if(m==='skipped'){skipped++;offered++;}
+  });
+  return {done:done,skipped:skipped,offered:offered};
+}
 const MOBILITY_LIBRARY={
   "Pancake": [["Hamstring Stretch Compression","3 x 8-12",3],["Single-Leg Lift","3 x 8-12/lato",3],["Pancake Stretch","3 x 30-45 sec",3]],
   "Handstand Prep": [["Wrist Extension Prep","2 x 30 sec",2],["Shoulder Flexion Drill","2 x 8-10",2]],
