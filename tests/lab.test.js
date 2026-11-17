@@ -158,7 +158,10 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
   // ---------- 11) Main-workout regression: exercise screen identical to HEAD (except intended) ----------
   { let mism = [], n = 0; const decided = new Set(['giorno-3__cable-lateral-raise', 'giorno-4__cable-kickback', 'casa__banded-clamshell', 'casa__clamshell-con-manubrio', 'giorno-5__cossack-squat']);
     // Intended differences normalised: media block (photo instead of emoji), lazy/async image attributes, rest value.
-    const norm = s => s.replace(/<div class="exercise-media">[\s\S]*?<\/a><\/div>/, '<MEDIA>').replace(/ (loading="lazy"|decoding="async")/g, '').replace(/id="restTimer">\d\d:\d\d</, 'id="restTimer">--:--<').replace(/<a class="vidbtn"[^>]*>▶ (Guarda il video|Cerca video guida)<\/a>/, ''); // media review pass: video button follows the new links
+    // the "whole day" button is new on every exercise screen and identical everywhere:
+    // dropped from the comparison so the rest of the screen stays under watch
+    const norm = s => s.replace(/<button class="warm-hint"[^>]*>[^<]*<\/button>/, '').replace(/<button class="see-all"[^>]*>[^<]*<\/button>/, '')
+      .replace(/<div class="exercise-media">[\s\S]*?<\/a><\/div>/, '<MEDIA>').replace(/ (loading="lazy"|decoding="async")/g, '').replace(/id="restTimer">\d\d:\d\d</, 'id="restTimer">--:--<').replace(/<a class="vidbtn"[^>]*>▶ (Guarda il video|Cerca video guida)<\/a>/, ''); // media review pass: video button follows the new links
     ['Giorno 1', 'Giorno 2', 'Giorno 3', 'Giorno 4', 'Giorno 5', 'Core', 'Casa', 'Nuoto'].forEach((day, di) => {
       const hc = H(REPO), hb = H(REPO, {}, headHtml);
       JSON.parse(hc.run(`JSON.stringify(PLAN[${J(day)}].ex)`)).forEach((e, i) => { if (decided.has(e[4]) || /\bsec\b/.test(e[1].split('·')[0]) || hc.run(`exLoad(${J(e)})`) === 'bodyweight' || hc.run(`isUnilateralExercise(${J(e)})`)) return; // timed use Sec, bodyweight drop the kg field, and unilateral sets are entered once with the left behind a tap - all three decided and tested above
@@ -166,7 +169,7 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
           for (let s = 1; s <= 5; s++) { const k = day + '|' + e[4] + '|' + s; if ((i + s + v + di) % 3 === 0) { rec.sets[k] = { kg: String(10 + s), r: String(5 + v) }; rec.done[k] = true; } }
           const run = hh => hh.run(`(function(){profile=getProfile();cur=new Date("2026-01-20T12:00:00");key="k";data=norm(${J(rec)});exIdx=${i};lastExLoading=false;lastEx=null;exerciseTab="video";return exerciseHTML();})()`);
           n++; if (norm(run(hc)) !== norm(run(hb))) mism.push(day + ':' + e[0]); } }); });
-    T('main exercise screen identical to HEAD outside the media block (' + n + ' renders; decided right/left, timed, bodyweight and unilateral excluded)', mism.length === 0, [...new Set(mism)].join()); }
+    T('main exercise screen identical to HEAD outside the media block (' + n + ' renders; decided right/left, timed, bodyweight and unilateral excluded; the day and warm-up buttons dropped)', mism.length === 0, [...new Set(mism)].join()); }
 
   // ---------- 12) Storage safety, import/export, migrations ----------
   { const added = curHtml.slice(curHtml.indexOf('<script>')).split('\n').filter(l => headHtml.indexOf(l) < 0);
