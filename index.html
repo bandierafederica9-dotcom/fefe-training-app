@@ -2269,6 +2269,39 @@ function videoEmbedHTML(name, cls){
   }
   return '<a class="exercise-video-thumb '+(cls||'')+' has-real-video local-thumb" data-ex-video="'+esc(name)+'" href="#" aria-label="Apri il video di '+esc(name)+'"><img src="'+src+'" loading="lazy" decoding="async" alt="Frame video '+esc(name)+'"><span class="video-source-badge">FRAME VIDEO</span><span class="video-play">▶</span></a>';
 }
+/* The skill card: the calisthenics has its own format, inside the gym day.
+   It never guesses where she is — until she places herself on the ladder the
+   plan's own prescription stands and the card asks, once. */
+function skillCardHTML(day){
+  const skill=skillOfDay(day); if(!skill)return '';
+  const c=labCurrent(skill); if(!c)return '';
+  const rungs=LAB_LADDER[skill]||[];
+  let h='<div class="skillcard" data-skill="'+esc(skill)+'">';
+  h+='<div class="skillcard-top"><span class="skillcard-tag">SKILL · CALISTHENICS</span>';
+  if(c.chosen)h+='<span class="skillcard-step">Gradino '+(c.index+1)+' di '+c.total+'</span>';
+  h+='</div>';
+  h+='<h3 class="skillcard-name">'+esc(skill)+'</h3>';
+  if(c.chosen){
+    h+='<div class="skillcard-now"><b>'+esc(c.current.name)+'</b><span>'+esc(c.current.pres)+'</span></div>';
+    h+='<div class="skillcard-level">'+esc(c.level)+'</div>';
+    h+=c.next
+      ? '<div class="skillcard-next">Prossimo gradino · <b>'+esc(c.next.name)+'</b> <span>'+esc(c.next.pres)+'</span></div>'
+      : '<div class="skillcard-next">Sei sull’ultimo gradino di questa scala.</div>';
+  }else{
+    h+='<div class="skillcard-ask">Dove sei su questa scala? Scegli una volta: da lì in poi il tuo allenamento parte dal gradino giusto.</div>';
+  }
+  h+='<div class="skillcard-ladder">';
+  rungs.forEach(function(r,i){
+    const on=c.chosen&&i===c.index;
+    h+='<button class="skillrung'+(on?' on':'')+'" data-labstep="'+esc(skill)+'|'+i+'" aria-pressed="'+(on?'true':'false')+'">'
+      +'<span class="skillrung-n">'+(i+1)+'</span><span class="skillrung-t">'+esc(r.name)+'</span></button>';
+  });
+  h+='</div>';
+  if(c.chosen)h+='<div class="skillcard-note">Si sale solo quando lo decidi tu.</div>';
+  h+='</div>';
+  return h;
+}
+
 function workoutHTML(){
   const p=dayPlan(data.day), dc=doneCount(data,data.day); let h='<div class="pagehd"><button class="back" data-back="home">‹</button><h2>'+esc(data.day)+'<span class="sm">'+esc(p.t||'')+'</span></h2></div>';
   h+='<div class="workout-hero"><div class="small">Today\'s workout</div><h1>'+esc(data.day)+'</h1><p>'+esc(p.t||'')+'</p><div class="workout-progress"><div><b>'+dc.done+'/'+dc.tot+'</b><span> SERIE</span></div><div><b>'+p.ex.length+'</b><span> ESERCIZI</span></div></div><div class="workout-progress-bar"><i style="width:'+(dc.tot?dc.done/dc.tot*100:0)+'%"></i></div></div><div class="wrap">';
@@ -2278,6 +2311,7 @@ function workoutHTML(){
   h+='<div class="sect">Riscaldamento</div><div class="card warm-card"><div style="font-size:11.5px;color:var(--dim);font-weight:700;margin-bottom:10px">Prima della seduta · tocca ✓ quando hai completato ogni parte.</div>';
   warm.forEach(function(x,i){const wid=data.day+'|'+i,on=!!data.warm[wid];h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #eee7dc"><button class="chk'+(on?' on':'')+'" data-warm="'+esc(wid)+'">'+(on?'✓':'')+'</button><div style="flex:1"><b style="display:block;font-size:13px">'+esc(x.n)+'</b><span style="font-size:10.5px;color:var(--dim);font-weight:700">'+esc(x.d)+'</span></div>'+(x.u?'<a class="vidbtn" style="margin:0;padding:8px 10px" target="_blank" rel="noopener" href="'+esc(x.u)+'">▶</a>':'')+'</div>';});
   h+='</div>';
+  h+=skillCardHTML(data.day);
   h+='<div class="video-library-intro"><div><h3>Libreria esercizi</h3><p>Video reali quando disponibili. Illustrazioni dedicate per il resto.</p></div><div class="video-library-legend"><span>● FRAME VIDEO</span><span>＋ ILLUSTRAZIONE</span></div></div>';
   p.ex.forEach(function(e,i){const ed=exDone(data,data.day,i);h+='<div class="exrow exrow-v5" data-ex="'+i+'">'+videoEmbedHTML(e[0],'mini-video-thumb')+'<div class="num '+(ed.n===ed.tot?'done':'')+'">'+(ed.n===ed.tot?'✓':(i+1))+'</div><div class="info"><b>'+esc(e[0])+'</b><span>'+esc(e[1])+' · '+ed.n+'/'+ed.tot+' serie</span></div><div class="tarrow">›</div></div>';});
   h+='<div class="sect">Note della sessione</div><div class="card" style="padding:14px"><textarea id="note" style="min-height:70px" placeholder="Sensazioni, PR, energia...">'+esc(data.note)+'</textarea></div></div>'; return h;
@@ -3211,6 +3245,12 @@ function bind(){
     goals.sched[sel.dataset.sched]=sel.value;saveGoals();loadAgenda().then(render);};});
 
   document.querySelectorAll('[data-day5-variant]').forEach(function(b){b.onclick=function(){setDay5Variant(b.dataset.day5Variant);};});
+
+  // gradino della skill: scelta esplicita, mai dedotta
+  document.querySelectorAll('[data-labstep]').forEach(function(b){b.onclick=function(){
+    const p=String(b.dataset.labstep).split('|');
+    labSetStep(p[0],parseInt(p[1],10));
+    render();};});
 
   // riscaldamento
   document.querySelectorAll('[data-warm]').forEach(function(b){b.onclick=function(){

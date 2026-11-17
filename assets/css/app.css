@@ -431,3 +431,28 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline-offset:0
   #page[data-enter] .workout-progress-bar i,.minicoach-panel.mc-enter,#swupdate{animation:none!important}
   .exrow-v5[data-ex]:active,.lab-ex-card:active,.nav button:active{transform:none!important}
 }
+
+/* ===== Skill card: the calisthenics inside the gym day, with its own format ===== */
+.skillcard{background:linear-gradient(150deg,#eef7f2,#f7f3ec);border:1px solid #d9e7de;border-radius:18px;
+  padding:16px 16px 14px;margin:0 0 14px}
+.skillcard-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.skillcard-tag{font-size:9.5px;font-weight:900;letter-spacing:.14em;color:#4d7a63}
+.skillcard-step{font-size:10.5px;font-weight:800;color:#4d7a63;background:#fff;border-radius:999px;padding:3px 9px}
+.skillcard-name{font:800 21px "Manrope",-apple-system,Segoe UI,sans-serif;margin:0 0 10px;color:var(--navy,#1e2340)}
+.skillcard-now{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
+.skillcard-now b{font-size:15.5px;font-weight:800}
+.skillcard-now span{font-size:12px;color:var(--dim,#6b727a);font-weight:700}
+.skillcard-level{font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#4d7a63;margin-bottom:10px}
+.skillcard-next{font-size:11.5px;color:var(--dim,#6b727a);font-weight:700;line-height:1.5;margin-bottom:12px}
+.skillcard-next b{color:var(--navy,#1e2340)}
+.skillcard-ask{font-size:12px;color:var(--navy,#1e2340);font-weight:700;line-height:1.55;margin-bottom:12px}
+.skillcard-ladder{display:flex;flex-direction:column;gap:6px}
+.skillrung{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:9px 12px;
+  background:#fff;border:1px solid #e3ece6;border-radius:12px;font:inherit;text-align:left;cursor:pointer}
+.skillrung-n{flex:0 0 22px;height:22px;border-radius:50%;background:#eef2ef;color:#4d7a63;
+  font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.skillrung-t{font-size:13px;font-weight:700;color:var(--navy,#1e2340)}
+.skillrung.on{background:#1e2340;border-color:#1e2340}
+.skillrung.on .skillrung-t{color:#fff}
+.skillrung.on .skillrung-n{background:#4d7a63;color:#fff}
+.skillcard-note{font-size:10.5px;color:var(--dim,#6b727a);font-weight:700;margin-top:10px}
