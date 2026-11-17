@@ -88,6 +88,47 @@ const J = JSON.stringify;
   const nutri = h.run('nutriHTML()');
   T('la scheda è raggiungibile dalla nutrizione', /data-diet-section="build"/.test(nutri));
 
+  // ---------- 10) Dalla scelta al piatto ----------
+  const dish = sel => { h.run('buildSel=' + J(sel) + ';'); return JSON.parse(h.run('JSON.stringify(buildDish())')); };
+  T('senza proteina non propone nessun piatto', h.run('buildSel={prot:"",carb:"Patata",fat:[],veg:[]};buildDish()') === null);
+
+  const d1 = dish({ prot: 'Manzo magro', carb: 'Patata', fat: ['Olio di oliva', 'Noci'], veg: ['Melanzane', 'Funghi'] });
+  T('il titolo elenca in italiano, con una sola congiunzione',
+    d1.titolo === 'Manzo magro con patata al forno, melanzane e funghi', d1.titolo);
+  T('i passi citano le grammature scelte', /190 g/.test(J(d1.passi)) && /300 g/.test(J(d1.passi)));
+  T('la carne si sigilla, non si lessa', /sigillarlo/.test(J(d1.passi)));
+  T('le noci vanno a crudo, non in padella', /Noci 20 g: a crudo/.test(J(d1.passi)));
+
+  const d2 = dish({ prot: 'Uova', carb: 'Patata dolce', fat: [], veg: ['Peperone rosso'] });
+  T('con le uova il metodo cambia: conche e coperchio', /conche/.test(J(d2.passi)) && /Coperchio/.test(J(d2.passi)));
+
+  const d3 = dish({ prot: 'Tonno al naturale', carb: 'Ceci cotti', fat: ['Olio di oliva'], veg: ['Lattuga'] });
+  T('il tonno in scatola non si cuoce', /non cuocerlo/.test(J(d3.passi)));
+  T('e i ceci non finiscono in forno', !/Forno/.test(J(d3.passi)));
+
+  const d4 = dish({ prot: 'Bacca\u006c\u00e0 fresco', carb: 'Riso basmati crudo', fat: [], veg: ['Broccoli'] });
+  T('il pesce si fa per lato', /per lato/.test(J(d4.passi)));
+  T('nel titolo il riso si legge come a tavola, senza "crudo"',
+    /riso basmati(?! crudo)/.test(d4.titolo) && !/crudo/.test(d4.titolo), d4.titolo);
+
+  const d5 = dish({ prot: 'Tofu', carb: '', fat: [], veg: [] });
+  T('il tofu si rosola', /rosolato/.test(J(d5.passi)));
+  T('senza contorni resta comunque un piatto', d5.passi.length >= 1 && !!d5.titolo);
+
+  // lo stesso tipo si cucina allo stesso modo
+  const pollo = dish({ prot: 'Pollo', carb: '', fat: [], veg: [] });
+  const tacchino = dish({ prot: 'Petto di tacchino', carb: '', fat: [], veg: [] });
+  T('due carni diverse condividono il metodo', pollo.passi[0].replace(/Pollo \d+ g/, 'X') === tacchino.passi[0].replace(/Petto di tacchino \d+ g/, 'X'));
+
+  T('ogni proteina del costruttore sa come si cucina',
+    JSON.parse(h.run('JSON.stringify(BUILD_ROLES.prot.items)')).every(n => !!h.run('buildKind(' + J(n) + ')')),
+    JSON.parse(h.run('JSON.stringify(BUILD_ROLES.prot.items)')).filter(n => !h.run('buildKind(' + J(n) + ')')).join(','));
+
+  h.run('buildSel={prot:"Pollo",carb:"Patata",fat:[],veg:["Zucchine"]};');
+  const dishHtml = h.run('buildDishHTML()');
+  T('la schermata mostra il piatto con i passi numerati', /Che cena fare/.test(dishHtml) && (dishHtml.match(/<li>/g) || []).length >= 3);
+  T('e dichiara che \u00e8 uno schema, non una ricetta fissa', /uno schema/.test(dishHtml));
+
   console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
 })();

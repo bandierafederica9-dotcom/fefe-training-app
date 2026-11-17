@@ -2913,6 +2913,86 @@ function buildAdviceText(){
   if(dk>200)return 'Pi\u00f9 ricca del necessario di '+dk+' kcal: togli un grasso, o scegli una proteina pi\u00f9 magra.';
   return 'Cena equilibrata per ' + (buildGym?'un giorno di palestra':'una sera normale') + '.';
 }
+/* Dalla scelta al piatto. Niente modelli e niente chiamate: sono regole sul
+   TIPO di ingrediente, perche' il metodo di cottura dipende da quello, non dal
+   nome. Due proteine diverse dello stesso tipo si cucinano uguale. */
+const BUILD_KIND={
+  'Pollo':'carne','Manzo magro':'carne','Petto di tacchino':'carne',
+  'Baccal\u00e0 fresco':'pesce','Pesce spada':'pesce','Tonno al naturale':'pesce-pronto',
+  'Uova':'uova','Albumi pastorizzati':'uova','Tofu':'tofu',
+  'Yogurt proteico senza lattosio':'freddo','Proteina ISO ChocoMonkey':'freddo',
+  'Formaggio Havarti Light':'formaggio',
+  'Patata':'forno','Patata dolce':'forno',
+  'Riso basmati crudo':'lesso','Riso bianco crudo':'lesso','Quinoa':'lesso',
+  'Pasta senza glutine':'lesso','Gnocchi':'lesso',
+  'Pane di mais':'freddo','Pane tostato senza glutine':'freddo','Fajitas di mais':'freddo',
+  'Ceci cotti':'freddo','Mais dolce':'freddo'
+};
+function buildKind(n){return BUILD_KIND[n]||'';}
+// Il piatto: un titolo e dei passi, composti dalle scelte vere.
+function buildDish(){
+  const P=buildSel.prot, C=buildSel.carb, V=buildSel.veg.slice(), F=buildSel.fat.slice();
+  if(!P)return null;
+  const kp=buildKind(P), kc=buildKind(C), g=buildItemTotals.bind(null);
+  const qty=function(role,n){return n+' '+buildItemTotals(role,n).g+' g';};
+  const elenco=function(a){const l=a.map(function(x){return x.toLowerCase();});
+    return l.length<2?(l[0]||''):l.slice(0,-1).join(', ')+' e '+l[l.length-1];};
+  const verdure=V.length?elenco(V):'le verdure che hai';
+  const olio=F.indexOf('Olio di oliva')>-1?'Olio di oliva '+buildItemTotals('fat','Olio di oliva').g+' g':'un filo d\u2019olio';
+  const passi=[], nome=[];
+  // 1) il contorno di carboidrati decide l'impianto
+  if(kc==='forno'){
+    nome.push(C+' al forno');
+    passi.push('Forno a 200\u00b0. '+qty('carb',C)+' a tocchetti con met\u00e0 dell\u2019olio, sale e rosmarino: 30-35 minuti.');
+  }else if(kc==='lesso'){
+    nome.push(C);
+    passi.push('Metti su '+qty('carb',C)+' e cuocilo come da confezione, a parte.');
+  }else if(kc==='freddo'&&C){
+    nome.push(C);
+    passi.push(qty('carb',C)+': tienilo da parte, va aggiunto alla fine senza cottura.');
+  }
+  // 2) le verdure
+  if(V.length)passi.push(V.map(function(n){return qty('veg',n);}).join(' e ')+': in padella larga a fuoco vivo con poco olio, 6-8 minuti, finch\u00e9 prendono colore. Mettile da parte.');
+  // 3) la proteina, secondo il tipo
+  if(kp==='carne'){
+    nome.unshift(P);
+    passi.push('Stessa padella, fuoco alto: '+qty('prot',P)+', 3-4 minuti solo per sigillarlo. Sala e pepa a fine cottura.');
+  }else if(kp==='pesce'){
+    nome.unshift(P);
+    passi.push(qty('prot',P)+' alla piastra o in padella, 3-4 minuti per lato, finch\u00e9 si sfalda. Limone alla fine.');
+  }else if(kp==='pesce-pronto'){
+    nome.unshift(P);
+    passi.push(qty('prot',P)+' sgocciolato: va aggiunto a fine cottura, non cuocerlo.');
+  }else if(kp==='uova'){
+    nome.unshift(P==='Uova'?'uova':'albumi');
+    passi.push('Rimetti le verdure in padella, fai delle conche e rompici dentro '+qty('prot',P)+'. Coperchio, 4-5 minuti: albume rappreso, tuorlo morbido.');
+  }else if(kp==='tofu'){
+    nome.unshift(P);
+    passi.push(qty('prot',P)+' a cubi, rosolato con aglio 6-7 minuti finch\u00e9 dora sui lati.');
+  }else{
+    nome.unshift(P);
+    passi.push(qty('prot',P)+': non va cotto, aggiungilo al piatto a fine preparazione.');
+  }
+  // 4) i grassi che non sono olio da cottura
+  const crudi=F.filter(function(n){return n!=='Olio di oliva';});
+  if(crudi.length)passi.push(crudi.map(function(n){return qty('fat',n);}).join(' e ')+': a crudo sul piatto, a fine cottura.');
+  // 5) chiusura
+  if(kp!=='uova'&&V.length)passi.push('Rimetti le verdure in padella con la proteina, mescola e servi'+(kc==='lesso'&&C?' con '+C.toLowerCase()+' a parte.':'.'));
+  const pulito=function(x){return String(x).replace(/ crud[oa]$/i,'').replace(/ cotti$/i,'');};
+  const parti=nome.slice(0,2); const testa=pulito(parti[0]);
+  const coda=parti.slice(1).map(function(x){return pulito(x).toLowerCase();})
+    .concat(V.map(function(x){return x.toLowerCase();}));
+  const titolo=testa+(coda.length?' con '+elenco(coda):'');
+  return {titolo:titolo.charAt(0).toUpperCase()+titolo.slice(1), passi:passi, olio:olio};
+}
+function buildDishHTML(){
+  const d=buildDish();
+  if(!d)return '';
+  let h='<div class="card build-dish"><div class="build-dish-head">Che cena fare</div><h3>'+esc(d.titolo)+'</h3><ol>';
+  d.passi.forEach(function(x){h+='<li>'+esc(x)+'</li>';});
+  return h+'</ol><div class="note" style="margin-top:10px">\u00c8 uno schema, non una ricetta fissa: aglio, limone ed erbe aggiungili a piacere, non cambiano i conti.</div></div>';
+}
+
 function buildColumnHTML(role){
   const r=BUILD_ROLES[role];
   const multi=(role==='fat'||role==='veg');
@@ -2938,6 +3018,7 @@ function buildHTML(){
   h+='<div class="build-total"><div><b>'+t.kcal+' kcal</b><span>obiettivo '+g.kcal+'</span></div>'
     +'<div><b>'+t.prot+' g</b><span>proteine, obiettivo '+g.prot+'</span></div></div>';
   h+='<div class="card build-advice">'+esc(buildAdviceText())+'</div>';
+  h+=buildDishHTML();
   const chosen=buildChosen();
   if(chosen.length){
     h+='<div class="card"><div class="sect" style="margin-top:0">Il tuo piatto</div>';
