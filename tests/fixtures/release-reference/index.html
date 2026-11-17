@@ -2876,11 +2876,11 @@ function lineChart(pts,unit){
   pts.forEach(function(x,i){
     const px=pts.length>1?(i/(pts.length-1))*W:0;
     const py=H-((x.w-mn)/rg)*H;
-    dots+='<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="3.5" fill="#fff" stroke="#c9557f" stroke-width="2"/>';
+    dots+='<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="3.5" fill="#fff" stroke="var(--chart)" stroke-width="2"/>';
   });
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:120px;overflow:visible">'+
-    '<polygon points="'+area+'" fill="#fbe9f0"/>'+
-    '<polyline points="'+line+'" fill="none" stroke="#c9557f" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<polygon points="'+area+'" fill="var(--chart-fill)"/>'+
+    '<polyline points="'+line+'" fill="none" stroke="var(--chart)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
     dots+'</svg>'+
     '<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);font-weight:700;margin-top:6px">'+
     '<span>'+pts[0].w+' '+u+' · '+pts[0].d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</span>'+
@@ -2889,8 +2889,8 @@ function lineChart(pts,unit){
 function ringHTML(pct){
   const r=38, c=2*Math.PI*r, off=c-(pct/100)*c;
   return '<svg class="ring" viewBox="0 0 96 96">'+
-    '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#f0eef4" stroke-width="9"/>'+
-    '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#c9557f" stroke-width="9" stroke-linecap="round" '+
+    '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="var(--chart-soft)" stroke-width="9"/>'+
+    '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="var(--chart)" stroke-width="9" stroke-linecap="round" '+
     'stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 48 48)"/>'+
     '<text x="48" y="53" text-anchor="middle" font-size="19" font-weight="800" fill="#1b1f33" font-family="Manrope,sans-serif">'+
     Math.round(pct)+'%</text></svg>';

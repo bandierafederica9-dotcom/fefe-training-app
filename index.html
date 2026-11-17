@@ -892,7 +892,7 @@ let cur=new Date();cur.setHours(12,0,0,0);
 let exCtx=null; // exercise-screen context: null = main workout; {day,back} = e.g. Calisthenics Lab
 function exDay(){return exCtx&&exCtx.day?exCtx.day:data.day;}
 function exBack(){return exCtx&&exCtx.back?exCtx.back:'workout';}
-let view="home", exIdx=0, evoTab="metriche", mealOpt={}, data=null, key=null, saveT=null;
+let view="home", exIdx=0, evoTab="andamento", mealOpt={}, data=null, key=null, saveT=null;
 let goalsDirty=false, saving=false, pending=false;
 let __dietSection='today';
 window.__dietSection='today';
@@ -902,6 +902,7 @@ let goals={kcal:2000,prot:110,wStart:0,wGoal:0,
 let week=[], hist=[], agenda=[];
 let calMonth=new Date(), calData={}, calLoading=false, agView="sett";
 let strengthEx="Machine Hip Thrust", strengthHist=[], strengthLoading=false;
+// Progressi apre sull'andamento: e' la domanda "come sto andando", non un esercizio singolo.
 let profile=null, userPlan=null, coachMessages=[], coachStep=0;
 
 const k=d=>d.toISOString().slice(0,10);
@@ -2933,6 +2934,101 @@ function recentRecords(n){
   });
   return out;
 }
+/* ---- Andamento: cosa si vede dai record gia' registrati ----
+   Niente di tutto questo tocca lo storico: legge e basta. */
+function weekStartOf(date){
+  const d=new Date(date); d.setHours(12,0,0,0);
+  d.setDate(d.getDate()-((d.getDay()+6)%7));   // lunedi'
+  return d;
+}
+function dateFromKey(s){const p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2],12,0,0,0);}
+// Una seduta conta se almeno una serie e' stata completata: un giorno aperto e
+// chiuso senza registrare niente non e' un allenamento.
+function sessionSummaries(records){
+  const out=[];
+  (records||[]).forEach(function(r){
+    if(!r||!r._date)return;
+    const v=vol(norm(r));
+    if(!v.s)return;
+    out.push({date:dateFromKey(r._date),key:r._date,day:r.day||'',series:v.s,volume:v.v});
+  });
+  out.sort(function(a,b){return a.date-b.date;});
+  return out;
+}
+function weeklySessions(records,weeks,today){
+  const n=weeks||8, ref=weekStartOf(today||new Date()), sess=sessionSummaries(records), out=[];
+  for(let i=n-1;i>=0;i--){
+    const ws=new Date(ref); ws.setDate(ws.getDate()-i*7);
+    const we=new Date(ws); we.setDate(we.getDate()+7);
+    const inWeek=sess.filter(function(x){return x.date>=ws&&x.date<we;});
+    out.push({start:ws,sessions:inWeek.length,series:inWeek.reduce(function(a,x){return a+x.series;},0),
+              volume:inWeek.reduce(function(a,x){return a+x.volume;},0),current:i===0});
+  }
+  return out;
+}
+function trendDelta(weeks){
+  // Confronta le 4 settimane piene piu' recenti con le 4 precedenti. La settimana
+  // in corso e' esclusa: non e' finita, e confrontarla falserebbe il verso.
+  const full=weeks.filter(function(w){return !w.current;});
+  if(full.length<8)return null;
+  const a=full.slice(-4).reduce(function(x,w){return x+w.sessions;},0);
+  const b=full.slice(-8,-4).reduce(function(x,w){return x+w.sessions;},0);
+  return {recent:a,previous:b,diff:a-b};
+}
+
+/* Barre: sedute per settimana. Una serie sola, quindi nessuna legenda.
+   Estremi arrotondati di 4px ancorati alla linea di base, 2px di distacco fra
+   le barre, assi discreti. */
+function weeklyBarsHTML(weeks){
+  if(!weeks.length)return '';
+  const max=Math.max(1,Math.max.apply(null,weeks.map(function(w){return w.sessions;})));
+  const H=96;
+  let bars='';
+  weeks.forEach(function(w){
+    const hgt=Math.round(w.sessions/max*H);
+    bars+='<div class="tb-col"'+(w.sessions?' title="'+w.sessions+' sedute"':'')+'>'+
+      '<div class="tb-val">'+(w.sessions||'')+'</div>'+
+      '<div class="tb-track"><i class="tb-bar'+(w.current?' now':'')+'" style="height:'+(w.sessions?Math.max(hgt,6):0)+'px"></i></div>'+
+      '<div class="tb-lab">'+w.start.getDate()+'/'+(w.start.getMonth()+1)+'</div></div>';
+  });
+  return '<div class="trend-bars">'+bars+'</div>';
+}
+
+/* Linea: volume per seduta. Stessa tinta, punti >=8px, etichette solo agli estremi. */
+function sessionVolumeHTML(sess){
+  const pts=sess.slice(-10).filter(function(x){return x.volume>0;});
+  if(pts.length<2)return '';
+  const W=300,H=104, vals=pts.map(function(x){return x.volume;});
+  const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rg=(mx-mn)||1;
+  const xy=pts.map(function(x,i){return [(i/(pts.length-1))*W, H-((x.volume-mn)/rg)*(H-14)-7];});
+  const line=xy.map(function(c){return c[0].toFixed(1)+','+c[1].toFixed(1);}).join(' ');
+  let dots='';
+  xy.forEach(function(c,i){dots+='<circle cx="'+c[0].toFixed(1)+'" cy="'+c[1].toFixed(1)+'" r="4.5" fill="#fff" stroke="var(--chart)" stroke-width="2"><title>'+pts[i].volume+' kg · '+pts[i].date.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</title></circle>';});
+  return '<svg class="trend-line" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Volume per seduta, ultime '+pts.length+' sedute">'+
+    '<polygon points="0,'+H+' '+line+' '+W+','+H+'" fill="var(--chart-fill)"/>'+
+    '<polyline points="'+line+'" fill="none" stroke="var(--chart)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    dots+'</svg>'+
+    '<div class="trend-ends"><span>'+pts[0].volume+' kg · '+pts[0].date.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</span>'+
+    '<span>'+pts[pts.length-1].volume+' kg · '+pts[pts.length-1].date.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</span></div>';
+}
+
+function trendHTML(){
+  const recs=recentRecords(90), sess=sessionSummaries(recs), weeks=weeklySessions(recs,8,cur);
+  if(!sess.length){
+    return '<div class="card"><div class="note">Qui compare l\u2019andamento appena registri la prima seduta: quante volte ti alleni ogni settimana e come cresce il volume. Non invento numeri che non hai ancora.</div></div>';
+  }
+  const thisWeek=weeks[weeks.length-1], d=trendDelta(weeks);
+  let h='<div class="grid2"><div class="tile t-mint"><span>questa settimana</span><div><b>'+thisWeek.sessions+'</b><em>'+(thisWeek.sessions===1?'seduta':'sedute')+' \u00b7 '+thisWeek.series+' serie</em></div></div>'+
+    '<div class="tile t-pink"><span>in totale</span><div><b>'+sess.length+'</b><em>sedute registrate</em></div></div></div>';
+  h+='<div class="sect">Sedute per settimana</div><div class="card">'+weeklyBarsHTML(weeks);
+  if(d)h+='<div class="note" style="margin-top:10px">Ultime 4 settimane piene: <b>'+d.recent+'</b> sedute, contro <b>'+d.previous+'</b> nelle 4 precedenti'+(d.diff===0?'. Stesso ritmo.':(d.diff>0?' \u2014 '+d.diff+' in pi\u00f9.':' \u2014 '+(-d.diff)+' in meno.'))+'</div>';
+  else h+='<div class="note" style="margin-top:10px">Il confronto fra mesi compare dopo otto settimane piene di storico.</div>';
+  h+='</div>';
+  const vol2=sessionVolumeHTML(sess);
+  if(vol2)h+='<div class="sect">Volume per seduta</div><div class="card">'+vol2+'<div class="note" style="margin-top:8px">Somma di kg \u00d7 ripetizioni delle serie segnate, Lab escluso. Serve a vedere il verso, non a confrontare giornate diverse fra loro.</div></div>';
+  return h;
+}
+
 function asymmetryReport(records){
   const byEx={};
   (records||[]).forEach(function(rec){
@@ -2988,9 +3084,13 @@ function prettyExerciseId(id){
 function evoHTML(){
   let h=hdr("Evoluzione","Progressi e misure");
   h+='<div class="wrap"><div class="tabs">'+
-    ['metriche','carichi','obiettivi','backup'].map(function(t){
-      const lbl={metriche:'Metriche',carichi:'Carichi',obiettivi:'Obiettivi',backup:'Backup'}[t];
+    ['andamento','metriche','carichi','obiettivi','backup'].map(function(t){
+      const lbl={andamento:'Andamento',metriche:'Metriche',carichi:'Carichi',obiettivi:'Obiettivi',backup:'Backup'}[t];
       return '<button data-evo="'+t+'" class="'+(evoTab===t?'on':'')+'">'+lbl+'</button>';}).join('')+'</div>';
+
+  if(evoTab==='andamento'){
+    h+=trendHTML();
+  }
 
   if(evoTab==='metriche'){
     h+='<div class="card"><div class="mgrid">'+
@@ -3197,7 +3297,7 @@ function importPreviewHTML(res){
     'Ignorati (impostazioni del dispositivo o non validi): <b>'+(n(res.skip)+n(res.invalid))+'</b><br>'+
     'Piano: <b>'+esc(planTxt)+'</b></div>';
   if(res.planStatus==='different')h+='<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;font-weight:800"><input type="checkbox" id="impreplaceplan"> Sostituisci il piano attuale con quello del backup (quello attuale viene archiviato)</label>';
-  if(res.warnings.length)h+='<div class="note" style="margin-top:8px;color:#c9557f">'+res.warnings.slice(0,6).map(esc).join('<br>')+'</div>';
+  if(res.warnings.length)h+='<div class="note" style="margin-top:8px;color:var(--err)">'+res.warnings.slice(0,6).map(esc).join('<br>')+'</div>';
   h+='<div class="note" style="margin-top:8px">Prima di scrivere viene creata automaticamente una copia di sicurezza completa. Nessun dato viene cancellato.</div>';
   h+='<div style="display:flex;gap:9px;margin-top:10px;flex-wrap:wrap"><button class="btn" id="impconfirm">Conferma importazione</button><button class="btn ghost" id="impcancel">Annulla</button></div></div>';
   return h;
@@ -3223,11 +3323,11 @@ function lineChart(pts,unit){
   pts.forEach(function(x,i){
     const px=pts.length>1?(i/(pts.length-1))*W:0;
     const py=H-((x.w-mn)/rg)*H;
-    dots+='<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="3.5" fill="#fff" stroke="#c9557f" stroke-width="2"/>';
+    dots+='<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="3.5" fill="#fff" stroke="var(--chart)" stroke-width="2"/>';
   });
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:120px;overflow:visible">'+
-    '<polygon points="'+area+'" fill="#fbe9f0"/>'+
-    '<polyline points="'+line+'" fill="none" stroke="#c9557f" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<polygon points="'+area+'" fill="var(--chart-fill)"/>'+
+    '<polyline points="'+line+'" fill="none" stroke="var(--chart)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
     dots+'</svg>'+
     '<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);font-weight:700;margin-top:6px">'+
     '<span>'+pts[0].w+' '+u+' · '+pts[0].d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</span>'+
@@ -3236,8 +3336,8 @@ function lineChart(pts,unit){
 function ringHTML(pct){
   const r=38, c=2*Math.PI*r, off=c-(pct/100)*c;
   return '<svg class="ring" viewBox="0 0 96 96">'+
-    '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#f0eef4" stroke-width="9"/>'+
-    '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#c9557f" stroke-width="9" stroke-linecap="round" '+
+    '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="var(--chart-soft)" stroke-width="9"/>'+
+    '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="var(--chart)" stroke-width="9" stroke-linecap="round" '+
     'stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 48 48)"/>'+
     '<text x="48" y="53" text-anchor="middle" font-size="19" font-weight="800" fill="#1b1f33" font-family="Manrope,sans-serif">'+
     Math.round(pct)+'%</text></svg>';
@@ -3768,7 +3868,7 @@ function bind(){
   if(ib)ib.onclick=function(){
     const box=document.getElementById('imppreview'); importAnalysis=null;
     const parsed=parseBackupText(ex?ex.value:'');
-    if(!parsed.ok){if(box)box.innerHTML='<div class="card"><div class="note" style="color:#c9557f">'+esc(parsed.error)+' Nessun dato modificato.</div></div>';return;}
+    if(!parsed.ok){if(box)box.innerHTML='<div class="card"><div class="note" style="color:var(--err)">'+esc(parsed.error)+' Nessun dato modificato.</div></div>';return;}
     importAnalysis=analyzeBackup(parsed.backup);
     if(box){box.innerHTML=importPreviewHTML(importAnalysis);
       const ic=document.getElementById('impconfirm'),ix=document.getElementById('impcancel');
@@ -3778,7 +3878,7 @@ function bind(){
         const rp=document.getElementById('impreplaceplan');
         let out;try{out=applyBackupImport(importAnalysis,{replacePlan:!!(rp&&rp.checked)});}catch(e){out={ok:false,error:'Errore durante l’importazione: '+((e&&e.message)||e)+'. La copia di sicurezza è disponibile.'};}
         importAnalysis=null;
-        if(!out.ok){box.innerHTML='<div class="card"><div class="note" style="color:#c9557f">'+esc(out.error||('Verifica non riuscita per: '+(out.unverified||[]).join(', ')))+'</div></div>';return;}
+        if(!out.ok){box.innerHTML='<div class="card"><div class="note" style="color:var(--err)">'+esc(out.error||('Verifica non riuscita per: '+(out.unverified||[]).join(', ')))+'</div></div>';return;}
         load().then(function(){evoTab='backup';view='evo';render();const b2=document.getElementById('imppreview');if(b2)b2.innerHTML='<div class="card"><div class="note">✓ Backup importato ('+out.written+' elementi). Copia di sicurezza: '+esc(out.snapshotKey)+(out.stashKey?'. Valori in conflitto conservati in '+esc(out.stashKey):'')+'.</div></div>';});
       };}
   };

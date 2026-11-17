@@ -512,3 +512,32 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline-offset:0
 .nutri-chip{display:inline-block;margin-left:6px;font-size:10px;font-weight:800;color:var(--rose-d);background:#faf1f4;border-radius:999px;padding:2px 7px;white-space:nowrap}
 .nutri-week-n{margin-top:4px;font-size:11px;font-weight:800;color:var(--rose-d)}
 .nutri-source .note{line-height:1.5}
+
+/* --- Progressi · Andamento: una tinta sola per grafico, nessuna legenda --- */
+.trend-bars{display:flex;align-items:flex-end;gap:2px;height:132px}
+.tb-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.tb-val{font-size:10px;font-weight:800;color:var(--rose-d);height:13px;line-height:13px}
+.tb-track{width:100%;height:96px;display:flex;align-items:flex-end;justify-content:center}
+.tb-bar{display:block;width:100%;max-width:26px;background:var(--rose-b);border-radius:4px 4px 0 0}
+.tb-bar.now{background:var(--rose)}
+.tb-lab{font-size:9.5px;font-weight:700;color:var(--dim);white-space:nowrap}
+.trend-line{width:100%;height:112px;overflow:visible;display:block}
+.trend-ends{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);font-weight:700;margin-top:6px}
+
+/* --- Riquadri statistici: .tile/.grid2 erano usati da sempre senza CSS --- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.tile{background:var(--card);border-radius:16px;padding:13px 14px;box-shadow:var(--sh);min-height:84px;
+  display:flex;flex-direction:column;justify-content:space-between}
+.tile>span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.tile>div{margin-top:8px}
+.tile b{display:block;font-size:25px;font-weight:900;line-height:1.05;color:var(--ink);font-style:normal}
+.tile em{display:block;margin-top:3px;font-size:11px;font-weight:700;font-style:normal;color:var(--dim)}
+.tile.t-mint{background:#eff7f3}
+.tile.t-pink{background:#fdf2ec}
+
+/* --- Una tinta sola per i grafici, indipendente dal tema attivo --- */
+:root{--chart:#b2552f;--chart-soft:#ecd3c5;--chart-fill:#fbeee6;--chart-ink:#8d4425}
+.tb-val{color:var(--chart-ink)}
+.tb-bar{background:var(--chart-soft)}
+.tb-bar.now{background:var(--chart)}
+:root{--err:#b42318}
