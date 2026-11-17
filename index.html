@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Fede Training · V5</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#F4EBDD">
+<meta name="theme-color" content="#f4dde5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Fede">
@@ -2113,7 +2113,7 @@ function topHTML(){
   const p=dayPlan(data.day), dc=doneCount(data,data.day), t=tot(data), profileName=(profile&&profile.name)||'Fede';
   const segs=[dc.done>0,dc.done===dc.tot&&dc.tot>0,t.kc>0,t.pr>=goals.prot*0.8,!!data.weight];
   const heroDayClass=(/^(Giorno|Day) 1$/i.test(data.day)?'hero-day1':/^(Giorno|Day) 2$/i.test(data.day)?'hero-day2':/^(Giorno|Day) 3$/i.test(data.day)?'hero-day3':/^(Giorno|Day) 4$/i.test(data.day)?'hero-day4':/^(Giorno|Day) 5$/i.test(data.day)?'hero-day5':'hero-rest');
-  return '<div class="top"><div class="toprow"><button class="ava" data-go="profile">'+esc((profileName[0]||'F').toUpperCase())+'</button><div class="logo">FEDE<small>TRAINING</small></div><div class="ticon" data-go="evo">↗</div></div><div class="greet">'+g+', <b>'+esc(profileName)+'</b> 🌿</div><div class="planrow"><h2>Il tuo allenamento</h2><a data-go="calendar">Calendario</a></div><div class="segbar">'+segs.map(function(x){return '<i class="'+(x?'on':'')+'"></i>';}).join('')+'</div><div class="home-hero '+heroDayClass+'"><div class="hero-art"><img src="'+heroAssetForDay(data.day)+'" alt="" aria-hidden="true"></div><div class="home-content"><div class="home-kicker">Today\'s focus</div><h1>'+esc(data.day)+'</h1><p>'+esc(p.t||'Recupero e movimento')+'</p>'+(p.ex.length?'<a class="hero-cta" data-go="workout">Inizia allenamento&nbsp; →</a>':'<span class="hero-cta" style="background:#6fa58b">Giornata di recupero</span>')+'</div></div></div>';
+  return '<div class="top"><div class="toprow"><button class="ava" data-go="profile">'+esc((profileName[0]||'F').toUpperCase())+'</button><div class="logo">FEDE<small>TRAINING</small></div><div class="ticon" data-go="evo">↗</div></div><div class="greet">'+g+', <b>'+esc(profileName)+'</b> 🌿</div><div class="planrow"><h2>Il tuo allenamento</h2><a data-go="calendar">Calendario</a></div><div class="segbar">'+segs.map(function(x){return '<i class="'+(x?'on':'')+'"></i>';}).join('')+'</div><div class="home-hero '+heroDayClass+'"><div class="hero-art"><img src="'+heroAssetForDay(data.day)+'" alt="" aria-hidden="true"></div><div class="home-content"><div class="home-kicker">Today\'s focus</div><h1>'+esc(data.day)+'</h1><p>'+esc(p.t||'Recupero e movimento')+'</p>'+(p.ex.length?'<a class="hero-cta" data-go="workout">Inizia allenamento&nbsp; →</a>':'<span class="hero-cta" style="background:#a86c80">Giornata di recupero</span>')+'</div></div></div>';
 }
 
 function homeHTML(){
@@ -2127,7 +2127,7 @@ function homeHTML(){
   h+='<div class="sect">✨ Extra di oggi</div><div class="card home-section-card"><div class="home-section-head"><b>Scegli in base a come ti senti</b><span>Non obbligatori</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn ghost" data-go="power">⚡ Power</button><button class="btn ghost" data-go="finishers">🔥 Finisher</button><button class="btn ghost" data-go="accessories">➕ Accessories</button><button class="btn ghost" data-go="mobility">🧘 Mobility</button></div></div>';
   h+='<div class="sect">Allenamento di oggi</div><div class="card home-section-card"><div class="home-section-head"><b>'+esc(data.day)+'</b><span>'+dc.done+'/'+dc.tot+' serie</span></div><div class="workout-progress-bar"><i style="width:'+(dc.tot?dc.done/dc.tot*100:0)+'%"></i></div><div style="font-size:11px;color:var(--dim);font-weight:700;margin-top:9px">'+esc(p.t||'Recupero')+'</div><button class="btn" data-go="workout" style="margin-top:12px">Apri workout</button></div>';
   h+='<div class="sect">Il tuo focus</div><div class="card home-section-card"><div style="font-size:13px;font-weight:900">'+esc(prof.goal||'Personalizzato')+'</div><div style="font-size:10.5px;color:var(--dim);font-weight:700;margin-top:4px">'+esc(prof.level||'')+' · '+esc(String(prof.days||5))+' giorni/settimana</div></div>';
-  h+='<div class="sect">Da tenere a mente</div><div class="card home-section-card"><div style="font-size:11.5px;line-height:1.5;color:#56615c;font-weight:700">Il tuo Coach usa il piano, il profilo e lo storico per aiutarti durante la seduta. Tocca la faccina in basso a destra quando vuoi.</div></div></div>'; return h;
+  h+='<div class="sect">Da tenere a mente</div><div class="card home-section-card"><div style="font-size:11.5px;line-height:1.5;color:#645359;font-weight:700">Il tuo Coach usa il piano, il profilo e lo storico per aiutarti durante la seduta. Tocca la faccina in basso a destra quando vuoi.</div></div></div>'; return h;
 }
 
 function row(done,color,ico,title,sub,target){
@@ -2173,7 +2173,7 @@ function calendarHTML(){
     const done=vv.s>0||labActivity(v)>0;
     const isToday=(ds===todayStr);
     const isSel=(ds===k(cur));
-    let bg='#fafafc', col='var(--ink)', bd='var(--line)';
+    let bg='#fcfafb', col='var(--ink)', bd='var(--line)';
     if(done){bg='var(--rose)';col='#fff';bd='var(--rose)';}
     else if(t.kc>0){bg='var(--rose-l)';col='var(--rose-d)';bd='var(--rose-b)';}
     if(isSel){bd='var(--navy)';}
@@ -2373,11 +2373,11 @@ function skillCardHTML(day){
 function workoutHTML(){
   const p=dayPlan(data.day), dc=doneCount(data,data.day); let h='<div class="pagehd"><button class="back" data-back="home">‹</button><h2>'+esc(data.day)+'<span class="sm">'+esc(p.t||'')+'</span></h2></div>';
   h+='<div class="workout-hero"><div class="small">Today\'s workout</div><h1>'+esc(data.day)+'</h1><p>'+esc(p.t||'')+'</p><div class="workout-progress"><div><b>'+dc.done+'/'+dc.tot+'</b><span> SERIE</span></div><div><b>'+p.ex.length+'</b><span> ESERCIZI</span></div></div><div class="workout-progress-bar"><i style="width:'+(dc.tot?dc.done/dc.tot*100:0)+'%"></i></div></div><div class="wrap">';
-  if(p.memo)h+='<div class="card" style="padding:14px;margin-bottom:12px;background:linear-gradient(145deg,#eef7f2,#fbf7f0)"><div style="font-size:11.5px;color:var(--navy);font-weight:800;line-height:1.5">'+esc(p.memo)+'</div></div>';
+  if(p.memo)h+='<div class="card" style="padding:14px;margin-bottom:12px;background:linear-gradient(145deg,#f7eef1,#fbf0f4)"><div style="font-size:11.5px;color:var(--navy);font-weight:800;line-height:1.5">'+esc(p.memo)+'</div></div>';
   if(data.day==='Giorno 5'&&p.variants){h+='<div class="card" style="padding:10px;margin-bottom:12px"><div style="font-size:11px;font-weight:900;color:var(--navy);margin-bottom:8px">Scegli il focus di oggi</div><div style="display:flex;gap:8px"><button class="btn '+(p.variant==='A'?'':'ghost')+'" data-day5-variant="A" style="flex:1">A · Strength</button><button class="btn '+(p.variant==='B'?'':'ghost')+'" data-day5-variant="B" style="flex:1">B · Power</button></div><div style="font-size:10px;color:var(--dim);font-weight:700;margin-top:7px">Una sola opzione per settimana.</div></div>';}
   const warm=warmFor(data.day);
   h+='<div class="sect">Riscaldamento</div><div class="card warm-card"><div style="font-size:11.5px;color:var(--dim);font-weight:700;margin-bottom:10px">Prima della seduta · tocca ✓ quando hai completato ogni parte.</div>';
-  warm.forEach(function(x,i){const wid=data.day+'|'+i,on=!!data.warm[wid];h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #eee7dc"><button class="chk'+(on?' on':'')+'" data-warm="'+esc(wid)+'">'+(on?'✓':'')+'</button><div style="flex:1"><b style="display:block;font-size:13px">'+esc(x.n)+'</b><span style="font-size:10.5px;color:var(--dim);font-weight:700">'+esc(x.d)+'</span></div>'+(x.u?'<a class="vidbtn" style="margin:0;padding:8px 10px" target="_blank" rel="noopener" href="'+esc(x.u)+'">▶</a>':'')+'</div>';});
+  warm.forEach(function(x,i){const wid=data.day+'|'+i,on=!!data.warm[wid];h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #eedce2"><button class="chk'+(on?' on':'')+'" data-warm="'+esc(wid)+'">'+(on?'✓':'')+'</button><div style="flex:1"><b style="display:block;font-size:13px">'+esc(x.n)+'</b><span style="font-size:10.5px;color:var(--dim);font-weight:700">'+esc(x.d)+'</span></div>'+(x.u?'<a class="vidbtn" style="margin:0;padding:8px 10px" target="_blank" rel="noopener" href="'+esc(x.u)+'">▶</a>':'')+'</div>';});
   h+='</div>';
   h+=skillCardHTML(data.day);
   h+='<div class="video-library-intro"><div><h3>Libreria esercizi</h3><p>Video reali quando disponibili. Illustrazioni dedicate per il resto.</p></div><div class="video-library-legend"><span>● FRAME VIDEO</span><span>＋ ILLUSTRAZIONE</span></div></div>';
@@ -2777,7 +2777,7 @@ function setDietDone(date,slot,on){if(on)localStorage.setItem(dietDoneKey(date,s
 function dietDayForDate(d){return dietDayByKey(d.getDay());}
 function dietSummaryForDate(d){const day=dietDayForDate(d),done=day.meals.filter(function(m){return isDietDone(d,m.slot);}).length;return{done:done,total:day.meals.length};}
 function dietMealLabel(m){return getAppLanguage()==='en'?m.en:m.slot;}
-function dietProgressBar(pct){return '<div style="height:7px;border-radius:8px;background:#eceaf1;overflow:hidden;margin-top:8px"><i style="display:block;height:100%;width:'+pct+'%;background:var(--rose)"></i></div>';}
+function dietProgressBar(pct){return '<div style="height:7px;border-radius:8px;background:#f1eaec;overflow:hidden;margin-top:8px"><i style="display:block;height:100%;width:'+pct+'%;background:var(--rose)"></i></div>';}
 function dietRecipes(){const out=[];DIET_DAYS.forEach(function(d){d.meals.forEach(function(m){if(m.recipe&&out.every(function(x){return x.title!==m.title;}))out.push({title:m.title,ingredients:m.ingredients,recipe:m.recipe,day:d});});});return out;}
 function nutritionDoneCount(){return dietSummaryForDate(cur);}
 
@@ -3475,13 +3475,13 @@ function labExerciseCard(e,labIdx){
 }
 function calisthenicsHTML(){
   let h='<div class="pagehd"><button class="back" data-back="home">‹</button><h2>Calisthenics Lab<span class="sm">Skill · forza · controllo</span></h2></div><div class="wrap">';
-  h+='<div class="card" style="padding:14px;background:linear-gradient(145deg,#f0f7f4,#fbf7f0);margin-bottom:12px"><b style="font-size:14px">🤸 Allenamento tecnico separato</b><p class="note" style="margin-top:6px">Questa sezione raccoglie solo skill e progressioni di calisthenics. Puoi usarla come complemento alla palestra senza confonderla con il piano principale.</p></div>';
+  h+='<div class="card" style="padding:14px;background:linear-gradient(145deg,#f7f0f2,#fbf0f4);margin-bottom:12px"><b style="font-size:14px">🤸 Allenamento tecnico separato</b><p class="note" style="margin-top:6px">Questa sezione raccoglie solo skill e progressioni di calisthenics. Puoi usarla come complemento alla palestra senza confonderla con il piano principale.</p></div>';
   Object.keys(CALISTHENICS_LIBRARY).forEach(function(group){h+='<div class="sect">'+esc(group)+'</div>';const cats=CALISTHENICS_LIBRARY[group];Object.keys(cats).forEach(function(cat){h+='<div style="font-size:11px;font-weight:900;color:var(--navy);margin:8px 0 6px">'+esc(cat)+'</div>';cats[cat].forEach(function(e){h+=labExerciseCard(e,LAB_CALISTHENICS_PLAN.ex.indexOf(e));});});});
   h+='<div class="sect">🧘 Mobility & Compression</div><button class="btn" data-go="mobility">Apri Mobility / Compression Lab →</button></div>';return h;
 }
 function mobilityHTML(){
   let h='<div class="pagehd"><button class="back" data-back="calisthenics">‹</button><h2>Mobility Lab<span class="sm">Compression · pancake · handstand prep</span></h2></div><div class="wrap">';
-  h+='<div class="card" style="padding:14px;background:linear-gradient(145deg,#f8f2f7,#fbf7f0);margin-bottom:12px"><b style="font-size:14px">🧘 Active flexibility</b><p class="note" style="margin-top:6px">L’obiettivo è costruire mobilità attiva e compression strength, non solo allungare passivamente.</p></div>';
+  h+='<div class="card" style="padding:14px;background:linear-gradient(145deg,#f8f2f4,#fbf0f4);margin-bottom:12px"><b style="font-size:14px">🧘 Active flexibility</b><p class="note" style="margin-top:6px">L’obiettivo è costruire mobilità attiva e compression strength, non solo allungare passivamente.</p></div>';
   Object.keys(MOBILITY_LIBRARY).forEach(function(group){h+='<div class="sect">'+esc(group)+'</div>';MOBILITY_LIBRARY[group].forEach(function(e){h+=labExerciseCard(e);});});
   h+='</div>';return h;
 }
@@ -3495,7 +3495,7 @@ function extraCard(name,desc,kind){
 }
 function powerHTML(){
   let h='<div class="pagehd"><button class="back" data-back="home">‹</button><h2>⚡ Power Lab<span class="sm">Esplosività · salti · forza</span></h2></div><div class="wrap">';
-  h+='<div class="card" style="padding:14px;background:linear-gradient(145deg,#fff5e8,#f8f2f7);margin-bottom:12px"><b style="font-size:14px">⚡ Scegli in base a come ti senti</b><p class="note" style="margin-top:6px">Fresh: 2–4 esercizi · Normal: 1–2 · Tired: salta il Power Lab. Qualità e velocità prima del volume.</p></div>';
+  h+='<div class="card" style="padding:14px;background:linear-gradient(145deg,#fcebf1,#f8f2f4);margin-bottom:12px"><b style="font-size:14px">⚡ Scegli in base a come ti senti</b><p class="note" style="margin-top:6px">Fresh: 2–4 esercizi · Normal: 1–2 · Tired: salta il Power Lab. Qualità e velocità prima del volume.</p></div>';
   Object.keys(POWER_LIBRARY).forEach(function(group){h+='<div class="sect">'+esc(group)+'</div>';POWER_LIBRARY[group].forEach(function(e){h+=extraCard(e[0],e[1],'power');});});
   h+='</div>';return h;
 }
@@ -3508,9 +3508,9 @@ function accessoriesHTML(){
 function finishersHTML(){
   const log=readExtraLog(); const walk=log.walk||{};
   let h='<div class="pagehd"><button class="back" data-back="home">‹</button><h2>🔥 Finisher<span class="sm">Core · conditioning · post-workout walk</span></h2></div><div class="wrap">';
-  h+='<div class="card" style="padding:14px;background:linear-gradient(145deg,#f3f8f5,#fff8ef);margin-bottom:12px"><b style="font-size:14px">Scegli 1 finisher</b><p class="note" style="margin-top:6px">Il finisher è opzionale. Se sei stanca, una camminata leggera o mobility è sufficiente.</p></div>';
+  h+='<div class="card" style="padding:14px;background:linear-gradient(145deg,#f8f3f5,#fdf1f5);margin-bottom:12px"><b style="font-size:14px">Scegli 1 finisher</b><p class="note" style="margin-top:6px">Il finisher è opzionale. Se sei stanca, una camminata leggera o mobility è sufficiente.</p></div>';
   Object.keys(FINISHER_LIBRARY).forEach(function(group){h+='<div class="sect">'+esc(group)+'</div>';FINISHER_LIBRARY[group].forEach(function(e){h+=extraCard(e[0],e[1],'finisher');});});
-  h+='<div class="sect">🚶 Post-Workout Walk</div><div class="card" style="padding:14px"><div style="font-size:12px;color:var(--dim);font-weight:800;margin-bottom:10px">Minimum 20 min · target 30–45 min. Le calorie sono solo una stima, non un obbligo.</div><div class="profile-grid"><div class="profile-field"><label>Minuti</label><input id="walkMinutes" type="number" min="0" value="'+esc(walk.minutes||'')+'" placeholder="20"></div><div class="profile-field"><label>Calorie stimate</label><input id="walkCalories" type="number" min="0" value="'+esc(walk.calories||'')+'" placeholder="100"></div></div><div class="profile-field"><label>Distanza (km)</label><input id="walkDistance" type="number" min="0" step="0.1" value="'+esc(walk.distance||'')+'" placeholder="es. 3.0"></div><button class="btn" id="saveWalk">Salva camminata</button>'+(walk.minutes?'<div style="margin-top:9px;font-size:11px;font-weight:800;color:#4f6659">✓ Oggi: '+esc(walk.minutes)+' min'+(walk.distance?' · '+esc(walk.distance)+' km':'')+(walk.calories?' · ~'+esc(walk.calories)+' kcal':'')+'</div>':'')+'</div>';
+  h+='<div class="sect">🚶 Post-Workout Walk</div><div class="card" style="padding:14px"><div style="font-size:12px;color:var(--dim);font-weight:800;margin-bottom:10px">Minimum 20 min · target 30–45 min. Le calorie sono solo una stima, non un obbligo.</div><div class="profile-grid"><div class="profile-field"><label>Minuti</label><input id="walkMinutes" type="number" min="0" value="'+esc(walk.minutes||'')+'" placeholder="20"></div><div class="profile-field"><label>Calorie stimate</label><input id="walkCalories" type="number" min="0" value="'+esc(walk.calories||'')+'" placeholder="100"></div></div><div class="profile-field"><label>Distanza (km)</label><input id="walkDistance" type="number" min="0" step="0.1" value="'+esc(walk.distance||'')+'" placeholder="es. 3.0"></div><button class="btn" id="saveWalk">Salva camminata</button>'+(walk.minutes?'<div style="margin-top:9px;font-size:11px;font-weight:800;color:#694c56">✓ Oggi: '+esc(walk.minutes)+' min'+(walk.distance?' · '+esc(walk.distance)+' km':'')+(walk.calories?' · ~'+esc(walk.calories)+' kcal':'')+'</div>':'')+'</div>';
   h+='</div>';return h;
 }
 
