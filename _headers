@@ -1,0 +1,7 @@
+# Cloudflare Pages (and Netlify) read this file.
+# The service worker must never be served from a stale cache, or a published
+# update can sit on the phone for days. Everything else keeps the host default.
+/sw.js
+  Cache-Control: no-cache
+/manifest.json
+  Cache-Control: no-cache
