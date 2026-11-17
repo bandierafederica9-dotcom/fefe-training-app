@@ -897,7 +897,7 @@ let goalsDirty=false, saving=false, pending=false;
 let __dietSection='today';
 window.__dietSection='today';
 let lastEx=null, lastExDate=null, lastExLoading=false;
-let goals={kcal:1650,prot:110,wStart:0,wGoal:0,
+let goals={kcal:2000,prot:110,wStart:0,wGoal:0,
   sched:{1:"Giorno 1",2:"Giorno 2",3:"Giorno 3",4:"Riposo",5:"Giorno 4",6:"Giorno 5",0:"Riposo"}};
 let week=[], hist=[], agenda=[];
 let calMonth=new Date(), calData={}, calLoading=false, agView="sett";
@@ -2780,24 +2780,85 @@ function dietProgressBar(pct){return '<div style="height:7px;border-radius:8px;b
 function dietRecipes(){const out=[];DIET_DAYS.forEach(function(d){d.meals.forEach(function(m){if(m.recipe&&out.every(function(x){return x.title!==m.title;}))out.push({title:m.title,ingredients:m.ingredients,recipe:m.recipe,day:d});});});return out;}
 function nutritionDoneCount(){return dietSummaryForDate(cur);}
 
+/* Valori nutrizionali per 100 g degli ingredienti del piano ufficiale.
+   Fonte: tabelle standard per alimento generico (CREA/USDA), non le etichette
+   dei singoli prodotti. Stima con margine indicativo del 15%. */
+const DIET_TARGET={kcal:2000,prot:110,src:'Indicazione PT'};
+const DIET_NUTRI={
+'Aceto':[20,0],'Aceto balsamico':[88,0.5],'Aglio':[149,6.4],'Albumi pastorizzati':[48,11],
+'Anacardi':[553,18],'Aneto secco':[253,20],'Asparagi':[20,2.2],'Avena':[389,13],
+'Avocado':[160,2],'Baccalà fresco':[82,18],'Banana':[89,1.1],'Basilico':[23,3.2],
+'Bevanda di mandorle':[15,0.5],'Biscotti tostati senza glutine':[420,6],'Broccoli':[34,2.8],
+'Brodo di pollo':[7,1],'Burro di arachidi':[588,25],'Cannella':[247,4],'Carota':[41,0.9],
+'Ceci cotti':[164,9],'Cetriolo':[15,0.7],'Cioccolato fondente':[546,5],'Cipolla':[40,1.1],
+'Coriandolo':[23,2.1],'Curry':[325,14],'Edulcorante':[0,0],'Fajitas di mais':[310,7],
+'Farina di avena':[389,13],'Feta':[264,14],'Formaggio Havarti Light':[220,28],'Frutta':[52,0.5],
+'Gnocchi':[157,3.5],'Hummus':[237,7.9],'Latte scremato':[34,3.4],'Lattuga':[15,1.4],
+'Lievito':[325,40],'Limone':[29,1.1],'Mais dolce':[86,3.2],'Mandorle':[579,21],
+'Mandorle macinate':[579,21],'Manzo magro':[137,21],'Mela':[52,0.3],'Mela rossa':[52,0.3],
+'Miele':[304,0.3],'Mirtilli':[57,0.7],'Noci':[654,15],'Olio di oliva':[884,0],
+'Origano':[265,9],'Pane di mais':[280,6],'Pane tostato senza glutine':[350,4],
+'Pasta senza glutine':[357,6],'Patata':[77,2],'Patata dolce':[86,1.6],'Pepe bianco':[296,10],
+'Pepe di Cayenna':[318,12],'Pepe nero':[251,10],'Peperone rosso':[31,1],'Peperone verde':[20,0.9],
+'Pesce spada':[121,20],'Petto di tacchino':[110,24],'Pollo':[120,23],'Pomodorini':[18,0.9],
+'Pomodoro':[18,0.9],'Pomodoro triturato':[24,1.2],'Pomodoro triturato naturale':[24,1.2],
+'Prezzemolo':[36,3],'Prosciutto cotto':[145,19],'Prosciutto serrano':[241,31],
+'Proteina ISO ChocoMonkey':[373,80],'Quinoa':[368,14],'Ravanelli':[16,0.7],
+'Riso basmati crudo':[356,7.5],'Riso bianco crudo':[358,7],'Sale':[0,0],'Semi di lino':[534,18],
+'Songino':[21,2],'Spinaci':[23,2.9],'Succo di limone':[22,0.4],'Succo d’arancia':[45,0.7],
+'Tofu':[144,15],'Tonno':[132,28],'Tonno al naturale':[103,24],'Tonno in acqua':[103,24],
+'Uova':[143,12.6],'Uovo':[143,12.6],'Uovo di gallina':[143,12.6],'Uvetta':[299,3.1],
+'Vaniglia':[288,0.1],'Vino bianco':[82,0.1],'Yogurt proteico senza lattosio':[59,10],
+'Zucchine':[17,1.2]
+};
+function dietParseIngredient(line){
+  const m=String(line||'').trim().match(/^(.+?)\s+([0-9]+(?:[.,][0-9]+)?)\s*(?:g|ml)\b/i);
+  if(!m)return null;
+  return {name:m[1].trim(), q:parseFloat(m[2].replace(',','.'))};
+}
+function dietMealNutrition(meal){
+  let kcal=0,prot=0,known=0,unknown=0;
+  String(meal&&meal.ingredients||'').split('\n').forEach(function(line){
+    const it=dietParseIngredient(line); if(!it)return;
+    const v=DIET_NUTRI[it.name];
+    if(!v){unknown++;return;}
+    known++; kcal+=v[0]*it.q/100; prot+=v[1]*it.q/100;
+  });
+  return {kcal:Math.round(kcal),prot:Math.round(prot),known:known,unknown:unknown};
+}
+function dietDayNutrition(day){
+  let kcal=0,prot=0,unknown=0;
+  ((day&&day.meals)||[]).forEach(function(m){const n=dietMealNutrition(m);kcal+=n.kcal;prot+=n.prot;unknown+=n.unknown;});
+  return {kcal:kcal,prot:prot,unknown:unknown};
+}
+function dietGapLabel(n){
+  const dk=n.kcal-DIET_TARGET.kcal, dp=n.prot-DIET_TARGET.prot;
+  return (dk>=0?'+':'')+dk+' kcal \u00b7 '+(dp>=0?'+':'')+dp+' g vs target';
+}
+function dietNutriChip(n){
+  return '<span class="nutri-chip">'+n.kcal+' kcal \u00b7 '+n.prot+' g</span>';
+}
+
 /* ================= NUTRIZIONE ================= */
 function has(m,name){return (data.food[m]||[]).some(function(i){return i.n===name;});}
 
 function nutriHTML(){
   const d=dietDayForDate(cur), sum=nutritionDoneCount(), pct=Math.round(sum.done/sum.total*100);
   const section=window.__dietSection||'today';
+  const dayNutri=dietDayNutrition(d);
   let h=hdr(getAppLanguage()==='en'?'Nutrition plan':'Piano nutrizionale',(getAppLanguage()==='en'?'Official 7-day plan':'Piano ufficiale 7 giorni')+' · 17 July 2025');
   h+='<div class="wrap">';
-  h+='<div class="nutri-hero"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><div style="font-size:10px;color:var(--rose-d);font-weight:900;text-transform:uppercase;letter-spacing:.06em">'+(getAppLanguage()==='en'?'Today':'Oggi')+'</div><h2 style="margin:3px 0 0">'+esc(getAppLanguage()==='en'?d.en:d.n)+'</h2><div class="note" style="margin-top:5px">'+sum.done+'/'+sum.total+' '+(getAppLanguage()==='en'?'meals completed':'pasti completati')+'</div></div><div style="font-size:28px;font-weight:900">'+pct+'%</div></div>'+dietProgressBar(pct)+'</div>';
+  h+='<div class="nutri-hero"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><div style="font-size:10px;color:var(--rose-d);font-weight:900;text-transform:uppercase;letter-spacing:.06em">'+(getAppLanguage()==='en'?'Today':'Oggi')+'</div><h2 style="margin:3px 0 0">'+esc(getAppLanguage()==='en'?d.en:d.n)+'</h2><div class="note" style="margin-top:5px">'+sum.done+'/'+sum.total+' '+(getAppLanguage()==='en'?'meals completed':'pasti completati')+'</div><div class="nutri-totals">'+dayNutri.kcal+' kcal \u00b7 '+dayNutri.prot+' g '+(getAppLanguage()==='en'?'protein':'proteine')+'<span>'+dietGapLabel(dayNutri)+'</span></div></div><div style="font-size:28px;font-weight:900">'+pct+'%</div></div>'+dietProgressBar(pct)+'</div>';
   h+='<div class="diet-section-tabs">'+[['today',getAppLanguage()==='en'?'Today':'Oggi'],['week',getAppLanguage()==='en'?'Week':'Settimana'],['recipes',getAppLanguage()==='en'?'Recipes':'Ricette'],['shopping',getAppLanguage()==='en'?'Shopping list':'Lista della spesa'],['allergens',getAppLanguage()==='en'?'Allergens':'Allergeni'],['diary',getAppLanguage()==='en'?'Food diary':'Diario']].map(function(x){return '<button data-diet-section="'+x[0]+'" class="'+(section===x[0]?'on':'')+'">'+x[1]+'</button>';}).join('')+'</div>';
   if(section==='today'){
     h+='<div class="nutri-daybar">'+DIET_DAYS.map(function(x){const active=x.k===d.k;return '<button class="'+(active?'on':'')+'" data-diet-day="'+x.k+'">'+(getAppLanguage()==='en'?x.en:x.n)+'</button>';}).join('')+'</div>';
     h+='<div class="nutri-meals-grid">';
-    d.meals.forEach(function(m){const on=isDietDone(cur,m.slot);h+='<div class="nutri-meal"><div class="nutri-meal-head"><b>'+esc(dietMealLabel(m))+'</b><span>'+esc(m.time)+'</span></div><div class="diet-item"><div class="diet-row"><div class="diet-main"><div class="diet-time">'+(getAppLanguage()==='en'?'PLANNED':'PIANO')+'</div><h4>'+esc(m.title)+'</h4><div class="diet-ingredients">'+esc(m.ingredients||'')+'</div></div><button class="diet-check '+(on?'on':'')+'" data-diet-done="'+esc(m.slot)+'">'+(on?'✓':'')+'</button></div>'+(m.recipe?'<div class="diet-actions"><button data-recipe="'+esc(m.title)+'">'+(getAppLanguage()==='en'?'View recipe':'Vedi ricetta')+'</button></div>':'')+'</div></div>';});
+    d.meals.forEach(function(m){const on=isDietDone(cur,m.slot);h+='<div class="nutri-meal"><div class="nutri-meal-head"><b>'+esc(dietMealLabel(m))+'</b><span>'+esc(m.time)+' '+dietNutriChip(dietMealNutrition(m))+'</span></div><div class="diet-item"><div class="diet-row"><div class="diet-main"><div class="diet-time">'+(getAppLanguage()==='en'?'PLANNED':'PIANO')+'</div><h4>'+esc(m.title)+'</h4><div class="diet-ingredients">'+esc(m.ingredients||'')+'</div></div><button class="diet-check '+(on?'on':'')+'" data-diet-done="'+esc(m.slot)+'">'+(on?'✓':'')+'</button></div>'+(m.recipe?'<div class="diet-actions"><button data-recipe="'+esc(m.title)+'">'+(getAppLanguage()==='en'?'View recipe':'Vedi ricetta')+'</button></div>':'')+'</div></div>';});
     h+='</div>';
     h+='<div class="card" style="margin-top:12px"><div class="note"><b>'+(getAppLanguage()==='en'?'Allergens today':'Allergeni oggi')+':</b> '+esc(DIET_ALLERGENS[d.k])+'</div></div>';
+    h+='<div class="card nutri-source" style="margin-top:10px"><div class="note"><b>'+(getAppLanguage()==='en'?'Where these numbers come from':'Da dove vengono questi numeri')+'</b><br>'+(getAppLanguage()==='en'?'Target: 2000 kcal and at least 110 g of protein per day (PT guidance). The plan shown here is the official 7-day plan dated 17 July 2025 \u2014 it was not written to those numbers, and the gap is shown above rather than hidden.':'Target: 2000 kcal e almeno 110 g di proteine al giorno (indicazione della PT). Il piano qui sopra \u00e8 il piano ufficiale 7 giorni del 17 July 2025 \u2014 non \u00e8 stato scritto su quei numeri, e la differenza \u00e8 mostrata invece che nascosta.')+'<br><br>'+(getAppLanguage()==='en'?'Calories and protein are calculated from the listed grams using standard food tables (CREA/USDA), not the labels of the specific products. Treat them as an estimate with a margin of about 15%.':'Calorie e proteine sono calcolate dai grammi indicati con tabelle standard per alimento (CREA/USDA), non dalle etichette dei prodotti specifici. Sono una stima con un margine indicativo del 15%.')+'</div></div>';
   } else if(section==='week'){
-    DIET_DAYS.forEach(function(x){const mon=new Date(cur);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));mon.setHours(12,0,0,0);const ss=dietSummaryForDate(new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+((x.k+6)%7)));h+='<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+esc(getAppLanguage()==='en'?x.en:x.n)+'</b><span class="note">'+ss.done+'/'+ss.total+'</span></div><div class="note" style="margin-top:6px">'+x.meals.map(function(m){return (isDietDone(new Date(cur),m.slot)?'✓ ':'')+dietMealLabel(m);}).join(' · ')+'</div><button class="btn ghost" style="margin-top:8px" data-diet-day="'+x.k+'">'+(getAppLanguage()==='en'?'Open day':'Apri giornata')+'</button></div>';});
+    DIET_DAYS.forEach(function(x){const mon=new Date(cur);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));mon.setHours(12,0,0,0);const ss=dietSummaryForDate(new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+((x.k+6)%7)));h+='<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+esc(getAppLanguage()==='en'?x.en:x.n)+'</b><span class="note">'+ss.done+'/'+ss.total+'</span></div><div class="nutri-week-n">'+dietDayNutrition(x).kcal+' kcal \u00b7 '+dietDayNutrition(x).prot+' g</div><div class="note" style="margin-top:6px">'+x.meals.map(function(m){return (isDietDone(new Date(cur),m.slot)?'✓ ':'')+dietMealLabel(m);}).join(' · ')+'</div><button class="btn ghost" style="margin-top:8px" data-diet-day="'+x.k+'">'+(getAppLanguage()==='en'?'Open day':'Apri giornata')+'</button></div>';});
   } else if(section==='recipes'){
     dietRecipes().forEach(function(r){h+='<div class="card recipe-card" style="margin-bottom:10px"><h3 style="margin:0 0 5px">'+esc(getAppLanguage()==='en'?dietEnglishText(r.title):r.title)+'</h3><div class="note">'+esc(getAppLanguage()==='en'?r.day.en:r.day.n)+'</div><details style="margin-top:10px"><summary>'+(getAppLanguage()==='en'?'Ingredients & preparation':'Ingredienti e preparazione')+'</summary><div class="diet-ingredients" style="margin-top:8px">'+esc(r.ingredients)+'</div><div class="diet-recipe" style="margin-top:8px">'+esc(r.recipe)+'</div></details></div>';});
   } else if(section==='shopping'){

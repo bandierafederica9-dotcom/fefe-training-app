@@ -505,3 +505,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline-offset:0
 .see-one{margin-top:16px}
 .warm-hint{width:100%;min-height:44px;margin-top:14px;background:#fdf6e8;border:1px solid #efdfc0;
   border-radius:14px;font:inherit;font-size:12px;font-weight:800;color:#8a6a2f;cursor:pointer;padding:8px 12px}
+
+/* --- nutrizione: numeri reali del piano vs target --- */
+.nutri-totals{margin-top:8px;font-size:13px;font-weight:800;color:var(--rose-d);display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.nutri-totals span{font-size:11px;font-weight:700;color:#6b6478;background:#f3f1f6;border-radius:999px;padding:2px 8px}
+.nutri-chip{display:inline-block;margin-left:6px;font-size:10px;font-weight:800;color:var(--rose-d);background:#faf1f4;border-radius:999px;padding:2px 7px;white-space:nowrap}
+.nutri-week-n{margin-top:4px;font-size:11px;font-weight:800;color:var(--rose-d)}
+.nutri-source .note{line-height:1.5}
