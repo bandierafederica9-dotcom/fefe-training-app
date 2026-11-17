@@ -57,8 +57,37 @@ const J = JSON.stringify;
 
   // ---------- 6) Niente è stato toccato nel piano stesso ----------
   const ref = H(REPO, {}, require('./reference').indexHtml);
-  T('i pasti, gli orari e gli ingredienti del piano sono invariati', ref.run('JSON.stringify(DIET_DAYS)') === h.run('JSON.stringify(DIET_DAYS)'));
-  T('la lista della spesa è invariata', ref.run('JSON.stringify(DIET_SHOPPING)') === h.run('JSON.stringify(DIET_SHOPPING)'));
+
+  // ---------- 6b) Vincolo alimentare: niente maiale, niente alcol ----------
+  // Federica e' musulmana. Il piano ufficiale conteneva prosciutto in tre pasti
+  // e vino bianco in uno; sostituiti su sua autorizzazione il 17/11/2026.
+  // Questa non e' una guardia "non cambiare": e' una regola che deve valere
+  // anche per ogni piatto che verra' aggiunto in futuro.
+  const VIETATI = /prosciutto|serrano|maiale|pancetta|bacon|lardo|strutto|salame|speck|mortadella|wurstel|vino|birra|rum|liquore|alcol/i;
+  const colpevoli = [];
+  JSON.parse(h.run('JSON.stringify(DIET_DAYS)')).forEach(d => d.meals.forEach(m => {
+    [m.title, m.ingredients, m.recipe].forEach(t => { if (VIETATI.test(String(t || ''))) colpevoli.push(d.n + ' · ' + m.slot); });
+  }));
+  T('nessun pasto del piano contiene maiale o alcol', colpevoli.length === 0, [...new Set(colpevoli)].join(' | '));
+  T('nemmeno la lista della spesa', !VIETATI.test(h.run('JSON.stringify(DIET_SHOPPING)')));
+  T('nemmeno le ricette in inglese', !VIETATI.test(h.run('JSON.stringify(DIET_RECIPE_EN)')));
+  T('il piano di partenza invece li conteneva: la regola morde davvero',
+    VIETATI.test(ref.run('JSON.stringify(DIET_DAYS)')));
+
+  // Le sostituzioni mantengono il valore nutrizionale: nessun giorno si muove
+  // di piu' di 40 kcal rispetto a prima.
+  const daysPrima = ref.run('JSON.stringify(DIET_DAYS)');
+  const prima = JSON.parse(h.run('JSON.stringify((' + daysPrima + ').map(function(d){return dietDayNutrition(d).kcal;}))'));
+  const dopo = JSON.parse(h.run('JSON.stringify(DIET_DAYS.map(function(d){return dietDayNutrition(d).kcal;}))'));
+  T('le sostituzioni non spostano i totali di piu\' del 3% del giorno',
+    prima.every((v, i) => Math.abs(v - dopo[i]) / v <= 0.03),
+    prima.map((v, i) => (dopo[i] - v) + ' su ' + v).join(' · '));
+  T('e tolgono calorie, non ne aggiungono: i giorni erano gia\' sopra il target',
+    prima.every((v, i) => dopo[i] <= v));
+  T('il tacchino ha preso il posto del prosciutto', h.run('JSON.stringify(DIET_DAYS)').indexOf('Petto di tacchino') > -1);
+  T('il brodo e il limone hanno preso il posto del vino', /Brodo di pollo 70 g/.test(h.run('JSON.stringify(DIET_DAYS)')));
+  T('gli altri pasti sono comunque gli stessi: stesso numero di giorni e di pasti',
+    h.run('DIET_DAYS.length') === 7 && h.run('DIET_DAYS.every(function(d){return d.meals.length===6;})'));
   T('il MENU del diario è invariato', ref.run('JSON.stringify(MENU)') === h.run('JSON.stringify(MENU)'));
 
   console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
