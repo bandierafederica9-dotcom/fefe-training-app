@@ -1,0 +1,20 @@
+name: tests
+
+# The suite is the safety net for the rebuild: it must be green before and after
+# every step. No dependencies, no network — `node tests/run-all.js` is the whole thing.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run the suite
+        run: node tests/run-all.js
