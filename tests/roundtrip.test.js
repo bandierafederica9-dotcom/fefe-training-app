@@ -108,5 +108,31 @@ T('re-importing the same backup finds it identical, not new', second.add === 0 &
   T('a loaded exercise still gets its input', /data-f="kg"/.test(q("kgCell(['Cable Kickback','x'],'k',{kg:'12',r:''})")));
 }
 
-console.log(fail ? '\n' + fail + ' FAILED (fields)' : '\nfields: all good');
+
+/* ---- adding an exercise by hand, declared in two taps ---- */
+{
+  const g = H(REPO, {}); g.run('profile=getProfile();data=norm({day:"Giorno 4"});');
+  const q = (expr) => JSON.parse(g.run(`JSON.stringify(${expr})`));
+  const before = q('planForUser()["Giorno 4"].ex.length');
+
+  const r1 = q('addExerciseToDay("Giorno 4","Side Plank","time","bodyweight")');
+  T('an exercise added by hand lands in the day', r1.ok === true && q('planForUser()["Giorno 4"].ex.length') === before + 1);
+  T('the two taps are what decides its fields',
+    q("exMeasure(['Side Plank','3 x 8-12'])") === 'time' && q("exLoad(['Side Plank','x'])") === 'bodyweight',
+    'declared beats both the table and the prose');
+  T('the declaration is stored under its own key', Object.keys(g.store).some((k) => k.indexOf('fede:exmeta:') === 0));
+
+  // without the two taps it falls back to the old rule, as she asked
+  q('addExerciseToDay("Giorno 4","Qualcosa di mio","","")');
+  T('undeclared falls back to the prose rule',
+    q("exMeasure(['Qualcosa di mio','3 x 20 sec'])") === 'time' && q("exMeasure(['Qualcosa di mio','3 x 12'])") === 'reps');
+  T('undeclared keeps its kg field', q("exLoad(['Qualcosa di mio','x'])") === 'external');
+
+  T('the same exercise is not added twice', q('addExerciseToDay("Giorno 4","Side Plank","","")').ok === false);
+  T('a nameless add is refused', q('addExerciseToDay("Giorno 4","   ","","")').ok === false);
+  T('an unknown day is refused', q('addExerciseToDay("Giorno 99","X","","")').ok === false);
+  T('history is untouched by an add', Object.keys(g.store).every((k) => !/^fede:\d{4}-/.test(k)), Object.keys(g.store).join(','));
+}
+
+console.log(fail ? '\n' + fail + ' FAILED (add)' : '\nadd: all good');
 process.exit(fail ? 1 : 0);

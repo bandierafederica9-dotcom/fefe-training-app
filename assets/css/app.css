@@ -475,3 +475,26 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline-offset:0
 .side-open{margin-top:6px;width:100%;min-height:44px;background:#fff;border:1px dashed var(--line,#e5ded2);
   border-radius:12px;font:inherit;font-size:12px;font-weight:800;color:var(--dim,#6b727a);cursor:pointer}
 .side-gap{font-size:11px;font-weight:800;color:#b5884e;margin-top:6px}
+
+/* ===== Add an exercise to today ===== */
+.add-ex{width:100%;min-height:46px;margin-top:12px;background:#fff;border:1px dashed var(--line,#e5ded2);
+  border-radius:14px;font:inherit;font-size:13px;font-weight:800;color:var(--navy,#1e2340);cursor:pointer}
+.add-panel{margin-top:12px;background:#fff;border:1px solid var(--line,#e5ded2);border-radius:16px;padding:14px}
+.add-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:900;
+  color:var(--navy,#1e2340);margin-bottom:10px}
+.add-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--line,#e5ded2);background:#fff;
+  font:inherit;font-size:14px;color:var(--dim,#6b727a);cursor:pointer}
+.add-q{width:100%;min-height:44px;border:1px solid var(--line,#e5ded2);border-radius:12px;padding:0 12px;font:inherit;font-size:14px}
+.add-hits{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.add-hit{min-height:44px;text-align:left;padding:0 12px;background:#faf7f2;border:1px solid var(--line,#e5ded2);
+  border-radius:12px;font:inherit;font-size:13.5px;font-weight:700;color:var(--navy,#1e2340);cursor:pointer}
+.add-manual{margin-top:12px;border-top:1px solid var(--line,#eee7dc);padding-top:12px}
+.add-manual-t{font-size:12px;font-weight:800;color:var(--navy,#1e2340);margin-bottom:10px;line-height:1.5}
+.add-row{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.add-row span{flex:0 0 58px;font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--dim,#6b727a)}
+.add-opt{flex:1;min-height:44px;background:#fff;border:1px solid var(--line,#e5ded2);border-radius:12px;
+  font:inherit;font-size:12.5px;font-weight:800;color:var(--navy,#1e2340);cursor:pointer}
+.add-opt.on{background:#1e2340;border-color:#1e2340;color:#fff}
+.add-go{width:100%;min-height:46px;margin-top:4px;background:#1e2340;border:0;border-radius:12px;
+  font:inherit;font-size:13.5px;font-weight:800;color:#fff;cursor:pointer}
+.add-hint{font-size:10.5px;color:var(--dim,#6b727a);font-weight:700;margin-top:8px;line-height:1.5}

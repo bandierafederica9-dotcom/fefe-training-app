@@ -170,9 +170,9 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
 
   // ---------- 12) Storage safety, import/export, migrations ----------
   { const added = curHtml.slice(curHtml.indexOf('<script>')).split('\n').filter(l => headHtml.indexOf(l) < 0);
-    const LAB_WRITE_OK = /localStorage\.(setItem|removeItem)\((?:labStepKey|labMarkKey)\(/;
+    const LAB_WRITE_OK = /localStorage\.(setItem|removeItem)\((?:labStepKey|labMarkKey|exMetaKey)\(/;
     const offending = (l) => /localStorage\.(removeItem|clear|setItem)|\.clear\(\)/.test(l) && !LAB_WRITE_OK.test(l);
-    T('no storage write outside fede:lab:* added by the Lab phase', !added.some(offending), added.filter(offending).join(' | '));
+    T('no storage write outside fede:lab:* / fede:exmeta:* added by the Lab phase', !added.some(offending), added.filter(offending).join(' | '));
     const hh = H(REPO); boot(hh); const before = J(hh.store);
     hh.run(`exCtx={day:${J(LAB)},back:"calisthenics"};exIdx=0;calisthenicsHTML();exerciseHTML();`);
     T('rendering Lab screens writes nothing', J(hh.store) === before);

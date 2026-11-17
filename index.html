@@ -2293,6 +2293,39 @@ function videoEmbedHTML(name, cls){
 /* The skill card: the calisthenics has its own format, inside the gym day.
    It never guesses where she is — until she places herself on the ladder the
    plan's own prescription stands and the card asks, once. */
+let addOpen=false, addQuery='', addM='', addL='';
+function addPanelHTML(day){
+  if(!addOpen)return '<button class="add-ex" data-addopen="1">＋ Aggiungi esercizio</button>';
+  const q=(addQuery||'').trim().toLowerCase();
+  const cur=(planForUser()[day]&&planForUser()[day].ex||[]).map(function(e){return String(e[0]).toLowerCase();});
+  let pool=[];
+  try{pool=exercisePool().map(function(e){return e[0];});}catch(e){pool=[];}
+  Object.keys(COACH_EXTRA_EXERCISES||{}).forEach(function(n){if(pool.indexOf(n)<0)pool.push(n);});
+  const hits=q?pool.filter(function(n){return n.toLowerCase().indexOf(q)>=0&&cur.indexOf(n.toLowerCase())<0;}).slice(0,6):[];
+  const exact=q&&pool.some(function(n){return n.toLowerCase()===q;});
+  let h='<div class="add-panel"><div class="add-head">Aggiungi un esercizio a questa giornata<button class="add-close" data-addclose="1">✕</button></div>';
+  h+='<input class="add-q" id="addq" type="text" placeholder="Cerca o scrivi un nome…" value="'+esc(addQuery)+'">';
+  if(hits.length){
+    h+='<div class="add-hits">';
+    hits.forEach(function(n){h+='<button class="add-hit" data-addpick="'+esc(n)+'">'+esc(n)+'</button>';});
+    h+='</div>';
+  }
+  if(q&&!exact){
+    h+='<div class="add-manual"><div class="add-manual-t">Non è in libreria. Dimmi cos’è, in due tocchi:</div>';
+    h+='<div class="add-row"><span>Misura</span>'
+      +'<button class="add-opt'+(addM==='reps'?' on':'')+'" data-addm="reps">Ripetizioni</button>'
+      +'<button class="add-opt'+(addM==='time'?' on':'')+'" data-addm="time">Secondi</button></div>';
+    h+='<div class="add-row"><span>Carico</span>'
+      +'<button class="add-opt'+(addL==='external'?' on':'')+'" data-addl="external">Con peso</button>'
+      +'<button class="add-opt'+(addL==='bodyweight'?' on':'')+'" data-addl="bodyweight">Corpo libero</button></div>';
+    h+='<button class="add-go" data-addnew="'+esc(addQuery.trim())+'">Aggiungi «'+esc(addQuery.trim())+'»</button>';
+    if(!addM||!addL)h+='<div class="add-hint">Senza i due tocchi lo tratto con la vecchia regola: i campi li deduco dal testo.</div>';
+    h+='</div>';
+  }
+  h+='</div>';
+  return h;
+}
+
 function skillCardHTML(day){
   const skill=skillOfDay(day); if(!skill)return '';
   const c=labCurrent(skill); if(!c)return '';
@@ -2335,6 +2368,7 @@ function workoutHTML(){
   h+=skillCardHTML(data.day);
   h+='<div class="video-library-intro"><div><h3>Libreria esercizi</h3><p>Video reali quando disponibili. Illustrazioni dedicate per il resto.</p></div><div class="video-library-legend"><span>● FRAME VIDEO</span><span>＋ ILLUSTRAZIONE</span></div></div>';
   p.ex.forEach(function(e,i){const ed=exDone(data,data.day,i);h+='<div class="exrow exrow-v5" data-ex="'+i+'">'+videoEmbedHTML(e[0],'mini-video-thumb')+'<div class="num '+(ed.n===ed.tot?'done':'')+'">'+(ed.n===ed.tot?'✓':(i+1))+'</div><div class="info"><b>'+esc(e[0])+'</b><span>'+esc(e[1])+' · '+ed.n+'/'+ed.tot+' serie</span></div><div class="tarrow">›</div></div>';});
+  h+=addPanelHTML(data.day);
   h+='<div class="sect">Note della sessione</div><div class="card" style="padding:14px"><textarea id="note" style="min-height:70px" placeholder="Sensazioni, PR, energia...">'+esc(data.note)+'</textarea></div></div>'; return h;
 }
 
@@ -2533,6 +2567,40 @@ const EX_LOAD={               // 'bodyweight' = no kg field, 'external' = a load
 };
 
 function exName(e){return String(e&&e[0]||'');}
+/* An exercise added by hand is not in any table, so she declares what it is:
+   two taps, measure and load. Declared always wins — she knows, the table guesses.
+   Without the two taps it simply falls back to the old prose rule. */
+function exMetaKey(name){return 'fede:exmeta:'+String(name||'').trim().toLowerCase();}
+function exMetaGet(name){
+  try{const raw=localStorage.getItem(exMetaKey(name)); return raw?JSON.parse(raw):null;}catch(e){return null;}
+}
+function exMetaSet(name,measure,load){
+  const o={};
+  if(measure==='time'||measure==='reps')o.m=measure;
+  if(load==='bodyweight'||load==='external')o.l=load;
+  if(!o.m&&!o.l)return null;
+  try{localStorage.setItem(exMetaKey(name),JSON.stringify(o));}catch(e){}
+  return o;
+}
+/* Add an exercise to today's day, through the same vetted path the coach uses:
+   the stored plan is copied, the exercise appended, ids prepared, the result
+   persisted. History is untouched. */
+function addExerciseToDay(day,name,measure,load){
+  const nm=String(name||'').trim();
+  if(!nm)return {ok:false,error:'Serve un nome.'};
+  const plan=coachEnsurePlan(), dp=plan&&plan[day];
+  if(!dp||!Array.isArray(dp.ex))return {ok:false,error:'Non trovo quel giorno nel piano.'};
+  if(dp.ex.some(function(e){return sameExerciseName(e[0],nm);}))return {ok:false,error:'È già in questa giornata.'};
+  const known=makeExercise(nm);
+  const ex=known?known:[nm,(measure==='time'?'3 x 20-30 sec':'3 x 8-12')+' · aggiunto da te',3];
+  ex[4]=null;
+  if(!known)exMetaSet(nm,measure,load);
+  dp.ex.push(ex);
+  preparePlanExerciseIds(plan); userPlan=plan; persistUserPlan();
+  writeUserPlanMeta({customized:true,source:'added-by-user'});
+  if(data&&data.day===day)save();
+  return {ok:true,name:nm,fromLibrary:!!known};
+}
 /* The weight cell. A bodyweight exercise has no kilos to enter — but a set logged
    before this rule existed keeps its number, shown as it was recorded and not
    editable, because her history is not rewritten. */
@@ -2544,11 +2612,13 @@ function kgCell(e,id,v){
   return '<div class="fld fld-legacy"><label>Registrato</label><div class="legacy-kg">'+esc(stored)+' kg</div></div>';
 }
 function exMeasure(e){
+  const d=exMetaGet(exName(e)); if(d&&d.m)return d.m;
   const m=EX_MEASURE[exName(e)];
   if(m)return m;
   return /\bsec\b/i.test(String(e&&e[1]||'').split('·')[0])?'time':'reps';   // old prose rule
 }
 function exLoad(e){
+  const d=exMetaGet(exName(e)); if(d&&d.l)return d.l;
   const l=EX_LOAD[exName(e)];
   if(l)return l;
   return 'external';
@@ -3406,6 +3476,21 @@ function bind(){
     goals.sched[sel.dataset.sched]=sel.value;saveGoals();loadAgenda().then(render);};});
 
   document.querySelectorAll('[data-day5-variant]').forEach(function(b){b.onclick=function(){setDay5Variant(b.dataset.day5Variant);};});
+
+  // aggiungere un esercizio alla giornata
+  document.querySelectorAll('[data-addopen]').forEach(function(b2){b2.onclick=function(){addOpen=true;addQuery='';addM='';addL='';render();};});
+  document.querySelectorAll('[data-addclose]').forEach(function(b2){b2.onclick=function(){addOpen=false;render();};});
+  document.querySelectorAll('[data-addm]').forEach(function(b2){b2.onclick=function(){addM=b2.dataset.addm;render();};});
+  document.querySelectorAll('[data-addl]').forEach(function(b2){b2.onclick=function(){addL=b2.dataset.addl;render();};});
+  document.querySelectorAll('[data-addpick]').forEach(function(b2){b2.onclick=function(){
+    const r=addExerciseToDay(data.day,b2.dataset.addpick,'','');
+    addOpen=!r.ok; if(!r.ok)alert(r.error); render();};});
+  document.querySelectorAll('[data-addnew]').forEach(function(b2){b2.onclick=function(){
+    const r=addExerciseToDay(data.day,b2.dataset.addnew,addM,addL);
+    addOpen=!r.ok; if(!r.ok)alert(r.error); render();};});
+  {const qi=document.getElementById('addq');
+   if(qi){qi.oninput=function(){addQuery=qi.value;render();
+     const n=document.getElementById('addq'); if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}};}}
 
   document.querySelectorAll('[data-sideopen]').forEach(function(btn){btn.onclick=function(){
     sideOpen[btn.dataset.sideopen]=true;render();};});
