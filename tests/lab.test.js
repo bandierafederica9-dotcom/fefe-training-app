@@ -161,12 +161,12 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     const norm = s => s.replace(/<div class="exercise-media">[\s\S]*?<\/a><\/div>/, '<MEDIA>').replace(/ (loading="lazy"|decoding="async")/g, '').replace(/id="restTimer">\d\d:\d\d</, 'id="restTimer">--:--<').replace(/<a class="vidbtn"[^>]*>▶ (Guarda il video|Cerca video guida)<\/a>/, ''); // media review pass: video button follows the new links
     ['Giorno 1', 'Giorno 2', 'Giorno 3', 'Giorno 4', 'Giorno 5', 'Core', 'Casa', 'Nuoto'].forEach((day, di) => {
       const hc = H(REPO), hb = H(REPO, {}, headHtml);
-      JSON.parse(hc.run(`JSON.stringify(PLAN[${J(day)}].ex)`)).forEach((e, i) => { if (decided.has(e[4]) || /\bsec\b/.test(e[1].split('·')[0])) return; // + timed exercises now use Sec (tested above)
+      JSON.parse(hc.run(`JSON.stringify(PLAN[${J(day)}].ex)`)).forEach((e, i) => { if (decided.has(e[4]) || /\bsec\b/.test(e[1].split('·')[0]) || hc.run(`exLoad(${J(e)})`) === 'bodyweight') return; // + timed exercises use Sec, + bodyweight exercises no longer show a kg field (both decided, tested above)
         for (let v = 0; v < 2; v++) { const rec = { day, sets: {}, done: {} };
           for (let s = 1; s <= 5; s++) { const k = day + '|' + e[4] + '|' + s; if ((i + s + v + di) % 3 === 0) { rec.sets[k] = { kg: String(10 + s), r: String(5 + v) }; rec.done[k] = true; } }
           const run = hh => hh.run(`(function(){profile=getProfile();cur=new Date("2026-01-20T12:00:00");key="k";data=norm(${J(rec)});exIdx=${i};lastExLoading=false;lastEx=null;exerciseTab="video";return exerciseHTML();})()`);
           n++; if (norm(run(hc)) !== norm(run(hb))) mism.push(day + ':' + e[0]); } }); });
-    T('main exercise screen identical to HEAD outside the media block (' + n + ' renders; decided right/left + timed excluded)', mism.length === 0, [...new Set(mism)].join()); }
+    T('main exercise screen identical to HEAD outside the media block (' + n + ' renders; decided right/left, timed and bodyweight excluded)', mism.length === 0, [...new Set(mism)].join()); }
 
   // ---------- 12) Storage safety, import/export, migrations ----------
   { const added = curHtml.slice(curHtml.indexOf('<script>')).split('\n').filter(l => headHtml.indexOf(l) < 0);

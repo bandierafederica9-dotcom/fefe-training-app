@@ -456,3 +456,6 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline-offset:0
 .skillrung.on .skillrung-t{color:#fff}
 .skillrung.on .skillrung-n{background:#4d7a63;color:#fff}
 .skillcard-note{font-size:10.5px;color:var(--dim,#6b727a);font-weight:700;margin-top:10px}
+
+/* a weight recorded before the bodyweight rule existed: shown, not editable */
+.fld-legacy .legacy-kg{font-size:14px;font-weight:800;color:var(--dim,#6b727a);padding:9px 0}

@@ -2452,18 +2452,67 @@ function exerciseHTML(){
       // Read-only: a bilateral entry logged before right/left tracking existed is shown, never moved to a side.
       const bil=getSetValue(data,day,exIdx,e,sn);
       if(bil&&((bil.r||'')!==''||(bil.kg||'')!==''))h+='<div class="legacy-bilateral" style="font-size:10.5px;font-weight:800;color:var(--dim);margin-bottom:4px">Registrato senza lato: '+(bil.kg?esc(bil.kg)+' kg × ':'')+esc(bil.r||'—')+' reps</div>';
-      ['right','left'].forEach(function(side){const id=sideSetKey(day,exIdx,e,sn,side),v=getSideSetValue(data,day,exIdx,e,sn,side)||{kg:'',r:''},on=getSideDoneValue(data,day,exIdx,e,sn,side);h+='<div class="side-block" style="display:grid;grid-template-columns:1fr 1fr 34px;gap:7px;align-items:end;padding:8px 10px;margin-top:6px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.55)"><div style="grid-column:1/-1;font-size:11px;font-weight:900;color:var(--navy)">'+sideLabel(e,side)+'</div><div class="fld"><label>'+cf.l+'</label><input data-set="'+id+'" data-f="'+cf.f+'" type="number" inputmode="numeric" value="'+esc(countValue(v,cf))+'"></div><div class="fld"><label>Peso (kg)</label><input data-set="'+id+'" data-f="kg" type="number" inputmode="decimal" value="'+esc(v.kg)+'"></div><button class="chk '+(on?'on':'')+'" data-done="'+id+'">'+(on?'✓':'')+'</button></div>';});
+      ['right','left'].forEach(function(side){const id=sideSetKey(day,exIdx,e,sn,side),v=getSideSetValue(data,day,exIdx,e,sn,side)||{kg:'',r:''},on=getSideDoneValue(data,day,exIdx,e,sn,side);h+='<div class="side-block" style="display:grid;grid-template-columns:'+(exLoad(e)==='bodyweight'&&!String(v.kg||'').length?'1fr 34px':'1fr 1fr 34px')+';gap:7px;align-items:end;padding:8px 10px;margin-top:6px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.55)"><div style="grid-column:1/-1;font-size:11px;font-weight:900;color:var(--navy)">'+sideLabel(e,side)+'</div><div class="fld"><label>'+cf.l+'</label><input data-set="'+id+'" data-f="'+cf.f+'" type="number" inputmode="numeric" value="'+esc(countValue(v,cf))+'"></div>'+kgCell(e,id,v)+'<button class="chk '+(on?'on':'')+'" data-done="'+id+'">'+(on?'✓':'')+'</button></div>';});
       h+='</div>';
     }else{
-      const id=setKey(day,exIdx,e,sn),v=getSetValue(data,day,exIdx,e,sn)||{kg:'',r:''},on=Object.prototype.hasOwnProperty.call(data.done,id)?!!data.done[id]:getDoneValue(data,day,exIdx,e,sn);h+='<div class="exrow" style="display:grid;grid-template-columns:26px 1fr 1fr 34px;gap:7px;align-items:end;padding:9px 0;border-top:1px solid var(--line)"><div class="num '+(on?'done':'')+'" style="width:26px;height:26px">'+sn+'</div><div class="fld"><label>'+cf.l+'</label><input data-set="'+id+'" data-f="'+cf.f+'" type="number" inputmode="numeric" value="'+esc(countValue(v,cf))+'"></div><div class="fld"><label>Peso (kg)</label><input data-set="'+id+'" data-f="kg" type="number" inputmode="decimal" value="'+esc(v.kg)+'"></div><button class="chk '+(on?'on':'')+'" data-done="'+id+'">'+(on?'✓':'')+'</button></div>';
+      const id=setKey(day,exIdx,e,sn),v=getSetValue(data,day,exIdx,e,sn)||{kg:'',r:''},on=Object.prototype.hasOwnProperty.call(data.done,id)?!!data.done[id]:getDoneValue(data,day,exIdx,e,sn);h+='<div class="exrow" style="display:grid;grid-template-columns:'+(exLoad(e)==='bodyweight'&&!String(v.kg||'').length?'26px 1fr 34px':'26px 1fr 1fr 34px')+';gap:7px;align-items:end;padding:9px 0;border-top:1px solid var(--line)"><div class="num '+(on?'done':'')+'" style="width:26px;height:26px">'+sn+'</div><div class="fld"><label>'+cf.l+'</label><input data-set="'+id+'" data-f="'+cf.f+'" type="number" inputmode="numeric" value="'+esc(countValue(v,cf))+'"></div>'+kgCell(e,id,v)+'<button class="chk '+(on?'on':'')+'" data-done="'+id+'">'+(on?'✓':'')+'</button></div>';
     }
   }
   h+='<div class="exnav"><button class="prev" data-exnav="-1"'+(exIdx===0?' disabled style="opacity:.4"':'')+'>‹ Precedente</button><button class="next" data-exnav="1">'+(exIdx===p.ex.length-1?'Fine ✓':'Successivo ›')+'</button></div></div>';
   const exNoteKey='fede:exnote:'+exerciseId(day,exIdx,e), exNote=localStorage.getItem(exNoteKey)||''; h+='<div class="sect">'+(getAppLanguage()==='en'?'Exercise notes':'Note esercizio')+'</div><div class="card" style="padding:12px"><textarea data-ex-note="'+esc(exNoteKey)+'" style="min-height:65px" placeholder="'+(getAppLanguage()==='en'?'How did this exercise feel?':'Come è andato questo esercizio?')+'">'+esc(exNote)+'</textarea></div></div>';
   return h;
 }
-// Timed exercise: the prescription (before the first "·") is in seconds, e.g. "3 x 15-30 sec".
-function isTimedExercise(e){return /\bsec\b/i.test(String(e&&e[1]||'').split('·')[0]);}
+/* ===== What an exercise is measured in, and whether it carries a load =====
+   This used to be decided by grepping the word "sec" out of the prescription
+   string, so the same exercise got a Sec field in one day and a Reps field in
+   another, and a bodyweight hold still asked for kilos. Both are now properties
+   of the exercise. Anything not listed keeps the old prose rule, so no day
+   changes by accident. */
+const EX_MEASURE={            // 'time' = seconds, 'reps' = repetitions
+  'L-Sit':'time','Tuck Support':'time','Tuck L-Sit':'time','Single-Leg L-Sit':'time','L-Sit on Parallettes':'time',
+  'Frog Stand':'time','Frog Stand Weight Shift':'reps','Frog Stand Toe Lift':'reps',
+  'Vacuum addominale':'time','Plank':'time','CORE · Plank':'time','Hollow Body Hold':'time',
+  'Active Hang':'time','Wrist Prep':'time','Chest-to-Wall Handstand':'time',
+  'Wall Handstand Weight Shift':'time',
+  'Dead Bug':'reps','CORE · Dead Bug':'reps','Hanging Knee Raise':'reps','CORE · Hanging Knee Raise':'reps',
+  'Cable Crunch':'reps','CORE · Cable Crunch':'reps','Pallof Press (anti-rotazione)':'reps'
+};
+const EX_LOAD={               // 'bodyweight' = no kg field, 'external' = a load is entered
+  // Only the holds and the wall work: things that genuinely never take a load in
+  // this plan. Pull-up can be assisted or weighted, and her own history has Dead Bug
+  // at 16 and 18 kg, so neither is listed — anything unlisted keeps its kg field.
+  'L-Sit':'bodyweight','Tuck Support':'bodyweight','Tuck L-Sit':'bodyweight','Single-Leg L-Sit':'bodyweight',
+  'L-Sit on Parallettes':'bodyweight','Frog Stand':'bodyweight','Frog Stand Weight Shift':'bodyweight',
+  'Frog Stand Toe Lift':'bodyweight','Vacuum addominale':'bodyweight','CORE · Vacuum addominale':'bodyweight',
+  'Plank':'bodyweight','CORE · Plank':'bodyweight','Hollow Body Hold':'bodyweight',
+  'Active Hang':'bodyweight','Wrist Prep':'bodyweight','Wall Walk':'bodyweight',
+  'Chest-to-Wall Handstand':'bodyweight','Wall Handstand Toe Taps':'bodyweight',
+  'Wall Handstand Weight Shift':'bodyweight','Handstand Toe Taps':'bodyweight'
+};
+
+function exName(e){return String(e&&e[0]||'');}
+/* The weight cell. A bodyweight exercise has no kilos to enter — but a set logged
+   before this rule existed keeps its number, shown as it was recorded and not
+   editable, because her history is not rewritten. */
+function kgCell(e,id,v){
+  const stored=String((v&&v.kg)||'');
+  if(exLoad(e)!=='bodyweight')
+    return '<div class="fld"><label>Peso (kg)</label><input data-set="'+id+'" data-f="kg" type="number" inputmode="decimal" value="'+esc(stored)+'"></div>';
+  if(stored==='')return '';
+  return '<div class="fld fld-legacy"><label>Registrato</label><div class="legacy-kg">'+esc(stored)+' kg</div></div>';
+}
+function exMeasure(e){
+  const m=EX_MEASURE[exName(e)];
+  if(m)return m;
+  return /\bsec\b/i.test(String(e&&e[1]||'').split('·')[0])?'time':'reps';   // old prose rule
+}
+function exLoad(e){
+  const l=EX_LOAD[exName(e)];
+  if(l)return l;
+  return 'external';
+}
+// Kept under its old name: everything else in the app asks the question this way.
+function isTimedExercise(e){return exMeasure(e)==='time';}
 // Count field for a set: Lab timed exercises use a dedicated "sec" field; everything else keeps "r" (reps).
 function countField(e,day){return isTimedExercise(e)?{f:'sec',l:'Sec'}:{f:'r',l:'Reps'};}
 // Value shown in the count field. A timed set logged before the Sec field existed (seconds stored as reps) is shown.

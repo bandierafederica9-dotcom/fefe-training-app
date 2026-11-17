@@ -82,5 +82,31 @@ T('re-importing the same backup finds it identical, not new', second.add === 0 &
   T('the Lab is offered on days 3 and 4 only', JSON.parse(g.run("JSON.stringify([labOfferedOn('Giorno 3'),labOfferedOn('Giorno 4'),labOfferedOn('Giorno 1'),labOfferedOn('Giorno 5')])")).join() === 'true,true,false,false');
 }
 
-console.log(fail ? '\n' + fail + ' FAILED (lab)' : '\nlab: all good');
+
+/* ---- the field follows the exercise, not the prose ---- */
+{
+  const g = H(REPO, {}); g.run('profile=getProfile();');
+  const q = (expr) => JSON.parse(g.run(`JSON.stringify(${expr})`));
+  T('a hold is measured in seconds wherever it appears',
+    ['L-Sit', 'Frog Stand', 'Vacuum addominale', 'Tuck L-Sit'].every((n) => q(`exMeasure([${J(n)},'3 x 8-12'])`) === 'time'),
+    'the prescription says reps and it is still a hold');
+  T('a repetition exercise is measured in reps even when its text mentions sec',
+    ['Dead Bug', 'Hanging Knee Raise', 'Cable Crunch'].every((n) => q(`exMeasure([${J(n)},'3 x 20 sec rest'])`) === 'reps'));
+  T('an unlisted exercise keeps the old prose rule',
+    q("exMeasure(['Qualcosa di nuovo','3 x 20 sec'])") === 'time' && q("exMeasure(['Qualcosa di nuovo','3 x 12'])") === 'reps');
+  T('bodyweight holds carry no load', ['L-Sit', 'Frog Stand', 'Plank', 'Vacuum addominale', 'Active Hang'].every((n) => q(`exLoad([${J(n)},'x'])`) === 'bodyweight'));
+  T('machine work still carries a load', ['Cable Kickback', 'Hip Adduction', 'KAS Glute Bridge'].every((n) => q(`exLoad([${J(n)},'x'])`) === 'external'));
+  // Pull-up is assisted or weighted, and her own history logs Dead Bug at 16 kg:
+  // neither may lose its field just because it looks like calisthenics.
+  T('Pull-up and Dead Bug keep their kg field', ['Pull-up', 'Dead Bug'].every((n) => q(`exLoad([${J(n)},'x'])`) === 'external'));
+
+  // the kg cell: absent on bodyweight, kept when history already holds a number
+  T('no kg field on a bodyweight exercise', q("kgCell(['L-Sit','x'],'k',{kg:'',r:''})") === '');
+  T('a kg already recorded is shown, and not editable',
+    /legacy-kg/.test(q("kgCell(['L-Sit','x'],'k',{kg:'5',r:''})")) && !/input/.test(q("kgCell(['L-Sit','x'],'k',{kg:'5',r:''})")),
+    'her history is never rewritten');
+  T('a loaded exercise still gets its input', /data-f="kg"/.test(q("kgCell(['Cable Kickback','x'],'k',{kg:'12',r:''})")));
+}
+
+console.log(fail ? '\n' + fail + ' FAILED (fields)' : '\nfields: all good');
 process.exit(fail ? 1 : 0);
