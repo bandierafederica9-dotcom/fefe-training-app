@@ -32,6 +32,11 @@
    true
   ],
   [
+   "Giorno 1",
+   "Tapis roulant inclinato",
+   false
+  ],
+  [
    "Giorno 2",
    "Machine Hip Thrust",
    false
@@ -89,6 +94,11 @@
   [
    "Giorno 3",
    "Hanging Knee Raise",
+   false
+  ],
+  [
+   "Giorno 3",
+   "Tapis roulant inclinato",
    false
   ],
   [
@@ -360,8 +370,8 @@
    "Giorno 1",
    0,
    {
-    "done": 9,
-    "tot": 18
+    "done": 10,
+    "tot": 19
    }
   ],
   [
@@ -369,7 +379,7 @@
    1,
    {
     "done": 9,
-    "tot": 18
+    "tot": 19
    }
   ],
   [
@@ -377,7 +387,7 @@
    2,
    {
     "done": 9,
-    "tot": 18
+    "tot": 19
    }
   ],
   [
@@ -409,7 +419,7 @@
    0,
    {
     "done": 11,
-    "tot": 22
+    "tot": 23
    }
   ],
   [
@@ -417,15 +427,15 @@
    1,
    {
     "done": 10,
-    "tot": 22
+    "tot": 23
    }
   ],
   [
    "Giorno 3",
    2,
    {
-    "done": 11,
-    "tot": 22
+    "done": 12,
+    "tot": 23
    }
   ],
   [

@@ -50,7 +50,7 @@ const J = JSON.stringify;
     'return found;})(' + J(n) + ')');
   const inventati = tutti.filter(n => !vecchie(n)).sort();
   T('gli unici esercizi nuovi sono i sei cardio, e sono dichiarati',
-    J(inventati) === J(['Camminata all\u2019aperto', 'Corda', 'Corsa leggera', 'Cyclette', 'Tapis roulant inclinato', 'Vogatore']),
+    J(inventati) === J(['Camminata all\u2019aperto', 'Corda', 'Corsa leggera', 'Cyclette', 'Vogatore']),
     J(inventati));
   T('il cardio che fa davvero è il primo della sezione',
     (cat.find(g => g.k === 'cardio') || {}).items[0] === 'Tapis roulant inclinato');

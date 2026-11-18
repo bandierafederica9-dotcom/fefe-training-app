@@ -151,15 +151,15 @@ const customPlan = {
       const d={dayEx:["A","B"],dayExIds:["x"]};syncRecordExerciseMap(d,"Giorno 1");
       const b2=JSON.parse(JSON.stringify(b));syncRecordExerciseMap(b2,"Giorno 1");
       return JSON.stringify({a,b,c,d,idem:JSON.stringify(b2)===JSON.stringify(b)});})()`));
-    T('empty map gets current plan list', r.a.dayExIds.length === 6 && r.a.dayExIds[0] === 'giorno-1__pull-up');
-    T('existing map: old entries/positions kept, only missing appended', r.b.dayEx[0] === 'Pull-up' && r.b.dayEx[1] === 'Old Ex' && r.b.dayExIds[0] === 'giorno-1__pull-up__old' && r.b.dayExIds.length === 7 && !r.b.dayExIds.slice(2).includes('giorno-1__pull-up'), J(r.b.dayExIds));
+    T('empty map gets current plan list', r.a.dayExIds.length === 7 && r.a.dayExIds[0] === 'giorno-1__pull-up');
+    T('existing map: old entries/positions kept, only missing appended', r.b.dayEx[0] === 'Pull-up' && r.b.dayEx[1] === 'Old Ex' && r.b.dayExIds[0] === 'giorno-1__pull-up__old' && r.b.dayExIds.length === 8 && !r.b.dayExIds.slice(2).includes('giorno-1__pull-up'), J(r.b.dayExIds));
     T('legacy names-only map untouched', J(r.c) === J({ dayEx: ['Legacy Name'], dayExIds: [] }));
     T('misaligned map untouched', J(r.d) === J({ dayEx: ['A', 'B'], dayExIds: ['x'] }));
     T('sync idempotent', r.idem === true); }
   { const h = H(REPO, { 'fede:planVersion': '7' }); h.run('profile=getProfile();key="fede:2026-01-05";data=norm({day:"Giorno 1",dayEx:["Old"],dayExIds:["giorno-1__old"],sets:{}});');
     await h.run('doSave()');
     const rec = JSON.parse(h.store['fede:2026-01-05']);
-    T('doSave: old record map extended, not overwritten', rec.dayEx[0] === 'Old' && rec.dayExIds[0] === 'giorno-1__old' && rec.dayExIds.length === 7);
+    T('doSave: old record map extended, not overwritten', rec.dayEx[0] === 'Old' && rec.dayExIds[0] === 'giorno-1__old' && rec.dayExIds.length === 8);
     T('doSave no longer stamps planVersion', h.store['fede:planVersion'] === '7'); }
 
   // ---------- 12) Schedule: never reset; legacy labels canonical; missing filled; idempotent ----------
