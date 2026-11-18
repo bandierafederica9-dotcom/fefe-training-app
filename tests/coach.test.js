@@ -144,6 +144,25 @@ const OTTO = ['2026-01-02', '2026-01-05', '2026-01-07', '2026-01-09', '2026-01-1
     T('e lo stesso in italiano', /kg/.test(r3.text));
   }
 
+  // ---------- 8bis) "Come sono andata oggi" ----------
+  {
+    const h = H(REPO);
+    seed(h, OTTO.map(d => [d, 40, 8]));
+    const vuoto = h.run('coachTodayReply().text');
+    T('senza serie segnate oggi non inventa un resoconto', /non hai ancora segnato/.test(vuoto), vuoto.replace(/<[^>]*>/g, '').slice(0, 70));
+    h.run('(function(){const e=dayPlan("Giorno 1").ex[1];for(var s=1;s<=3;s++)data.sets[setKey("Giorno 1",1,e,s)]={kg:"40",r:"8"};})();');
+    const pieno = h.run('coachTodayReply().text');
+    T('con le serie di oggi dice serie e volume', /3\/19/.test(pieno) && /960 kg/.test(pieno), pieno.replace(/<[^>]*>/g, ' ').slice(0, 90));
+    T('e quante ne mancano', /mancano 16/.test(pieno));
+    T('e confronta con l\'ultima volta che hai fatto la stessa giornata', /ultima volta/.test(pieno), pieno.replace(/<[^>]*>/g, ' ').slice(0, 160));
+    T('e dice cos\'e\' il volume, per non farlo leggere come un voto', /non a dare un voto/.test(pieno));
+    const r = await h.run('coachHandleMessage("Come sono andata oggi")');
+    T('"Come sono andata oggi" arriva al resoconto, non all\'aiuto generico',
+      /960 kg/.test(r.text) && !/Non ho capito/.test(r.text), r.text.replace(/<[^>]*>/g, ' ').slice(0, 80));
+    const r2 = await h.run('coachHandleMessage("how did i do today?")');
+    T('e lo stesso in inglese', /960 kg/.test(r2.text), r2.text.replace(/<[^>]*>/g, ' ').slice(0, 60));
+  }
+
   // ---------- 9) Sotto soglia dice cosa manca, non numeri inventati ----------
   {
     const h = H(REPO);

@@ -1712,111 +1712,139 @@ function coachProgressionOverview(){
     +tr('<br><br>La regola: chiudi il limite alto del range con tecnica pulita e RIR 1-2, poi aggiungi 2,5 kg (5 kg sulle macchine pesanti o sopra i 60 kg).',
         '<br><br>The rule: close the top of the rep range with clean technique at RIR 1-2, then add 2.5 kg (5 kg on heavy machines or above 60 kg).')};
 }
+/* "Come sono andata oggi": la seduta di oggi letta dai dati di oggi, e il
+   confronto con l'ultima volta che hai fatto la stessa giornata. */
+function coachTodayReply(){
+  const d=data&&data.day?data.day:'', v=vol(data||{sets:{}});
+  const p=coachPlan()[d]||{ex:[]};
+  const attese=(p.ex||[]).reduce(function(a,e){return a+(+e[2]||0);},0);
+  if(!v.s)return {text:tr('Oggi non hai ancora segnato nessuna serie'+(d?' su '+coachDayLabel(d):'')+'. Appena ne registri una ti dico come sta andando rispetto all\u2019ultima volta.',
+    'You haven\u2019t logged a single set today'+(d?' on '+coachDayLabel(d):'')+'. As soon as you log one I\u2019ll tell you how it compares with last time.')};
+  const prec=sessionSummaries(recentRecords(120)).filter(function(x){return x.day===d&&x.key!==key;});
+  const ultima=prec.length?prec[prec.length-1]:null;
+  let txt=tr('Oggi, ','Today, ')+coachDayLabel(d)+': <b>'+v.s+(attese?'/'+attese:'')+tr(' serie',' sets')+'</b>'
+    +tr(' e ',' and ')+'<b>'+Math.round(v.v)+tr(' kg di volume',' kg of volume')+'</b>'
+    +(attese&&v.s>=attese?tr('. Giornata chiusa.','. Session complete.'):attese?tr('. Ne mancano '+(attese-v.s)+'.','. '+(attese-v.s)+' to go.'):'.');
+  if(ultima){
+    const diff=Math.round(v.v-ultima.volume), quando=ultima.date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'});
+    txt+='<br><br>'+tr('L\u2019ultima volta, il ','Last time, on ')+quando+': '+ultima.series+tr(' serie',' sets')+tr(' e ',' and ')+Math.round(ultima.volume)+' kg. '
+      +(diff>0?tr('Oggi hai fatto <b>'+diff+' kg in pi\u00f9</b>.','Today you did <b>'+diff+' kg more</b>.')
+        :diff<0?tr('Oggi <b>'+(-diff)+' kg in meno</b>: se la giornata non \u00e8 ancora finita il conto cambia.','Today <b>'+(-diff)+' kg less</b>: if the session isn\u2019t over yet this will change.')
+        :tr('Stesso volume.','Same volume.'));
+  }else{
+    txt+='<br><br>'+tr('Non ho una seduta precedente di questa giornata con cui confrontarla.','I have no earlier session of this day to compare it with.');
+  }
+  txt+='<br><br>'+tr('Il volume \u00e8 la somma di kg \u00d7 ripetizioni: serve a vedere il verso, non a dare un voto.',
+    'Volume is the sum of kg \u00d7 reps: it shows the direction of travel, not a score.');
+  return {text:txt};
+}
 async function coachHandleMessage(text){
   const s=(text||'').trim(), l=s.toLowerCase(); if(!s)return null;
   if(coachPending&&coachPending.awaiting==='confirm'){
     if(/^(si|sì|yes|confermo|ok|vai|fallo|fai|procedi)\b/.test(l)){return {text:coachApplyPending()};}
-    if(/^(no|non|annulla|lascia|ferma)\b/.test(l)){coachPending=null;return {text:'Va bene, non modifico nulla.'};}
-    return {text:'Vuoi confermare la modifica? Rispondi “sì” oppure “no”.',actions:[['Sì','coach-confirm'],['No','coach-cancel']]};
+    if(/^(no|non|annulla|lascia|ferma)\b/.test(l)){coachPending=null;return {text:tr('Va bene, non modifico nulla.','All right, I’m not changing anything.')};}
+    return {text:tr('Vuoi confermare la modifica? Rispondi “sì” oppure “no”.','Do you want to confirm the change? Answer “yes” or “no”.'),actions:[['Sì','coach-confirm'],['No','coach-cancel']]};
   }
   if(coachPending&&coachPending.awaiting==='exercise'){
     const old=miniFindExercise(s);
-    if(!old)return {text:'Non ho riconosciuto l’esercizio. Dimmi il nome, per esempio “Leg Press”, “Hip Thrust” o “Incline Curl”.'};
+    if(!old)return {text:tr('Non ho riconosciuto l’esercizio. Dimmi il nome, per esempio “Leg Press”, “Hip Thrust” o “Incline Curl”.','I didn’t recognise the exercise. Give me the name, for example “Leg Press”, “Hip Thrust” or “Incline Curl”.')};
     const directWith=s.match(/\b(?:con|per|al posto di)\s+(.+)$/i);
     coachPending.oldName=old;
     if(directWith)coachPending.newName=miniFindExercise(directWith[1]);
     const d=coachResolveDay(s);
-    if(!d){coachPending.awaiting='day';return {text:'Perfetto: '+old+'. In quale giorno vuoi modificarlo?'};}
-    const idx=coachFindInDay(d,old);if(idx<0){coachPending=null;return {text:old+' non è presente in '+coachDayLabel(d)+'.'};}
+    if(!d){coachPending.awaiting='day';return {text:'Perfetto: '+old+tr('. In quale giorno vuoi modificarlo?','. Which day do you want to change it in?')};}
+    const idx=coachFindInDay(d,old);if(idx<0){coachPending=null;return {text:old+tr(' non è presente in ',' is not in ')+coachDayLabel(d)+'.'};}
     coachPending.day=d;coachPending.index=idx;coachPending.awaiting='reason';
-    return {text:'Prima di scegliere la sostituzione: <b>perché vuoi cambiare '+old+'?</b>',actions:[['Troppo quad-dominant','reason:quad-dominant'],['Troppo difficile','reason:troppo difficile'],['Non mi piace','reason:preferenza'],['Voglio più glutei','reason:più glutei'],['Attrezzatura','reason:attrezzatura'],['Altro','reason:altro']]};
+    return {text:tr('Prima di scegliere la sostituzione: <b>perché vuoi cambiare ','Before I pick a replacement: <b>why do you want to change ')+old+'?</b>',actions:[['Troppo quad-dominant','reason:quad-dominant'],['Troppo difficile','reason:troppo difficile'],['Non mi piace','reason:preferenza'],['Voglio più glutei','reason:più glutei'],['Attrezzatura','reason:attrezzatura'],['Altro','reason:altro']]};
   }
   if(coachPending&&coachPending.awaiting==='day'){
     const day=coachResolveDay(s); if(day){coachPending.day=day;
       if(coachPending.type==='addSkill'){
         const choices=coachCandidates(day,null,'più calisthenics').filter(function(e){return e[3]==='skill'&&coachFindInDay(day,e[0])<0;});
-        const c=choices[0]; if(!c){coachPending=null;return {text:'Questo giorno ha già una buona quota di skill. Posso invece redistribuire le skill tra i 5 giorni.'};}
+        const c=choices[0]; if(!c){coachPending=null;return {text:tr('Questo giorno ha già una buona quota di skill. Posso invece redistribuire le skill tra i 5 giorni.','This day already has a fair share of skill work. I could spread the skills across the 5 days instead.')};}
         coachPending={type:'add',day:day,name:c[0],awaiting:'confirm'};return {text:coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};
       }
       coachPending.awaiting=coachPending.nextAwaiting||'confirm';
       if(coachPending.type==='replace'&&coachPending.newName){
         const idx=coachFindInDay(day,coachPending.oldName);
-        if(idx<0){const missing=coachPending.oldName;coachPending=null;return {text:missing+' non è presente in '+coachDayLabel(day)+'.'};}
+        if(idx<0){const missing=coachPending.oldName;coachPending=null;return {text:missing+tr(' non è presente in ',' is not in ')+coachDayLabel(day)+'.'};}
         coachPending.index=idx;coachPending.awaiting='confirm';
         return {text:'Ho capito: <b>'+coachPending.oldName+'</b> → <b>'+coachPending.newName+'</b> in '+coachDayLabel(day)+'. Confermi?',actions:[['Sì, sostituisci','coach-confirm'],['No','coach-cancel']]};
       }
-      if(coachPending.type==='replace'&&!coachPending.newName){return {text:'Perfetto, '+coachDayLabel(day)+'. Qual è il motivo principale per cui vuoi cambiare '+coachPending.oldName+'?',actions:[['Troppo quad-dominant','reason:quad-dominant'],['Troppo difficile','reason:troppo difficile'],['Non mi piace','reason:preferenza'],['Voglio più glutei','reason:più glutei'],['Voglio più spalle','reason:spalle'],['Altro','reason:altro']]};}
+      if(coachPending.type==='replace'&&!coachPending.newName){return {text:'Perfetto, '+coachDayLabel(day)+tr('. Qual è il motivo principale per cui vuoi cambiare ','. What’s the main reason you want to change ')+coachPending.oldName+'?',actions:[['Troppo quad-dominant','reason:quad-dominant'],['Troppo difficile','reason:troppo difficile'],['Non mi piace','reason:preferenza'],['Voglio più glutei','reason:più glutei'],['Voglio più spalle','reason:spalle'],['Altro','reason:altro']]};}
       if(coachPending.type==='remove'||coachPending.type==='add'){coachPending.awaiting='confirm';return {text:coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};}
     }
-    return {text:'Dimmi il giorno, per esempio “Day 3” o “Giorno 3”.'};
+    return {text:tr('Dimmi il giorno, per esempio “Day 3” o “Giorno 3”.','Tell me the day, for example “Day 3”.')};
   }
   if(coachPending&&coachPending.awaiting==='reason'){
     const reason=coachReason(s)||s; coachPending.reason=reason;
     const cs=coachCandidates(coachPending.day,coachPending.oldName,reason); coachPending.newName=cs[0]?cs[0][0]:null;
-    if(!coachPending.newName){coachPending=null;return {text:'Non ho trovato una sostituzione abbastanza coerente. Posso proportene una manualmente se mi dici quale attrezzatura hai.'};}
-    return {text:'Capito. Per '+coachDayLabel(coachPending.day)+', considerando il motivo “'+reason+'”, ti proporrei <b>'+coachPending.newName+'</b>. '+(cs[1]?'Alternative: '+cs[1][0]+' oppure '+cs[2][0]+'. ':'')+'Vuoi procedere con la proposta principale?',actions:[['Sì, sostituisci','coach-confirm'],['No','coach-cancel']]};
+    if(!coachPending.newName){coachPending=null;return {text:tr('Non ho trovato una sostituzione abbastanza coerente. Posso proportene una manualmente se mi dici quale attrezzatura hai.','I couldn’t find a replacement that fits well enough. Tell me what equipment you have and I’ll suggest one.')};}
+    return {text:'Capito. Per '+coachDayLabel(coachPending.day)+tr(', considerando il motivo “',', given the reason “')+reason+'”, ti proporrei <b>'+coachPending.newName+'</b>. '+(cs[1]?'Alternative: '+cs[1][0]+' oppure '+cs[2][0]+'. ':'')+tr('Vuoi procedere con la proposta principale?','Shall I go ahead with the main suggestion?'),actions:[['Sì, sostituisci','coach-confirm'],['No','coach-cancel']]};
   }
   const day=coachResolveDay(s), name=miniFindExercise(s);
   // General status / planning questions
   if(/cosa faccio oggi|allenamento di oggi|oggi cosa|workout oggi|what.*today|today.*workout/.test(l)&&data&&data.day){
-    const p=coachPlan()[data.day];return {text:'Oggi hai <b>'+coachDayLabel(data.day)+'</b>: '+(p&&p.ex?p.ex.map(function(e){return e[0];}).join(' → '):'nessun esercizio')+'. Se vuoi posso accorciarlo, modificarlo o guidarti esercizio per esercizio.'};
+    const p=coachPlan()[data.day];return {text:tr('Oggi hai <b>','Today you have <b>')+coachDayLabel(data.day)+'</b>: '+(p&&p.ex?p.ex.map(function(e){return e[0];}).join(' → '):tr('nessun esercizio','no exercises'))+tr('. Se vuoi posso accorciarlo, modificarlo o guidarti esercizio per esercizio.','. If you want I can shorten it, change it, or walk you through it exercise by exercise.')};
   }
+  // Com'e' andata oggi: la seduta di oggi, non il piano di oggi.
+  if(/come sono andata|com.è andata|come è andata|com e andata|come è andato|andata oggi|how did i do|how was (my |the )?(session|workout|today)|how am i doing today/.test(l))return coachTodayReply();
   // Consigli sui dati: funziona anche senza un esercizio in contesto.
   if(/consigli|suggeriment|raccomand|cosa miglior|come miglior|che ne pensi|come sto andando|recomm?end|advice|advise|suggestion|tips|how am i doing|what should i improve|what can i improve/.test(l))return coachAdviceReply();
   if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred|progression|heavier|add weight/.test(l)&&!name)return coachProgressionOverview();
   if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred|progression|heavier|add weight/.test(l)&&name){
-    const h=await miniLastSession(name,day);return {text:(h?coachProgressText(name,day,h)+' ': '')+(coachRepSuggestion(name,day,h)||'Per decidere il prossimo incremento mi serve almeno una sessione registrata con reps e carico.')};
+    const h=await miniLastSession(name,day);return {text:(h?coachProgressText(name,day,h)+' ': '')+(coachRepSuggestion(name,day,h)||tr('Per decidere il prossimo incremento mi serve almeno una sessione registrata con reps e carico.','To decide the next increase I need at least one logged session with reps and load.'))};
   }
   if(/ultima volta|scorsa|precedente|cosa ho fatto|che peso|last time|last session|what did i do/.test(l)&&name){const h=await miniLastSession(name,day);return {text:coachProgressText(name,day,h)};}
-  if(/video|mostra.*video|vedere.*video|show.*video/.test(l)&&name){const vd=VID[name],tech=EXDB[name];return {text:'Ecco il riferimento video per <b>'+name+'</b>. Se vuoi, posso anche riassumerti i 3 cue più importanti prima della serie.',video:vd?vd.u:'https://www.youtube.com/results?search_query='+encodeURIComponent(tech?tech.q:name),videoTitle:vd?vd.t:'Cerca video: '+name};}
-  if(/error|sbagli|evitare|mistake|avoid/.test(l)&&name){const tech=EXDB[name];return {text:'Per <b>'+name+'</b>, i punti da evitare sono soprattutto: '+(tech&&tech.c?tech.c.slice(0,4).join(' · '):'slancio, perdita di controllo, compensi lombari e range forzato')+'.'};}
-  if(/come si fa|come faccio|tecnica|esecuzione|forma|how do i|technique|form|how to/.test(l)&&name){const tech=EXDB[name];return {text:'Per <b>'+name+'</b>: '+(tech&&tech.c?tech.c.slice(0,4).join(' · '):'mantieni controllo, postura stabile e movimento senza slancio')+'.'};}
+  if(/video|mostra.*video|vedere.*video|show.*video/.test(l)&&name){const vd=VID[name],tech=EXDB[name];return {text:tr('Ecco il riferimento video per <b>','Here’s the video reference for <b>')+name+tr('</b>. Se vuoi, posso anche riassumerti i 3 cue più importanti prima della serie.','</b>. If you want, I can also give you the 3 key cues before the set.'),video:vd?vd.u:'https://www.youtube.com/results?search_query='+encodeURIComponent(tech?tech.q:name),videoTitle:vd?vd.t:'Cerca video: '+name};}
+  if(/error|sbagli|evitare|mistake|avoid/.test(l)&&name){const tech=EXDB[name];return {text:'Per <b>'+name+tr('</b>, i punti da evitare sono soprattutto: ','</b>, the things to avoid are mainly: ')+(tech&&tech.c?tech.c.slice(0,4).join(' · '):'slancio, perdita di controllo, compensi lombari e range forzato')+'.'};}
+  if(/come si fa|come faccio|tecnica|esecuzione|forma|how do i|technique|form|how to/.test(l)&&name){const tech=EXDB[name];return {text:'Per <b>'+name+'</b>: '+(tech&&tech.c?tech.c.slice(0,4).join(' · '):tr('mantieni controllo, postura stabile e movimento senza slancio','stay in control, keep a steady posture and no swinging'))+'.'};}
   // Replace: supports natural requests such as “cambia questo con X”, “sostituisci X con Y”
   if(/cambia|sostituisci|rimpiazza|replace|scambia/.test(l)){
     const d=day, old=name; let newName=null;
     const withMatch=l.match(/\b(?:con|per|al posto di)\s+(.+)$/);
     if(withMatch)newName=miniFindExercise(withMatch[1]);
-    if(!old){coachPending={type:'replace',awaiting:'exercise',day:d};return {text:'Certo. Dimmi quale esercizio vuoi cambiare. Se sei nella schermata dell’esercizio puoi scrivere semplicemente “cambia questo”.'};}
-    if(!d){coachPending={type:'replace',awaiting:'day',oldName:old,newName:newName};return {text:'Ho individuato '+old+'. In quale giorno compare?'};}
-    const idx=coachFindInDay(d,old); if(idx<0)return {text:old+' non compare in '+coachDayLabel(d)+'. Posso cercarlo negli altri giorni se mi dici “cercalo nel piano”.'};
+    if(!old){coachPending={type:'replace',awaiting:'exercise',day:d};return {text:tr('Certo. Dimmi quale esercizio vuoi cambiare. Se sei nella schermata dell’esercizio puoi scrivere semplicemente “cambia questo”.','Sure. Tell me which exercise you want to change. If you’re on the exercise screen you can just write “change this”.')};}
+    if(!d){coachPending={type:'replace',awaiting:'day',oldName:old,newName:newName};return {text:'Ho individuato '+old+tr('. In quale giorno compare?','. Which day is it in?')};}
+    const idx=coachFindInDay(d,old); if(idx<0)return {text:old+tr(' non compare in ',' is not in ')+coachDayLabel(d)+tr('. Posso cercarlo negli altri giorni se mi dici “cercalo nel piano”.','. I can look for it in the other days if you say “find it in the plan”.')};
     if(newName){
       const newIdx=coachFindInDay(d,newName);
-      if(newIdx===idx)return {text:'È già lo stesso esercizio. Dimmi quale alternativa vuoi usare.'};
+      if(newIdx===idx)return {text:tr('È già lo stesso esercizio. Dimmi quale alternativa vuoi usare.','That’s the same exercise. Tell me which alternative you want.')};
       coachPending={type:'replace',day:d,index:idx,oldName:old,newName:newName,awaiting:'confirm'};
-      return {text:'Ho capito: <b>'+old+'</b> → <b>'+newName+'</b> in '+coachDayLabel(d)+'. Non applico nulla finché non confermi.',actions:[['Sì, sostituisci','coach-confirm'],['No','coach-cancel']]};
+      return {text:'Ho capito: <b>'+old+'</b> → <b>'+newName+'</b> in '+coachDayLabel(d)+tr('. Non applico nulla finché non confermi.','. I won’t apply anything until you confirm.'),actions:[['Sì, sostituisci','coach-confirm'],['No','coach-cancel']]};
     }
     coachPending={type:'replace',day:d,index:idx,oldName:old,awaiting:'reason'};
-    return {text:'Va bene. Prima scelgo un’alternativa coerente con il tuo obiettivo. Perché vuoi cambiare '+old+'?',actions:[['Troppo quad-dominant','reason:quad-dominant'],['Troppo difficile','reason:troppo difficile'],['Non mi piace','reason:preferenza'],['Voglio più glutei','reason:più glutei'],['Voglio più spalle','reason:spalle'],['Voglio più schiena','reason:schiena'],['Attrezzatura','reason:attrezzatura'],['Altro','reason:altro']]};
+    return {text:tr('Va bene. Prima scelgo un’alternativa coerente con il tuo obiettivo. Perché vuoi cambiare ','All right. First I’ll pick an alternative that fits your goal. Why do you want to change ')+old+'?',actions:[['Troppo quad-dominant','reason:quad-dominant'],['Troppo difficile','reason:troppo difficile'],['Non mi piace','reason:preferenza'],['Voglio più glutei','reason:più glutei'],['Voglio più spalle','reason:spalle'],['Voglio più schiena','reason:schiena'],['Attrezzatura','reason:attrezzatura'],['Altro','reason:altro']]};
   }
   // Remove
   if(/togli|rimuovi|elimina|remove|drop this|take out/.test(l)){
-    if(!name)return {text:'Certo. Quale esercizio vuoi togliere? Puoi anche dire “togli questo”.'};
-    if(!day){coachPending={type:'remove',oldName:name,awaiting:'day'};return {text:'In quale giorno vuoi togliere '+name+'?'};}
-    const idx=coachFindInDay(day,name);if(idx<0)return {text:name+' non è presente in '+coachDayLabel(day)+'.'};
+    if(!name)return {text:tr('Certo. Quale esercizio vuoi togliere? Puoi anche dire “togli questo”.','Sure. Which exercise do you want to remove? You can also say “remove this”.')};
+    if(!day){coachPending={type:'remove',oldName:name,awaiting:'day'};return {text:tr('In quale giorno vuoi togliere ','Which day do you want to remove ')+name+'?'};}
+    const idx=coachFindInDay(day,name);if(idx<0)return {text:name+tr(' non è presente in ',' is not in ')+coachDayLabel(day)+'.'};
     coachPending={type:'remove',day:day,index:idx,name:name,awaiting:'confirm'};return {text:coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};
   }
   // Add explicit exercise
   if(/aggiungi|add/.test(l)){
     const addName=name;
-    if(!addName)return {text:'Cosa vuoi aggiungere? Puoi indicarmi l’esercizio oppure chiedermi “aggiungi più calisthenics”.'};
-    if(!day){coachPending={type:'add',name:addName,awaiting:'day'};return {text:'In quale giorno vuoi aggiungere '+addName+'?'};}
-    if(coachFindInDay(day,addName)>-1)return {text:addName+' è già presente in '+coachDayLabel(day)+'.'};
+    if(!addName)return {text:tr('Cosa vuoi aggiungere? Puoi indicarmi l’esercizio oppure chiedermi “aggiungi più calisthenics”.','What do you want to add? Name the exercise, or ask me for “more calisthenics”.')};
+    if(!day){coachPending={type:'add',name:addName,awaiting:'day'};return {text:tr('In quale giorno vuoi aggiungere ','Which day do you want to add ')+addName+'?'};}
+    if(coachFindInDay(day,addName)>-1)return {text:addName+tr(' è già presente in ',' is already in ')+coachDayLabel(day)+'.'};
     coachPending={type:'add',day:day,name:addName,awaiting:'confirm'};return {text:coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};
   }
   // More calisthenics
   if(/più calisthen|piu calisthen|più skill|piu skill|più corpo libero|piu corpo libero|more calisthen|more skill/.test(l)){
-    const d=day;if(!d){coachPending={type:'addSkill',awaiting:'day'};return {text:'Volentieri. Vuoi più calisthenics in quale giorno?'};}
+    const d=day;if(!d){coachPending={type:'addSkill',awaiting:'day'};return {text:tr('Volentieri. Vuoi più calisthenics in quale giorno?','Happy to. Which day do you want more calisthenics in?')};}
     const choices=coachCandidates(d,null,'più calisthenics').filter(function(e){return e[3]==='skill';});
-    const c=choices[0];if(!c)return {text:'Questo giorno ha già una buona quota di skill. Posso invece redistribuire le skill tra i 5 giorni.'};
-    coachPending={type:'add',day:d,name:c[0],awaiting:'confirm'};return {text:'Per '+coachDayLabel(d)+' proporrei <b>'+c[0]+'</b> come skill aggiuntiva. Vuoi inserirla?',actions:[['Sì, aggiungi','coach-confirm'],['No','coach-cancel']]};
+    const c=choices[0];if(!c)return {text:tr('Questo giorno ha già una buona quota di skill. Posso invece redistribuire le skill tra i 5 giorni.','This day already has a fair share of skill work. I could spread the skills across the 5 days instead.')};
+    coachPending={type:'add',day:d,name:c[0],awaiting:'confirm'};return {text:'Per '+coachDayLabel(d)+' proporrei <b>'+c[0]+tr('</b> come skill aggiuntiva. Vuoi inserirla?','</b> as an extra skill. Shall I add it?'),actions:[['Sì, aggiungi','coach-confirm'],['No','coach-cancel']]};
   }
   // Duration
   if(/\b(30|40|45|60|75|90)\s*(min|minuti)?\b/.test(l)||/più corto|piu corto|meno tempo|accorcia|riduci.*durata/.test(l)){
     const m=l.match(/\b(30|40|45|60|75|90)\s*(?:min|minuti)?\b/);const mins=m?+m[1]:null;
-    const d=day||data&&data.day;if(!d)return {text:'Posso ottimizzare la durata. Per quale giorno?'};
+    const d=day||data&&data.day;if(!d)return {text:tr('Posso ottimizzare la durata. Per quale giorno?','I can trim the length. For which day?')};
     const p=coachPlan()[d];const accessories=(p&&p.ex||[]).filter(function(e){return e[3]!=='skill';});
     const remove=accessories[accessories.length-1];
-    if(remove){coachPending={type:'remove',day:d,index:p.ex.findIndex(function(e){return e===remove;}),name:remove[0],awaiting:'confirm'};return {text:'Per stare più vicino a '+(mins?mins+' minuti':'una sessione più corta')+', la prima cosa che toglierei è <b>'+remove[0]+'</b>, lasciando intatte le skill e i fondamentali. '+coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};}
+    if(remove){coachPending={type:'remove',day:d,index:p.ex.findIndex(function(e){return e===remove;}),name:remove[0],awaiting:'confirm'};return {text:tr('Per stare più vicino a ','To get closer to ')+(mins?mins+' minuti':tr('una sessione più corta','a shorter session'))+tr(', la prima cosa che toglierei è <b>',', the first thing I’d drop is <b>')+remove[0]+'</b>, lasciando intatte le skill e i fondamentali. '+coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};}
   }
   if(/cosa.*piano|mostra.*piano|che esercizi|programma|what.*plan|which exercises/.test(l)&&day){const p=coachPlan()[day]||{ex:[]};return {text:'Il '+coachDayLabel(day)+' contiene: '+p.ex.map(function(e){return e[0]+' ('+e[1]+')';}).join(' · ')+'.'};}
   if(!name&&/ciao|help|aiut|cosa puoi|hi\b|hello|what can you/.test(l))return {text:coachHelp()};
@@ -3989,6 +4017,21 @@ function APP_LOCALE(){return getAppLanguage()==='en'?'en-GB':'it-IT';}
 function tr(it,en){return getAppLanguage()==='en'?en:it;}
 function setAppLanguage(lang){localStorage.setItem('fede:lang',lang==='en'?'en':'it');render();}
 const APP_EN={
+ 'Tapis roulant inclinato':'Incline treadmill',
+ '20-30 min · inclinazione 8-12% · passo in cui riesci a parlare':'20-30 min · 8-12% incline · a pace where you can still talk',
+ 'Sì, sostituisci':'Yes, swap it',
+ 'Sì, aggiungi':'Yes, add it',
+ 'Conferma':'Confirm',
+ 'Annulla':'Cancel',
+ 'Troppo quad-dominant':'Too quad-dominant',
+ 'Troppo difficile':'Too hard',
+ 'Non mi piace':'I don’t like it',
+ 'Attrezzatura':'Equipment',
+ 'Altro':'Other',
+ 'Voglio più glutei':'I want more glutes',
+ 'Voglio più schiena':'I want more back',
+ 'Voglio più spalle':'I want more shoulders',
+ 'Ho avuto un problema mentre elaboravo la richiesta. Non ho modificato il tuo piano.':'Something went wrong while I was working on that. I haven’t changed your plan.',
  'Contesto schermata + piano + storico salvato. Le modifiche richiedono conferma.':'Screen context + plan + saved history. Changes need your confirmation.',
  'Es. cambia questo, lo sento troppo sui quadricipiti…':'E.g. change this, I feel it too much in my quads…',
  'Dimmi cosa vuoi cambiare…':'Tell me what you want to change…',
@@ -5359,7 +5402,7 @@ function bind(){
     render();};
   if(mcClose)mcClose.onclick=function(){miniCoachOpen=false;render();};
   document.querySelectorAll('[data-mini]').forEach(function(b){b.onclick=function(){miniCoachOpen=true;miniCoachSend(b.dataset.mini);};});
-  document.querySelectorAll('[data-coach-action]').forEach(function(b){b.onclick=function(){miniCoachOpen=true; const a=b.dataset.coachAction; if(a==='coach-confirm'){miniCoachMessages.push({r:'user',text:'Sì, confermo'}); try{miniCoachMessages.push({r:'bot',text:coachApplyPending()});}catch(err){console.error(err);coachPending=null;miniCoachMessages.push({r:'bot',text:'Ho avuto un problema durante la modifica. Non ho cancellato lo storico. Apri Profilo → Diagnostica e riprova.'});} render(); return;} if(a==='coach-cancel'){coachPending=null;miniCoachMessages.push({r:'user',text:'No'});miniCoachMessages.push({r:'bot',text:'Va bene, non modifico nulla.'});render();return;} if(a.indexOf('reason:')===0){miniCoachSend(a.slice(7));}};});
+  document.querySelectorAll('[data-coach-action]').forEach(function(b){b.onclick=function(){miniCoachOpen=true; const a=b.dataset.coachAction; if(a==='coach-confirm'){miniCoachMessages.push({r:'user',text:'Sì, confermo'}); try{miniCoachMessages.push({r:'bot',text:coachApplyPending()});}catch(err){console.error(err);coachPending=null;miniCoachMessages.push({r:'bot',text:'Ho avuto un problema durante la modifica. Non ho cancellato lo storico. Apri Profilo → Diagnostica e riprova.'});} render(); return;} if(a==='coach-cancel'){coachPending=null;miniCoachMessages.push({r:'user',text:'No'});miniCoachMessages.push({r:'bot',text:tr('Va bene, non modifico nulla.','All right, I’m not changing anything.')});render();return;} if(a.indexOf('reason:')===0){miniCoachSend(a.slice(7));}};});
   const mcs=document.getElementById('minicoachsend'), mci=document.getElementById('minicoachtext');
   if(mcs&&mci){mcs.onclick=function(){miniCoachSend(mci.value);};mci.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();miniCoachSend(mci.value);}};}
 
