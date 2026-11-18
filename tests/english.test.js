@@ -7,7 +7,7 @@ const J = JSON.stringify;
 
 // Parole che in inglese non esistono: se restano, la schermata non e' tradotta.
 // Niente "per", "come", "la": sono inglesi a loro volta.
-const IT = /(?<![\p{L}\-])(il|lo|gli|dei|delle|degli|della|dello|nel|nella|nelle|dal|dalla|col|un|uno|una|che|non|sono|sei|hai|tuo|tua|tuoi|tue|questo|questa|questi|queste|quando|dove|oggi|ieri|domani|giorno|giorni|giornata|settimana|settimane|serie|seduta|sedute|ripetizioni|peso|esercizio|esercizi|allenamento|pasto|pasti|piano|scheda|salva|aggiungi|togli|chiudi|apri|vedi|nessun|nessuna|ancora|senza|anche|tutti|tutte|ogni|oppure|quindi|mentre|prima|dopo|sopra|sotto|verdura|verdure|pollo|riso|uova|uovo|pane|olio|mela|cena|pranzo|colazione|merenda)(?![\p{L}\-])|[àèéìòù]/iu;
+const IT = /(?<![\p{L}\-])(il|lo|gli|dei|delle|degli|della|dello|nel|nella|nelle|dal|dalla|col|un|uno|una|che|non|sono|sei|hai|tuo|tua|tuoi|questo|questa|questi|queste|quando|dove|oggi|ieri|domani|giorno|giorni|giornata|settimana|settimane|serie|seduta|sedute|ripetizioni|peso|esercizio|esercizi|allenamento|pasto|pasti|piano|scheda|salva|aggiungi|togli|chiudi|apri|vedi|nessun|nessuna|ancora|senza|anche|tutti|tutte|ogni|oppure|quindi|mentre|prima|dopo|sopra|sotto|verdura|verdure|pollo|riso|uova|uovo|pane|olio|mela|cena|pranzo|colazione|merenda)(?![\p{L}\-])|[àèéìòù]/iu;
 
 const strip = html => String(html)
   .replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')
