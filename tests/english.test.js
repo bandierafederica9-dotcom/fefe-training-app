@@ -61,11 +61,9 @@ const strip = html => String(html)
   SCHERMATE.forEach(function ([nome, code]) {
     const h = render('en');
     let html; try { html = h.run(code); } catch (e) { T(nome + ': la schermata si disegna', false, String(e).slice(0, 90)); return; }
-    // stessa sostituzione che applyLanguage fa sui nodi di testo
-    const keys = JSON.parse(h.run('JSON.stringify(APP_EN_KEYS())'));
-    const dict = JSON.parse(h.run('JSON.stringify(APP_EN)'));
+    // la traduzione vera, non una sua imitazione: la stessa i18nText dell'app
     const righe = strip(html).split('\n').map(x => x.trim()).filter(Boolean)
-      .map(x => { keys.forEach(k => { if (x.indexOf(k) >= 0) x = x.split(k).join(dict[k]); }); return x; })
+      .map(x => h.run('i18nText(' + J(x) + ')'))
       .filter(x => IT.test(x));
     if (righe.length) residui[nome] = righe.slice(0, 4);
     T(nome + ': tutto in inglese', righe.length === 0, righe.slice(0, 2).join(' | ').slice(0, 150));
@@ -111,6 +109,26 @@ const strip = html => String(html)
       const k = JSON.parse(h.run('JSON.stringify(APP_EN_KEYS())'));
       return k.every((x, i) => i === 0 || k[i - 1].length >= x.length);
     })());
+  }
+
+  // ---------- 5) Una passata sola: il tradotto non viene ritradotto ----------
+  {
+    const h = render('en');
+    T('"Progressione" non diventa "Progresson"', h.run('i18nText("Progressione")') === 'Progression', h.run('i18nText("Progressione")'));
+    T('la chiave piu\' lunga vince su quella corta che le sta dentro',
+      h.run('i18nText("Progressi")') === 'Progress' && h.run('i18nText("Progressione")') === 'Progression');
+    T('tradurre due volte non cambia il risultato', (() => {
+      const uno = h.run('i18nText("Tonno alla piastra con peperonata e chips di patata")');
+      return h.run('i18nText(' + J(uno) + ')') === uno;
+    })());
+    T('un testo gia\' inglese resta intatto', h.run('i18nText("Pull-up and Lat Pulldown")') === 'Pull-up and Lat Pulldown');
+    T('una chiave non morde dentro una parola piu\' lunga',
+      h.run('i18nText("Progression")') === 'Progression' && h.run('i18nText("Progressi")') === 'Progress',
+      h.run('i18nText("Progression")'));
+    T('ne\' attaccata a sinistra', h.run('i18nText("xxUova")') === 'xxUova', h.run('i18nText("xxUova")'));
+    T('ma una parola intera viene tradotta anche fra la punteggiatura',
+      h.run('i18nText("(Uova) · Pollo, Patata.")') === '(Eggs) \u00b7 Chicken, Potato.', h.run('i18nText("(Uova) · Pollo, Patata.")'));
+    T('il testo vuoto non rompe niente', h.run('i18nText("")') === '' && h.run('i18nText(null)') === '');
   }
 
   if (Object.keys(residui).length) console.log('\nresidui:\n' + J(residui, null, 1));

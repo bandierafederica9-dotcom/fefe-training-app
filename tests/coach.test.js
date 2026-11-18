@@ -123,10 +123,40 @@ const OTTO = ['2026-01-02', '2026-01-05', '2026-01-07', '2026-01-09', '2026-01-1
     T('e lo dice a schermo', /non cambio niente da solo/.test(h.run('coachNoticesHTML()')));
   }
 
-  // ---------- 8) Niente chiamate esterne ----------
+  // ---------- 8) Risponde a chi chiede un consiglio ----------
+  {
+    const h = H(REPO);
+    seed(h, OTTO.map(d => [d, 40, 8]));
+    const consiglio = h.run('coachAdviceReply().text');
+    T('a "che consigli mi dai" risponde coi suoi numeri', /kg/.test(consiglio) && /42,5|42\.5/.test(consiglio), consiglio.replace(/<[^>]*>/g, ' ').slice(0, 90));
+    T('e dice da dove viene', /tre sedute/.test(consiglio));
+    T('e ripete che non cambia niente da solo', /non cambio niente da solo/.test(consiglio));
+
+    const prog = h.run('coachProgressionOverview().text');
+    T('la progressione risponde anche senza un esercizio in contesto', /kg/.test(prog) && /Lat Pulldown/.test(prog));
+    T('e spiega la regola, non solo il numero', /limite alto del range/.test(prog));
+
+    const r1 = await h.run('coachHandleMessage("Any recomendation?")');
+    T('la domanda in inglese arriva alla risposta giusta', /kg/.test(r1.text), r1.text.replace(/<[^>]*>/g, ' ').slice(0, 80));
+    const r2 = await h.run('coachHandleMessage("Progressione")');
+    T('"Progressione" da sola non cade piu\' sull\'aiuto generico', /kg/.test(r2.text) && !/Posso aiutarti con/.test(r2.text), r2.text.replace(/<[^>]*>/g, ' ').slice(0, 80));
+    const r3 = await h.run('coachHandleMessage("che consigli mi dai")');
+    T('e lo stesso in italiano', /kg/.test(r3.text));
+  }
+
+  // ---------- 9) Sotto soglia dice cosa manca, non numeri inventati ----------
+  {
+    const h = H(REPO);
+    seed(h, OTTO.slice(0, 4).map(d => [d, 40, 8]));
+    const c = h.run('coachAdviceReply().text');
+    T('con pochi dati non inventa consigli', !/kg \u2192/.test(c) && /4/.test(c), c.slice(0, 90));
+    T('e dice quante sedute mancano', /ne mancano 4/.test(c), c.slice(0, 90));
+  }
+
+  // ---------- 10) Niente chiamate esterne ----------
   {
     const src = require('fs').readFileSync(REPO + '/index.html', 'utf8');
-    const i = src.indexOf('COACH_MIN_SESSIONS'), j = src.indexOf('function coachHTML()');
+    const i = src.indexOf('const COACH_MIN_SESSIONS'), j = src.indexOf('function coachHTML()');
     const blocco = src.slice(i, j);
     T('il coach non fa nessuna chiamata di rete', !/fetch\(|XMLHttpRequest|api\.|https?:\/\//.test(blocco));
   }

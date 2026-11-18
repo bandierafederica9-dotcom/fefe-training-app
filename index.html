@@ -1662,9 +1662,56 @@ function coachRepSuggestion(name,day,h){
   return null;
 }
 function coachIntro(){
-  if(!miniCoachMessages.length)miniCoachMessages=[{r:'bot',text:'Ciao 👋 Sono Fede Coach. Posso aiutarti con tecnica, storico, progressione e modifiche al programma. Se vuoi cambiare qualcosa, prima capisco il contesto e poi ti propongo una modifica da confermare.'}];
+  if(!miniCoachMessages.length)miniCoachMessages=[{r:'bot',text:tr('Ciao 👋 Sono Fede Coach. Posso aiutarti con tecnica, storico, progressione e modifiche al programma. Se vuoi cambiare qualcosa, prima capisco il contesto e poi ti propongo una modifica da confermare.','Hi 👋 I’m Fede Coach. I can help with technique, history, progression and changes to your programme. If you want to change something, I look at the context first and then propose a change for you to confirm.')}];
 }
-function coachHelp(){return 'Posso aiutarti con: <b>tecnica</b>, <b>video</b>, <b>ultima sessione</b>, <b>progressione</b>, oppure modificare il piano con “sostituisci”, “togli”, “aggiungi”, “più calisthenics” o “fammi stare nei 45 minuti”.';}
+function coachHelp(){return tr('Posso aiutarti con: <b>tecnica</b>, <b>video</b>, <b>ultima sessione</b>, <b>progressione</b>, <b>consigli sui tuoi dati</b>, oppure modificare il piano con “sostituisci”, “togli”, “aggiungi”, “più calisthenics” o “fammi stare nei 45 minuti”.','I can help with: <b>technique</b>, <b>video</b>, <b>last session</b>, <b>progression</b>, <b>advice from your own data</b>, or change the plan with “swap”, “remove”, “add”, “more calisthenics” or “keep me under 45 minutes”.');}
+/* Il coach ha gia' le regole e i dati: questa e' la stessa roba degli avvisi,
+   detta a parole quando gliela chiedi in chat. Nessuna chiamata, nessun modello. */
+function coachNextLoads(limit){
+  const sess=coachValidSessions(recentRecords(120)); const out=[];
+  if(sess.length<COACH_MIN_SESSIONS)return out;
+  const visti={};
+  sess.slice().reverse().forEach(function(x){Object.keys(x.sets).forEach(function(id){
+    const pz=String(id).split('|'); if(pz.length>=3)visti[pz[1]]=1;});});
+  Object.keys(visti).forEach(function(exId){
+    const runs=coachExerciseRuns(sess,exId); if(runs.length<3)return;
+    const tre=runs.slice(0,3), nome=exNameFromId(exId)||exId;
+    if(isTimedExercise([nome,''])||exLoad([nome,''])==='bodyweight')return;
+    if(!tre.every(function(x){return x.topKg===tre[0].topKg;})||!tre[0].topKg)return;
+    out.push({nome:nome,kg:tre[0].topKg,next:tre[0].topKg+coachLoadStep(nome,tre[0].topKg)});
+  });
+  return out.sort(function(a,b){return b.kg-a.kg;}).slice(0,limit||3);
+}
+function coachKg(v){return getAppLanguage()==='en'?String(v):String(v).replace('.',',');}
+function coachAdviceReply(){
+  const n=coachNotices();
+  if(!n.ready)return {text:tr('Per darti consigli sui tuoi numeri mi servono '+COACH_MIN_SESSIONS+' sedute pulite: ne ho '+n.valide+', ne mancano '+n.mancano+'. Intanto posso aiutarti con tecnica, video ed esecuzione: dimmi un esercizio.',
+    'To advise you on your own numbers I need '+COACH_MIN_SESSIONS+' clean sessions: I have '+n.valide+', '+n.mancano+' to go. In the meantime I can help with technique, video and form: name an exercise.')};
+  const carichi=coachNextLoads(3), parti=[];
+  if(carichi.length)parti.push(tr('<b>Carichi da alzare.</b> ','<b>Loads to move up.</b> ')
+    +carichi.map(function(x){return esc(x.nome)+': '+coachKg(x.kg)+' kg \u2192 <b>'+coachKg(x.next)+' kg</b>';}).join(' \u00b7 ')
+    +tr('. Sono fermi da tre sedute allo stesso peso.','. They have sat at the same weight for three sessions.'));
+  const altri=n.items.filter(function(x){return x.kind!=='stallo';});
+  if(altri.length)parti.push(altri.map(function(x){return '<b>'+esc(x.text)+'</b> '+esc(x.why);}).join('<br>'));
+  if(!parti.length)parti.push(tr('Sui tuoi dati non vedo niente da correggere: nessuno stallo, nessun giorno saltato, nessuna asimmetria sopra il 5%. Continua cosi\u2019 e aumenta quando chiudi il limite alto del range.',
+    'I see nothing to fix in your data: no plateau, no missed day, no imbalance above 5%. Keep going and add load when you close the top of the rep range.'));
+  parti.push(tr('Sono osservazioni sui tuoi dati: non cambio niente da solo.','These are observations on your data: I change nothing by myself.'));
+  return {text:parti.join('<br><br>')};
+}
+function coachProgressionOverview(){
+  const carichi=coachNextLoads(5);
+  if(!carichi.length){
+    const n=coachNotices();
+    if(!n.ready)return {text:tr('Per la progressione mi servono '+COACH_MIN_SESSIONS+' sedute pulite: ne ho '+n.valide+'. Dimmi un esercizio e intanto ti spiego come progredire su quello.',
+      'For progression I need '+COACH_MIN_SESSIONS+' clean sessions: I have '+n.valide+'. Name an exercise and I\u2019ll explain how to progress on it.')};
+    return {text:tr('Nessun esercizio e\u2019 fermo allo stesso carico per tre sedute: stai gia\u2019 progredendo. La regola che uso: chiudi il limite alto del range con tecnica pulita e RIR 1-2, poi aggiungi 2,5 kg (5 kg sulle macchine pesanti o sopra i 60 kg).',
+      'No exercise has sat at the same load for three sessions: you are progressing. The rule I use: close the top of the rep range with clean technique at RIR 1-2, then add 2.5 kg (5 kg on heavy machines or above 60 kg).')};
+  }
+  return {text:tr('<b>Il prossimo passo, esercizio per esercizio:</b><br>','<b>Your next step, exercise by exercise:</b><br>')
+    +carichi.map(function(x){return esc(x.nome)+': '+coachKg(x.kg)+' kg \u2192 <b>'+coachKg(x.next)+' kg</b>';}).join('<br>')
+    +tr('<br><br>La regola: chiudi il limite alto del range con tecnica pulita e RIR 1-2, poi aggiungi 2,5 kg (5 kg sulle macchine pesanti o sopra i 60 kg).',
+        '<br><br>The rule: close the top of the rep range with clean technique at RIR 1-2, then add 2.5 kg (5 kg on heavy machines or above 60 kg).')};
+}
 async function coachHandleMessage(text){
   const s=(text||'').trim(), l=s.toLowerCase(); if(!s)return null;
   if(coachPending&&coachPending.awaiting==='confirm'){
@@ -1711,16 +1758,19 @@ async function coachHandleMessage(text){
   }
   const day=coachResolveDay(s), name=miniFindExercise(s);
   // General status / planning questions
-  if(/cosa faccio oggi|allenamento di oggi|oggi cosa|workout oggi/.test(l)&&data&&data.day){
+  if(/cosa faccio oggi|allenamento di oggi|oggi cosa|workout oggi|what.*today|today.*workout/.test(l)&&data&&data.day){
     const p=coachPlan()[data.day];return {text:'Oggi hai <b>'+coachDayLabel(data.day)+'</b>: '+(p&&p.ex?p.ex.map(function(e){return e[0];}).join(' → '):'nessun esercizio')+'. Se vuoi posso accorciarlo, modificarlo o guidarti esercizio per esercizio.'};
   }
-  if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred/.test(l)&&name){
+  // Consigli sui dati: funziona anche senza un esercizio in contesto.
+  if(/consigli|suggeriment|raccomand|cosa miglior|come miglior|che ne pensi|come sto andando|recomm?end|advice|advise|suggestion|tips|how am i doing|what should i improve|what can i improve/.test(l))return coachAdviceReply();
+  if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred|progression|heavier|add weight/.test(l)&&!name)return coachProgressionOverview();
+  if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred|progression|heavier|add weight/.test(l)&&name){
     const h=await miniLastSession(name,day);return {text:(h?coachProgressText(name,day,h)+' ': '')+(coachRepSuggestion(name,day,h)||'Per decidere il prossimo incremento mi serve almeno una sessione registrata con reps e carico.')};
   }
-  if(/ultima volta|scorsa|precedente|cosa ho fatto|che peso/.test(l)&&name){const h=await miniLastSession(name,day);return {text:coachProgressText(name,day,h)};}
-  if(/video|mostra.*video|vedere.*video/.test(l)&&name){const vd=VID[name],tech=EXDB[name];return {text:'Ecco il riferimento video per <b>'+name+'</b>. Se vuoi, posso anche riassumerti i 3 cue più importanti prima della serie.',video:vd?vd.u:'https://www.youtube.com/results?search_query='+encodeURIComponent(tech?tech.q:name),videoTitle:vd?vd.t:'Cerca video: '+name};}
-  if(/error|sbagli|evitare/.test(l)&&name){const tech=EXDB[name];return {text:'Per <b>'+name+'</b>, i punti da evitare sono soprattutto: '+(tech&&tech.c?tech.c.slice(0,4).join(' · '):'slancio, perdita di controllo, compensi lombari e range forzato')+'.'};}
-  if(/come si fa|come faccio|tecnica|esecuzione|forma/.test(l)&&name){const tech=EXDB[name];return {text:'Per <b>'+name+'</b>: '+(tech&&tech.c?tech.c.slice(0,4).join(' · '):'mantieni controllo, postura stabile e movimento senza slancio')+'.'};}
+  if(/ultima volta|scorsa|precedente|cosa ho fatto|che peso|last time|last session|what did i do/.test(l)&&name){const h=await miniLastSession(name,day);return {text:coachProgressText(name,day,h)};}
+  if(/video|mostra.*video|vedere.*video|show.*video/.test(l)&&name){const vd=VID[name],tech=EXDB[name];return {text:'Ecco il riferimento video per <b>'+name+'</b>. Se vuoi, posso anche riassumerti i 3 cue più importanti prima della serie.',video:vd?vd.u:'https://www.youtube.com/results?search_query='+encodeURIComponent(tech?tech.q:name),videoTitle:vd?vd.t:'Cerca video: '+name};}
+  if(/error|sbagli|evitare|mistake|avoid/.test(l)&&name){const tech=EXDB[name];return {text:'Per <b>'+name+'</b>, i punti da evitare sono soprattutto: '+(tech&&tech.c?tech.c.slice(0,4).join(' · '):'slancio, perdita di controllo, compensi lombari e range forzato')+'.'};}
+  if(/come si fa|come faccio|tecnica|esecuzione|forma|how do i|technique|form|how to/.test(l)&&name){const tech=EXDB[name];return {text:'Per <b>'+name+'</b>: '+(tech&&tech.c?tech.c.slice(0,4).join(' · '):'mantieni controllo, postura stabile e movimento senza slancio')+'.'};}
   // Replace: supports natural requests such as “cambia questo con X”, “sostituisci X con Y”
   if(/cambia|sostituisci|rimpiazza|replace|scambia/.test(l)){
     const d=day, old=name; let newName=null;
@@ -1739,7 +1789,7 @@ async function coachHandleMessage(text){
     return {text:'Va bene. Prima scelgo un’alternativa coerente con il tuo obiettivo. Perché vuoi cambiare '+old+'?',actions:[['Troppo quad-dominant','reason:quad-dominant'],['Troppo difficile','reason:troppo difficile'],['Non mi piace','reason:preferenza'],['Voglio più glutei','reason:più glutei'],['Voglio più spalle','reason:spalle'],['Voglio più schiena','reason:schiena'],['Attrezzatura','reason:attrezzatura'],['Altro','reason:altro']]};
   }
   // Remove
-  if(/togli|rimuovi|elimina|remove/.test(l)){
+  if(/togli|rimuovi|elimina|remove|drop this|take out/.test(l)){
     if(!name)return {text:'Certo. Quale esercizio vuoi togliere? Puoi anche dire “togli questo”.'};
     if(!day){coachPending={type:'remove',oldName:name,awaiting:'day'};return {text:'In quale giorno vuoi togliere '+name+'?'};}
     const idx=coachFindInDay(day,name);if(idx<0)return {text:name+' non è presente in '+coachDayLabel(day)+'.'};
@@ -1754,7 +1804,7 @@ async function coachHandleMessage(text){
     coachPending={type:'add',day:day,name:addName,awaiting:'confirm'};return {text:coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};
   }
   // More calisthenics
-  if(/più calisthen|piu calisthen|più skill|piu skill|più corpo libero|piu corpo libero/.test(l)){
+  if(/più calisthen|piu calisthen|più skill|piu skill|più corpo libero|piu corpo libero|more calisthen|more skill/.test(l)){
     const d=day;if(!d){coachPending={type:'addSkill',awaiting:'day'};return {text:'Volentieri. Vuoi più calisthenics in quale giorno?'};}
     const choices=coachCandidates(d,null,'più calisthenics').filter(function(e){return e[3]==='skill';});
     const c=choices[0];if(!c)return {text:'Questo giorno ha già una buona quota di skill. Posso invece redistribuire le skill tra i 5 giorni.'};
@@ -1768,9 +1818,9 @@ async function coachHandleMessage(text){
     const remove=accessories[accessories.length-1];
     if(remove){coachPending={type:'remove',day:d,index:p.ex.findIndex(function(e){return e===remove;}),name:remove[0],awaiting:'confirm'};return {text:'Per stare più vicino a '+(mins?mins+' minuti':'una sessione più corta')+', la prima cosa che toglierei è <b>'+remove[0]+'</b>, lasciando intatte le skill e i fondamentali. '+coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};}
   }
-  if(/cosa.*piano|mostra.*piano|che esercizi|programma/.test(l)&&day){const p=coachPlan()[day]||{ex:[]};return {text:'Il '+coachDayLabel(day)+' contiene: '+p.ex.map(function(e){return e[0]+' ('+e[1]+')';}).join(' · ')+'.'};}
-  if(!name&&/ciao|help|aiut|cosa puoi/.test(l))return {text:coachHelp()};
-  return {text:'Posso fare molto di più di una risposta tecnica: '+coachHelp()+' Se vuoi modificare il piano, dimmi cosa vuoi cambiare e perché.'};
+  if(/cosa.*piano|mostra.*piano|che esercizi|programma|what.*plan|which exercises/.test(l)&&day){const p=coachPlan()[day]||{ex:[]};return {text:'Il '+coachDayLabel(day)+' contiene: '+p.ex.map(function(e){return e[0]+' ('+e[1]+')';}).join(' · ')+'.'};}
+  if(!name&&/ciao|help|aiut|cosa puoi|hi\b|hello|what can you/.test(l))return {text:coachHelp()};
+  return {text:tr('Non ho capito la domanda. ','I didn’t catch that. ')+coachHelp()+tr(' Se vuoi un consiglio sui tuoi numeri, chiedimi “che consigli mi dai”.',' For advice from your own numbers, ask me “any recommendation?”.')};
 }
 let __miniCoachWasOpen=false;
 function miniCoachHTML(){
@@ -1782,7 +1832,7 @@ function miniCoachHTML(){
   const ctx=coachContext.name?coachContext.name:(coachContext.day?coachDayLabel(coachContext.day):'Il tuo allenamento');
   const justOpened=!__miniCoachWasOpen; __miniCoachWasOpen=true;
   h+='<section class="minicoach-panel'+(justOpened?' mc-enter':'')+'" aria-label="Fede Coach">';
-  h+='<div class="minicoach-head"><div class="minicoach-avatar">✦</div><div><b>Fede Coach</b><span>'+esc(ctx)+' · piano · progressi · tecnica</span></div><button class="minicoach-close" id="minicoachclose">×</button></div>';
+  h+='<div class="minicoach-head"><div class="minicoach-avatar">✦</div><div><b>Fede Coach</b><span>'+esc(ctx)+tr(' · piano · progressi · tecnica',' · plan · progress · technique')+'</span></div><button class="minicoach-close" id="minicoachclose">×</button></div>';
   h+='<div class="minicoach-body" id="minicoachbody">';
   try{const nt=coachNotices(); if(nt.ready&&nt.items.length)h+=coachNoticesHTML();}catch(e){}
   miniCoachMessages.forEach(function(m){
@@ -1792,12 +1842,12 @@ function miniCoachHTML(){
     h+='</div></div>';
   });
   h+='</div><div class="mini-chips">'+
-    '<button class="mini-chip" data-mini="Cosa faccio oggi?">Oggi</button>'+ 
-    '<button class="mini-chip" data-mini="Cosa ho fatto l\'ultima volta?">📊 Ultima volta</button>'+ 
-    '<button class="mini-chip" data-mini="Come faccio questo esercizio?">Come si fa?</button>'+ 
-    '<button class="mini-chip" data-mini="Come posso progredire in questo esercizio?">Progressione</button>'+ 
-    '<button class="mini-chip" data-mini="Quali errori evitare?">⚠ Errori</button>'+ 
-    '<button class="mini-chip" data-mini="Voglio più calisthenics">🤸 Calisthenics</button></div>';
+    '<button class="mini-chip" data-mini="Cosa faccio oggi?">'+tr('Oggi','Today')+'</button>'+
+    '<button class="mini-chip" data-mini="Cosa ho fatto l\'ultima volta?">📊 '+tr('Ultima volta','Last time')+'</button>'+
+    '<button class="mini-chip" data-mini="Come faccio questo esercizio?">'+tr('Come si fa?','How do I?')+'</button>'+
+    '<button class="mini-chip" data-mini="Come posso progredire in questo esercizio?">'+tr('Progressione','Progression')+'</button>'+
+    '<button class="mini-chip" data-mini="Quali errori evitare?">⚠ '+tr('Errori','Mistakes')+'</button>'+
+    '<button class="mini-chip" data-mini="che consigli mi dai">✨ '+tr('Consigli','Advice')+'</button>'+'<button class="mini-chip" data-mini="Voglio più calisthenics">🤸 Calisthenics</button></div>';
   h+='<div class="mini-hint">Contesto schermata + piano + storico salvato. Le modifiche richiedono conferma.</div>';
   h+='<div class="minicoach-input"><input id="minicoachtext" placeholder="Es. cambia questo, lo sento troppo sui quadricipiti…"><button id="minicoachsend">➤</button></div></section>';
   return h;
@@ -3939,6 +3989,10 @@ function APP_LOCALE(){return getAppLanguage()==='en'?'en-GB':'it-IT';}
 function tr(it,en){return getAppLanguage()==='en'?en:it;}
 function setAppLanguage(lang){localStorage.setItem('fede:lang',lang==='en'?'en':'it');render();}
 const APP_EN={
+ 'Contesto schermata + piano + storico salvato. Le modifiche richiedono conferma.':'Screen context + plan + saved history. Changes need your confirmation.',
+ 'Es. cambia questo, lo sento troppo sui quadricipiti…':'E.g. change this, I feel it too much in my quads…',
+ 'Dimmi cosa vuoi cambiare…':'Tell me what you want to change…',
+ 'Invia':'Send',
  '— scegli alimento —':'— choose a food —',
  '✏️ Altro (scrivi tu)':'✏️ Other (type it)',
  'Scegli la lingua dell’app.':'Choose the app language.',
@@ -4654,7 +4708,39 @@ function APP_EN_KEYS(){if(!__appEnKeys)__appEnKeys=Object.keys(APP_EN).sort(func
 function applyLanguage(){if(getAppLanguage()!=='en')return;
   // La barra in basso e la sfera del coach vivono fuori da #page: vanno tradotte anche loro.
   ['page','nav','minicoach'].forEach(function(id){const el=document.getElementById(id);if(el)applyLanguageTo(el);});}
-function applyLanguageTo(root){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){return i18nProtectedNode(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;}});const nodes=[];while(w.nextNode())nodes.push(w.currentNode);const keys=APP_EN_KEYS();nodes.forEach(function(n){let t=n.nodeValue;keys.forEach(function(k){const v=APP_EN[k];if(t.indexOf(k)>=0)t=t.split(k).join(v);});n.nodeValue=t;});root.querySelectorAll('input,textarea').forEach(function(e){if(APP_EN[e.placeholder])e.placeholder=APP_EN[e.placeholder];});root.querySelectorAll('[aria-label]').forEach(function(e){let a=e.getAttribute('aria-label');if(!a)return;keys.forEach(function(k){if(a.indexOf(k)>=0)a=a.split(k).join(APP_EN[k]);});e.setAttribute('aria-label',a);});}
+// Una passata sola, da sinistra a destra: a ogni posizione vince la chiave piu'
+// lunga che combacia, e quello che e' gia' stato tradotto non viene piu' guardato.
+// Senza questo, "Progressione" diventava "Progression" e poi la chiave piu' corta
+// "Progressi" lo riscriveva in "Progresson".
+let __appEnByChar=null;
+function APP_EN_BY_CHAR(){
+  if(!__appEnByChar){__appEnByChar={};
+    APP_EN_KEYS().forEach(function(k){const c=k.charAt(0);(__appEnByChar[c]=__appEnByChar[c]||[]).push(k);});}
+  return __appEnByChar;
+}
+function i18nLetter(c){return !!c&&/[\p{L}\p{N}]/u.test(c);}
+function i18nText(s){
+  const t=String(s==null?'':s); if(!t)return t;
+  const byChar=APP_EN_BY_CHAR(); let out='', i=0;
+  while(i<t.length){
+    const cand=byChar[t.charAt(i)]; let hit=null;
+    if(cand)for(let z=0;z<cand.length;z++){const k=cand[z];
+      // Confine di parola: "Progressi" non deve mordere dentro "Progression".
+      if(!t.startsWith(k,i))continue;
+      if(i18nLetter(k.charAt(0))&&i18nLetter(t.charAt(i-1)))continue;
+      if(i18nLetter(k.charAt(k.length-1))&&i18nLetter(t.charAt(i+k.length)))continue;
+      hit=k;break;}   // le chiavi sono gia' ordinate dalla piu' lunga
+    if(hit){out+=APP_EN[hit]; i+=hit.length;} else {out+=t.charAt(i); i++;}
+  }
+  return out;
+}
+function applyLanguageTo(root){
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){return i18nProtectedNode(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;}});
+  const nodes=[]; while(w.nextNode())nodes.push(w.currentNode);
+  nodes.forEach(function(n){const v=i18nText(n.nodeValue); if(v!==n.nodeValue)n.nodeValue=v;});
+  root.querySelectorAll('input,textarea').forEach(function(e){if(e.placeholder)e.placeholder=i18nText(e.placeholder);});
+  root.querySelectorAll('[aria-label]').forEach(function(e){const a=e.getAttribute('aria-label'); if(a)e.setAttribute('aria-label',i18nText(a));});
+}
 
 // Third-party exercise photos bundled in assets/exercises/photos (required CC BY 2.0 attribution lives here, not on the exercise cards).
 const PHOTO_CREDITS=[
