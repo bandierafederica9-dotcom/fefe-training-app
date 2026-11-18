@@ -709,3 +709,11 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .setup-nav .btn[disabled]{opacity:.45}
 .setup-call{border:1px solid var(--rose-b);background:var(--rose-l)}
 .setup-call b{font-size:15px}
+
+/* Home · «Oggi»: anteprima degli esercizi senza aprire il workout */
+.today-preview{margin-top:10px;border-top:1px solid rgba(0,0,0,.06)}
+.today-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.05);font-size:12.5px}
+.today-row b{font-weight:800;flex:1;min-width:0}
+.today-row span{color:var(--dim);font-weight:700;font-size:10.5px;text-align:right;white-space:nowrap}
+.today-row.done b{text-decoration:line-through;opacity:.55}
+.today-row.done span::after{content:' ✓'}
