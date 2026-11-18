@@ -1793,7 +1793,9 @@ async function load(){
   // Write any pending change to the CURRENT date before `data`/`key` are replaced.
   flushSave();
   profile=getProfile();
-  if(!profile.setupComplete && existingUserDetected()){profile=Object.assign(profile,{name:"Fede",setupComplete:true,personalised:false});saveProfile();}
+  // Un'utente riconosciuta mantiene i suoi dati, ma "configurata" non si
+  // regala: lo e' solo se il profilo e' davvero compilato.
+  if(!profile.setupComplete && existingUserDetected()){profile=Object.assign(profile,{name:"Fede",personalised:false});profile.setupComplete=profileComplete(profile);saveProfile();}
   ensureUserPlan();
   // Default plan: re-apply the remembered Day 5 choice in memory (no fede:userPlan is created).
   if(!userPlan){const sv=localStorage.getItem('fede:day5Variant');if(sv==='A'||sv==='B')setupDay5Variants(PLAN,sv);}
@@ -3085,6 +3087,7 @@ function renderCore(){
   else if(view==='video')    h=videoHTML();
   else if(view==='evo')      h=evoHTML();
   else if(view==='coach')    h=coachHTML();
+  else if(view==='setup')    h=setupHTML();
   else if(view==='profile')  h=profileHTML();
   else if(view==='calisthenics') h=calisthenicsHTML();
   else if(view==='mobility') h=mobilityHTML();

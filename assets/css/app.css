@@ -689,3 +689,23 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .build-saved{margin-top:11px;padding:12px 13px;border-radius:14px;background:var(--card);
   border:1px solid var(--rose-b);font-size:12.5px;font-weight:700;color:var(--ink)}
 .build-saved .btn{margin-top:10px;width:100%}
+
+/* ================= ONBOARDING ================= */
+.setup-bar{height:5px;border-radius:999px;background:var(--line);overflow:hidden;margin-bottom:18px}
+.setup-bar i{display:block;height:100%;background:var(--rose);border-radius:999px;transform-origin:left center;transition:transform .25s var(--ease-out)}
+.setup-q{margin:0 0 16px;font-size:22px;line-height:1.3}
+.setup-opts{display:flex;flex-direction:column;gap:9px}
+.setup-opt{display:flex;align-items:center;min-height:56px;padding:0 18px;border-radius:16px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px;font-weight:700;text-align:left}
+.setup-opt.on{background:var(--rose);border-color:var(--rose);color:#fff}
+.setup-measures{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.setup-measures label{display:block;font-size:11px;font-weight:800;color:var(--dim);margin-bottom:6px}
+.setup-field{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:0 14px;min-height:56px}
+.setup-field input{flex:1;min-width:0;border:0;background:transparent;font-size:22px;font-weight:900;color:var(--ink)}
+.setup-field span{font-size:13px;font-weight:800;color:var(--dim)}
+.setup-nav{display:flex;gap:10px;margin-top:22px}
+.setup-nav .btn{flex:1;min-height:52px}
+.setup-nav .btn[disabled]{opacity:.45}
+.setup-call{border:1px solid var(--rose-b);background:var(--rose-l)}
+.setup-call b{font-size:15px}

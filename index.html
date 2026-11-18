@@ -1815,7 +1815,9 @@ async function load(){
   // Write any pending change to the CURRENT date before `data`/`key` are replaced.
   flushSave();
   profile=getProfile();
-  if(!profile.setupComplete && existingUserDetected()){profile=Object.assign(profile,{name:"Fede",setupComplete:true,personalised:false});saveProfile();}
+  // Un'utente riconosciuta mantiene i suoi dati, ma "configurata" non si
+  // regala: lo e' solo se il profilo e' davvero compilato.
+  if(!profile.setupComplete && existingUserDetected()){profile=Object.assign(profile,{name:"Fede",personalised:false});profile.setupComplete=profileComplete(profile);saveProfile();}
   ensureUserPlan();
   // Default plan: re-apply the remembered Day 5 choice in memory (no fede:userPlan is created).
   if(!userPlan){const sv=localStorage.getItem('fede:day5Variant');if(sv==='A'||sv==='B')setupDay5Variants(PLAN,sv);}
@@ -3669,6 +3671,7 @@ function profileHTML(){
   let h=hdr('Profilo','Impostazioni personali e app');
   h+='<div class="wrap">';
   h+='<div class="lang-card"><div class="lang-title">🌐 Lingua / Language</div><div class="lang-sub">Scegli la lingua dell’app.</div><div class="lang-toggle"><button id="langIT" class="'+(getAppLanguage()==='it'?'on':'')+'">🇮🇹 Italiano</button><button id="langEN" class="'+(getAppLanguage()==='en'?'on':'')+'">🇬🇧 English</button></div></div>';
+  if(!profileComplete(p))h+='<div class="card setup-call"><b>Il tuo profilo \u00e8 incompleto</b><div class="note" style="margin-top:6px">Obiettivo, livello, giorni, attrezzatura e misure: otto domande, tutte a tocco tranne peso e altezza. Servono al piano e al coach.</div><button class="btn" data-setupopen="1" style="margin-top:12px">Completa il profilo \u2192</button></div>';
   h+='<div class="profile-hero"><div class="profile-avatar">'+esc((name.trim()[0]||'F').toUpperCase())+'</div>'+
     '<div class="profile-title">'+esc(name)+'</div>'+
     '<div class="profile-sub">Il tuo profilo guida il Coach e la personalizzazione del piano. Le modifiche vengono salvate sul dispositivo.</div></div>';
@@ -3697,6 +3700,93 @@ function profileHTML(){
   h+='</div>';
   return h;
 }
+/* ================= ONBOARDING =================
+   Tutto a tocco. Le uniche due cose da digitare sono peso e altezza, perche'
+   sono numeri e non scelte. Il profilo di Federica era vuoto con
+   setupComplete:true: un utente riconosciuto veniva dato per configurato
+   senza che gli fosse chiesto niente. */
+const SETUP_STEPS=[
+  {k:'goal', q:'Qual \u00e8 il tuo obiettivo?', opts:[
+    'Forma a clessidra','Forza','Massa muscolare','Definizione','Mantenimento']},
+  {k:'level', q:'A che punto sei?', opts:[
+    'Principiante','Intermedio','Avanzato']},
+  {k:'days', q:'Quanti giorni a settimana?', opts:['2','3','4','5'], suffix:' giorni'},
+  {k:'duration', q:'Quanto dura una seduta?', opts:[
+    '30 minuti','45 minuti','60 minuti','75 minuti o pi\u00f9']},
+  {k:'location', q:'Dove ti alleni?', opts:['Palestra','Casa','Palestra e casa']},
+  {k:'equipment', q:'Che attrezzatura hai?', multi:true, opts:[
+    'Macchine','Bilanciere','Manubri','Cavi','Elastici','Sbarra','Corpo libero']},
+  {k:'avoid', q:'C\u2019\u00e8 qualcosa da evitare?', multi:true, optional:true, opts:[
+    'Spalle','Schiena','Ginocchia','Polsi','Collo']},
+  {k:'measures', q:'Le tue misure', measures:true}
+];
+const SETUP_REQUIRED=['goal','level','days','duration','location','equipment'];
+function profileComplete(p){
+  if(!p)return false;
+  if(!SETUP_REQUIRED.every(function(k){return String(p[k]||'').trim()!=='' && p[k]!==0;}))return false;
+  return !!(parseFloat(p.weight)>0 && parseFloat(p.height)>0);
+}
+let setupStep=0, setupDraft=null;
+function setupStart(){
+  setupDraft=Object.assign({},DEFAULT_PROFILE,profile||{},
+    {equipment:String((profile&&profile.equipment)||''),avoid:String((profile&&profile.avoid)||'')});
+  setupStep=0;
+}
+function setupListOf(k){const v=String(setupDraft[k]||'').trim();return v?v.split(/\s*\u00b7\s*|\s*,\s*/).filter(Boolean):[];}
+function setupPick(k,v,multi){
+  if(!setupDraft)setupStart();
+  if(!multi){setupDraft[k]=setupDraft[k]===v?'':v;return;}
+  const a=setupListOf(k), i=a.indexOf(v);
+  if(i>-1)a.splice(i,1); else a.push(v);
+  setupDraft[k]=a.join(' \u00b7 ');
+}
+function setupStepOk(i){
+  const st=SETUP_STEPS[i]; if(!st)return true;
+  if(st.optional)return true;
+  if(st.measures)return parseFloat(setupDraft&&setupDraft.weight)>0&&parseFloat(setupDraft&&setupDraft.height)>0;
+  return String((setupDraft&&setupDraft[st.k])||'').trim()!=='';
+}
+function setupFinish(){
+  if(!setupDraft)return {ok:false,error:'Niente da salvare.'};
+  if(!SETUP_STEPS.every(function(_,i){return setupStepOk(i);}))
+    return {ok:false,error:'Manca ancora qualcosa.'};
+  const next=Object.assign({},DEFAULT_PROFILE,profile||{},setupDraft);
+  next.days=parseInt(next.days,10)||0;
+  next.setupComplete=profileComplete(next);
+  if(!next.setupComplete)return {ok:false,error:'Il profilo non \u00e8 completo.'};
+  profile=next; saveProfile();
+  return {ok:true};
+}
+function setupHTML(){
+  if(!setupDraft)setupStart();
+  const st=SETUP_STEPS[setupStep]||SETUP_STEPS[0];
+  const n=SETUP_STEPS.length;
+  let h=hdr('Il tuo profilo','Passo '+(setupStep+1)+' di '+n);
+  h+='<div class="wrap"><div class="setup-bar"><i style="width:100%;transform:scaleX('+(setupStep/(n-1)).toFixed(3)+')"></i></div>';
+  h+='<h2 class="setup-q">'+esc(st.q)+'</h2>';
+  if(st.measures){
+    h+='<div class="setup-measures">'
+      +'<div><label>Peso</label><div class="setup-field"><input id="su_weight" type="number" inputmode="decimal" placeholder="53" value="'+esc(setupDraft.weight||'')+'"><span>kg</span></div></div>'
+      +'<div><label>Altezza</label><div class="setup-field"><input id="su_height" type="number" inputmode="numeric" placeholder="150" value="'+esc(setupDraft.height||'')+'"><span>cm</span></div></div></div>'
+      +'<div class="note" style="margin-top:10px">Sono gli unici due numeri da scrivere. Tutto il resto si tocca.</div>';
+  }else{
+    const sel=st.multi?setupListOf(st.k):[String(setupDraft[st.k]||'')];
+    h+='<div class="setup-opts">'+st.opts.map(function(o){
+      const on=sel.indexOf(o)>-1;
+      return '<button class="setup-opt'+(on?' on':'')+'" data-setup="'+esc(st.k)+'|'+esc(o)+'|'+(st.multi?'1':'0')+'">'
+        +esc(o)+(st.suffix&&!st.multi?esc(st.suffix):'')+'</button>';}).join('')+'</div>';
+    if(st.multi)h+='<div class="note" style="margin-top:8px">Puoi sceglierne pi\u00f9 di una'+(st.optional?', oppure nessuna':'')+'.</div>';
+  }
+  h+='<div class="setup-nav">'
+    +(setupStep>0?'<button class="btn ghost" data-setupback="1">Indietro</button>':'')
+    +(setupStep<n-1
+      ? '<button class="btn" data-setupnext="1"'+(setupStepOk(setupStep)?'':' disabled')+'>Avanti</button>'
+      : '<button class="btn" data-setupdone="1"'+(setupStepOk(setupStep)?'':' disabled')+'>Finito</button>')
+    +'</div>';
+  h+='<div class="note" id="su_hint" style="margin-top:9px'+(setupStepOk(setupStep)?';display:none':'')+'">Scegli per proseguire: non registro un profilo a met\u00e0.</div>';
+  return h+'</div>';
+}
+
 function profileReadForm(){
   const val=function(id){const e=document.getElementById(id);return e?e.value:'';};
   return {name:val('pf_name').trim(),goal:val('pf_goal'),days:parseInt(val('pf_days'),10)||5,duration:val('pf_duration'),level:val('pf_level'),location:val('pf_location'),equipment:val('pf_equipment').trim(),avoid:val('pf_avoid').trim(),notes:val('pf_notes').trim()};
@@ -3811,6 +3901,7 @@ function renderCore(){
   else if(view==='video')    h=videoHTML();
   else if(view==='evo')      h=evoHTML();
   else if(view==='coach')    h=coachHTML();
+  else if(view==='setup')    h=setupHTML();
   else if(view==='profile')  h=profileHTML();
   else if(view==='calisthenics') h=calisthenicsHTML();
   else if(view==='mobility') h=mobilityHTML();
@@ -4077,6 +4168,28 @@ function bind(){
     buildSavedOk=!!r.ok;
     buildSaved=r.ok?('Salvata nella cena di oggi: '+r.n+' voci.'):r.error;
     render();};});
+  document.querySelectorAll('[data-setup]').forEach(function(b){b.onclick=function(){
+    const p=b.dataset.setup.split('|');setupPick(p[0],p[1],p[2]==='1');render();};});
+  document.querySelectorAll('[data-setupnext]').forEach(function(b){b.onclick=function(){
+    const w=document.getElementById('su_weight'),hh=document.getElementById('su_height');
+    if(w)setupDraft.weight=w.value; if(hh)setupDraft.height=hh.value;
+    if(setupStepOk(setupStep)&&setupStep<SETUP_STEPS.length-1){setupStep++;render();}};});
+  document.querySelectorAll('[data-setupback]').forEach(function(b){b.onclick=function(){
+    if(setupStep>0){setupStep--;render();}};});
+  document.querySelectorAll('[data-setupdone]').forEach(function(b){b.onclick=function(){
+    const w=document.getElementById('su_weight'),hh=document.getElementById('su_height');
+    if(w)setupDraft.weight=w.value; if(hh)setupDraft.height=hh.value;
+    const r=setupFinish();
+    if(r.ok){view='profile';render();}else{alert(r.error);}};});
+  document.querySelectorAll('[data-setupopen]').forEach(function(b){b.onclick=function(){
+    setupStart();view='setup';render();};});
+  ['su_weight','su_height'].forEach(function(id){const e=document.getElementById(id);
+    if(e)e.oninput=function(){setupDraft[id.slice(3)]=e.value;
+      const ok=setupStepOk(setupStep);
+      const n=document.querySelector('[data-setupdone],[data-setupnext]');
+      if(n)n.disabled=!ok;
+      const hint=document.getElementById('su_hint');
+      if(hint)hint.style.display=ok?'none':'';};});
   document.querySelectorAll('[data-buildpeople]').forEach(function(b){b.onclick=function(){
     buildPeople=+b.dataset.buildpeople||1;buildPersist();render();};});
   document.querySelectorAll('[data-buildclear]').forEach(function(b){b.onclick=function(){
