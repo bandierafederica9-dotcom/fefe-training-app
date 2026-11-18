@@ -786,3 +786,24 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .cat-act{font-size:19px;font-weight:900;color:var(--rose);min-width:34px;text-align:center}
 .cat-row.in{opacity:.5}
 .cat-row.in .cat-act{font-size:10px;font-weight:800;color:var(--dim);min-width:84px}
+
+/* ================= COACH ================= */
+.coach-badge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;border-radius:999px;
+  background:var(--rose);color:#fff;font-size:11px;font-weight:900;font-style:normal;
+  display:flex;align-items:center;justify-content:center;border:2px solid #fff;padding:0 5px}
+.minicoach-fab{position:relative}
+.coach-notices{border:1px solid var(--rose-b);background:var(--rose-l)}
+.coach-notices-head{font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--rose-d);margin-bottom:10px}
+.coach-notice{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;
+  padding:10px 0;border-top:1px solid rgba(166,63,102,.18)}
+.coach-notice:first-of-type{border-top:0;padding-top:0}
+.coach-notice>span{font-size:18px;line-height:1.2}
+.coach-notice b{display:block;font-size:13.5px;line-height:1.4}
+.coach-notice em{display:block;margin-top:3px;font-size:11.5px;font-style:normal;font-weight:700;color:var(--dim)}
+/* Il suggerimento non è un errore: non è rosso. È l'accento, come il resto. */
+.coach-hint{margin-top:12px;padding:13px 15px;border-radius:16px;background:var(--rose-l);
+  border:1px solid var(--rose-b);font-size:13.5px;line-height:1.5;color:var(--ink)}
+.coach-hint>b:first-child{display:block;font-size:10px;font-weight:900;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--rose-d);margin-bottom:5px}
+.coach-hint em{display:block;margin-top:6px;font-size:11px;font-style:normal;font-weight:700;color:var(--dim)}

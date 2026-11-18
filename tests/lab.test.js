@@ -177,7 +177,10 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     // BUILD_KEY = 'fede:build': la cena in costruzione, perche' tornando
     // nella scheda la ricetta dev'essere ancora li'. Nessun dato datato.
     const BUILD_WRITE_OK = /localStorage\.(setItem|removeItem)\(BUILD_KEY/;
-    const offending = (l) => /localStorage\.(removeItem|clear|setItem)|\.clear\(\)/.test(l) && !LAB_WRITE_OK.test(l) && !BUILD_WRITE_OK.test(l);
+    // COACH_SEEN_KEY = 'fede:coachseen': quali avvisi ha gia' letto,
+    // per non ripeterglieli. Nessun dato di allenamento.
+    const COACH_WRITE_OK = /localStorage\.(setItem|removeItem)\(COACH_SEEN_KEY/;
+    const offending = (l) => /localStorage\.(removeItem|clear|setItem)|\.clear\(\)/.test(l) && !LAB_WRITE_OK.test(l) && !BUILD_WRITE_OK.test(l) && !COACH_WRITE_OK.test(l);
     T('no storage write outside fede:lab:* / fede:exmeta:* added by the Lab phase', !added.some(offending), added.filter(offending).join(' | '));
     const hh = H(REPO); boot(hh); const before = J(hh.store);
     hh.run(`exCtx={day:${J(LAB)},back:"calisthenics"};exIdx=0;calisthenicsHTML();exerciseHTML();`);

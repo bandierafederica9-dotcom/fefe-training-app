@@ -1775,13 +1775,16 @@ async function coachHandleMessage(text){
 let __miniCoachWasOpen=false;
 function miniCoachHTML(){
   coachIntro();
-  let h='<button class="minicoach-fab" id="minicoachfab" aria-label="Apri Fede Coach"><span>✦</span></button>';
+  const nonLetti=(typeof coachUnreadCount==='function')?coachUnreadCount():0;
+  let h='<button class="minicoach-fab" id="minicoachfab" aria-label="Apri Fede Coach'+(nonLetti?', '+nonLetti+' da leggere':'')+'"><span>✦</span>'
+    +(nonLetti?'<i class="coach-badge">'+nonLetti+'</i>':'')+'</button>';
   if(!miniCoachOpen){__miniCoachWasOpen=false;return h;}
   const ctx=coachContext.name?coachContext.name:(coachContext.day?coachDayLabel(coachContext.day):'Il tuo allenamento');
   const justOpened=!__miniCoachWasOpen; __miniCoachWasOpen=true;
   h+='<section class="minicoach-panel'+(justOpened?' mc-enter':'')+'" aria-label="Fede Coach">';
   h+='<div class="minicoach-head"><div class="minicoach-avatar">✦</div><div><b>Fede Coach</b><span>'+esc(ctx)+' · piano · progressi · tecnica</span></div><button class="minicoach-close" id="minicoachclose">×</button></div>';
   h+='<div class="minicoach-body" id="minicoachbody">';
+  try{const nt=coachNotices(); if(nt.ready&&nt.items.length)h+=coachNoticesHTML();}catch(e){}
   miniCoachMessages.forEach(function(m){
     h+='<div class="minimsg '+m.r+'"><div class="minibubble">'+(m.r==='bot'?m.text:esc(m.text||''));
     if(m.video)h+='<a class="mini-video" target="_blank" rel="noopener" href="'+esc(m.video)+'">▶ '+esc(m.videoTitle||'Guarda il video')+'</a>';
@@ -1810,10 +1813,172 @@ async function miniCoachSend(text){
   render();setTimeout(function(){const b=document.getElementById('minicoachbody');if(b)b.scrollTop=b.scrollHeight;},0);
 }
 
+/* ================= COACH A REGOLE =================
+   Aritmetica sui suoi dati, dentro il telefono. Nessuna chiamata, nessun
+   modello, nessun costo. Ogni avviso porta con se' da dove viene, cosi' lei
+   puo' dirmi quando sbaglia. Non modifica mai niente: propone. */
+const COACH_MIN_SESSIONS=8;
+const COACH_SEEN_KEY='fede:coachseen';
+
+// Una seduta conta solo se e' pulita. Tre filtri, tutti nati dai suoi dati.
+function coachValidSessions(records){
+  const out=[];
+  (records||[]).forEach(function(r){
+    if(!r||!r._date)return;
+    const d=norm(r);
+    const giorni={};
+    Object.keys(d.sets||{}).forEach(function(id){giorni[String(id).split('|')[0]]=1;});
+    // sedute doppie: esercizi di piu' giornate nello stesso record
+    if(Object.keys(giorni).length>1)return;
+    var serie=0, impossibili=0;
+    Object.keys(d.sets||{}).forEach(function(id){
+      const x=d.sets[id]; if(!x)return;
+      const reps=+x.r||0, kg=+x.kg||0, sec=+x.sec||0;
+      if(reps>50||kg>200){impossibili++;return;}      // valori impossibili
+      if(reps||sec)serie++;
+    });
+    if(!serie)return;                                  // giornate vuote
+    out.push({date:dateFromKey(r._date),key:r._date,day:r.day||'',sets:d.sets||{},serie:serie,scartate:impossibili});
+  });
+  out.sort(function(a,b){return a.date-b.date;});
+  return out;
+}
+function coachReady(){return coachValidSessions(recentRecords(120)).length>=COACH_MIN_SESSIONS;}
+
+// Serie registrate di un esercizio, seduta per seduta, dalla piu' recente.
+function coachExerciseRuns(sess,exId){
+  const out=[];
+  sess.slice().reverse().forEach(function(s){
+    const righe=[];
+    Object.keys(s.sets).forEach(function(id){
+      const p=String(id).split('|');
+      if(p[1]!==exId)return;
+      const x=s.sets[id]; const kg=+x.kg||0, r=+x.r||0;
+      if(r)righe.push({kg:kg,r:r});
+    });
+    if(righe.length)out.push({date:s.date,righe:righe,
+      topKg:Math.max.apply(null,righe.map(function(x){return x.kg;})),
+      reps:righe.map(function(x){return x.r;}).join('-')});
+  });
+  return out;
+}
+// Macchine pesanti: il salto utile e' 5 kg, non 2,5.
+function coachLoadStep(exName,kg){return (kg>=60||/hip abduction|hip adduction|leg press|hip thrust|back extension/i.test(exName))?5:2.5;}
+
+// Il suggerimento di carico vive dentro l'esercizio, non negli avvisi: serve
+// mentre sei li', con le serie appena chiuse.
+function coachLoadHint(day,i,e){
+  if(!e)return '';
+  if(isTimedExercise(e)||exLoad(e)==='bodyweight')return '';
+  const d=exDone(data,day,i); if(!d.tot||d.n<d.tot)return '';   // solo a serie tutte chiuse
+  const sess=coachValidSessions(recentRecords(120));
+  if(sess.length<COACH_MIN_SESSIONS)return '';
+  const runs=coachExerciseRuns(sess,e[4]||exerciseId(day,i,e));
+  if(runs.length<3)return '';
+  const tre=runs.slice(0,3);
+  if(!tre.every(function(x){return x.topKg===tre[0].topKg;})||!tre[0].topKg)return '';
+  const passo=coachLoadStep(exName(e),tre[0].topKg);
+  return '<div class="coach-hint"><b>Suggerimento</b>Tre sedute chiuse a '+tre[0].topKg
+    +' kg. La prossima prova <b>'+String(tre[0].topKg+passo).replace('.',',')+' kg</b>.'
+    +'<em>'+tre.map(function(x){return x.date.toLocaleDateString('it-IT',{day:'numeric',month:'short'});}).reverse().join(' \u00b7 ')+'</em></div>';
+}
+
+function coachNotices(){
+  const sess=coachValidSessions(recentRecords(120));
+  if(sess.length<COACH_MIN_SESSIONS)
+    return {ready:false,mancano:COACH_MIN_SESSIONS-sess.length,valide:sess.length,items:[]};
+  const items=[], stalli=[], saltati=[];
+  // 1) stallo: stesso carico E stesse ripetizioni per tre sedute
+  const visti={};
+  sess.slice().reverse().forEach(function(s){Object.keys(s.sets).forEach(function(id){
+    const p=String(id).split('|'); if(p.length<3)return; visti[p[1]]=1;});});
+  Object.keys(visti).forEach(function(exId){
+    const runs=coachExerciseRuns(sess,exId);
+    if(runs.length<3)return;
+    const tre=runs.slice(0,3);
+    const nome=exNameFromId(exId)||exId;
+    // Un esercizio a tempo non va in stallo di carico: il tapis non ha un peso.
+    if(isTimedExercise([nome,''])||exLoad([nome,''])==='bodyweight')return;
+    if(tre.every(function(x){return x.topKg===tre[0].topKg&&x.reps===tre[0].reps;})&&tre[0].topKg>0){
+      stalli.push({id:'stallo:'+exId,kind:'stallo',peso:tre[0].topKg,
+        text:nome+': '+tre[0].topKg+' kg \u00d7 '+tre[0].reps+' per tre sedute.',
+        why:'Il '+tre.map(function(x){return x.date.toLocaleDateString('it-IT',{day:'numeric',month:'short'});}).reverse().join(', il ')+'.',
+        urgenza:2});
+    }
+  });
+  // Al massimo tre stalli, i piu' pesanti: sette avvisi uguali sono rumore.
+  stalli.sort(function(a,b){return b.peso-a.peso;}).slice(0,3).forEach(function(x){items.push(x);});
+  // 2) giorni saltati rispetto al calendario
+  const prev={}; try{Object.keys(goals.sched||{}).forEach(function(w){const g=goals.sched[w];
+    if(g&&g!=='Riposo')prev[g]=(prev[g]||0)+1;});}catch(e){}
+  const due=new Date(cur); due.setDate(due.getDate()-14);
+  const fatti={}; sess.filter(function(s){return s.date>=due;}).forEach(function(s){fatti[s.day]=(fatti[s.day]||0)+1;});
+  Object.keys(prev).forEach(function(g){
+    const attesi=prev[g]*2, veri=fatti[g]||0;
+    if(attesi>=2&&veri<=attesi-2)saltati.push({g:g,veri:veri,attesi:attesi});
+  });
+  // Piu' di due giornate saltate diventano un avviso solo: l'elenco non aiuta.
+  if(saltati.length>2){
+    items.push({id:'saltato:molti',kind:'saltato',
+      text:saltati.map(function(x){return x.g;}).join(', ')+': nessuna o quasi nelle ultime due settimane.',
+      why:'Sono '+saltati.length+' giornate su '+Object.keys(prev).length+' previste dal calendario.',urgenza:1});
+  }else saltati.forEach(function(x){
+    items.push({id:'saltato:'+x.g,kind:'saltato',
+      text:x.g+': '+x.veri+' sedute su '+x.attesi+' nelle ultime due settimane.',
+      why:'Il calendario lo mette '+prev[x.g]+(prev[x.g]===1?' volta':' volte')+' a settimana.',urgenza:1});
+  });
+  // 3) asimmetria, dalla funzione che gia' esiste
+  (asymmetryReport(recentRecords(20))||[]).forEach(function(a){
+    items.push({id:'asim:'+a.id,kind:'asimmetria',
+      text:(exNameFromId(a.id)||a.id)+': '+a.pct+'% pi\u00f9 forte a '+(a.stronger==='right'?'destra':'sinistra')+'.',
+      why:'Su '+a.sessions+' sedute con entrambi i lati registrati.',urgenza:3});
+  });
+  // 4) gradino successivo delle skill
+  (typeof labSessionToday==='function'?labSessionToday():[]).forEach(function(sk){
+    if(!sk||!sk.next||!sk.current)return;
+    const runs=coachExerciseRuns(sess,'lab-calisthenics__'+String(sk.current[0]||'').toLowerCase().replace(/[^a-z0-9]+/g,'-'));
+    if(runs.length>=2)items.push({id:'skill:'+sk.skill,kind:'skill',
+      text:sk.skill+': il gradino dopo \u00e8 '+sk.next[0]+'.',
+      why:'Hai registrato il gradino attuale in '+runs.length+' sedute. Sali solo se te la senti.',urgenza:4});
+  });
+  items.sort(function(a,b){return a.urgenza-b.urgenza;});
+  // Tetto complessivo: oltre cinque avvisi smette di essere un consiglio.
+  return {ready:true,valide:sess.length,items:items.slice(0,5),totale:items.length};
+}
+function exNameFromId(id){
+  const s=String(id||'');
+  const parti=s.split('__'); const base=parti[parti.length-1]||s;
+  var trovato='';
+  try{Object.keys(PLAN).forEach(function(d){(PLAN[d].ex||[]).forEach(function(e){if(e[4]===s)trovato=e[0];});});}catch(e){}
+  if(trovato)return trovato;
+  return base.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+}
+function coachSeen(){try{return JSON.parse(localStorage.getItem(COACH_SEEN_KEY)||'[]')||[];}catch(e){return [];}}
+function coachMarkSeen(ids){try{localStorage.setItem(COACH_SEEN_KEY,JSON.stringify(ids));}catch(e){}}
+function coachUnreadCount(){
+  const n=coachNotices(); if(!n.ready)return 0;
+  const visti=coachSeen();
+  return n.items.filter(function(x){return visti.indexOf(x.id)<0;}).length;
+}
+function coachNoticesHTML(){
+  const n=coachNotices();
+  if(!n.ready)return '<div class="card"><div class="note"><b>Ancora pochi dati.</b><br>Il coach si accende a '
+    +COACH_MIN_SESSIONS+' sedute pulite: ne ho contate '+n.valide+', ne mancano '+n.mancano+'. '
+    +'Non conto le giornate vuote, quelle con esercizi di piu\u2019 giorni mescolati e i valori impossibili.</div></div>';
+  if(!n.items.length)return '<div class="card"><div class="note"><b>Niente da segnalare.</b><br>'
+    +n.valide+' sedute pulite lette, nessuno stallo, nessun giorno saltato, nessuna asimmetria sopra il 5%.</div></div>';
+  const ICONA={stallo:'\u23f8',saltato:'\ud83d\udcc5',asimmetria:'\u2696\ufe0f',skill:'\ud83e\udd38'};
+  return '<div class="card coach-notices"><div class="coach-notices-head">Il coach ha notato</div>'
+    +n.items.map(function(x){return '<div class="coach-notice"><span>'+(ICONA[x.kind]||'\u2022')+'</span>'
+      +'<div><b>'+esc(x.text)+'</b><em>'+esc(x.why)+'</em></div></div>';}).join('')
+    +'<div class="note" style="margin-top:10px">Sono osservazioni sui tuoi dati, non istruzioni: non cambio niente da solo.</div></div>';
+}
+
 function coachHTML(){
   coachIntro();
   let h=hdr('Fede Coach','Modifica il piano, non solo rispondere');
-  h+='<div class="wrap"><div class="card profilecard"><b style="font-size:15px">Fede Coach</b><div style="font-size:11px;color:var(--dim);font-weight:700;margin-top:5px">Può leggere il tuo piano e lo storico, proporre sostituzioni e applicarle solo dopo conferma.</div><div style="margin-top:7px">'+(profile&&profile.setupComplete?['goal','days','duration','level','location'].map(function(k){return profile[k]?'<span class="pill">'+esc(profile[k])+'</span>':'';}).join(''):'')+'</div></div>';
+  h+='<div class="wrap">'+coachNoticesHTML();
+  h+='<div class="card profilecard"><b style="font-size:15px">Fede Coach</b><div style="font-size:11px;color:var(--dim);font-weight:700;margin-top:5px">Può leggere il tuo piano e lo storico, proporre sostituzioni e applicarle solo dopo conferma.</div><div style="margin-top:7px">'+(profile&&profile.setupComplete?['goal','days','duration','level','location'].map(function(k){return profile[k]?'<span class="pill">'+esc(profile[k])+'</span>':'';}).join(''):'')+'</div></div>';
   h+='<div class="card">'+miniCoachMessages.map(function(m){return '<div class="coachmsg '+m.r+'"><div class="bubble">'+(m.r==='bot'?m.text:esc(m.text||''))+'</div></div>';}).join('')+'</div>';
   h+='<div class="card"><div style="font-size:11px;color:var(--dim);font-weight:800;line-height:1.5"><b>Esempi:</b> “cambia questo”, “sostituisci Incline Curl con Cable Lateral Raise”, “togli questo”, “aggiungi Pull-up”, “cosa ho fatto l’ultima volta?”, “come posso progredire?”</div></div>';
   h+='<div class="coachinput"><input id="coachtext" placeholder="Dimmi cosa vuoi cambiare…"><button class="btn" id="coachsend">Invia</button></div></div>';
@@ -2653,6 +2818,7 @@ function exerciseHTML(){
     const anyTicked=wu.some(function(x,i){return !!data.warm[exDay()+'|'+i];});
     if(wu.length&&!anyTicked)h+='<button class="warm-hint" data-seeall="1">Riscaldamento non ancora spuntato · aprilo nella giornata</button>';
   }
+  h+=coachLoadHint(exDay(),exIdx,dayPlan(exDay()).ex[exIdx]);
   h+='<button class="see-all" data-seeall="1">☰ Tutta la giornata</button>';
   h+='<div class="exnav"><button class="prev" data-exnav="-1"'+(exIdx===0?' disabled style="opacity:.4"':'')+'>‹ Precedente</button><button class="next" data-exnav="1">'+(exIdx===p.ex.length-1?'Fine ✓':'Successivo ›')+'</button></div></div>';
   const exNoteKey='fede:exnote:'+exerciseId(day,exIdx,e), exNote=localStorage.getItem(exNoteKey)||''; h+='<div class="sect">'+(getAppLanguage()==='en'?'Exercise notes':'Note esercizio')+'</div><div class="card" style="padding:12px"><textarea data-ex-note="'+esc(exNoteKey)+'" style="min-height:65px" placeholder="'+(getAppLanguage()==='en'?'How did this exercise feel?':'Come è andato questo esercizio?')+'">'+esc(exNote)+'</textarea></div></div>';
@@ -4388,7 +4554,10 @@ function bind(){
 
   // mini coach flottante
   const mf=document.getElementById('minicoachfab'), mcClose=document.getElementById('minicoachclose');
-  if(mf)mf.onclick=function(){miniCoachOpen=!miniCoachOpen;render();};
+  if(mf)mf.onclick=function(){
+    miniCoachOpen=!miniCoachOpen;
+    if(miniCoachOpen){try{const n=coachNotices();if(n.ready)coachMarkSeen(n.items.map(function(x){return x.id;}));}catch(e){}}
+    render();};
   if(mcClose)mcClose.onclick=function(){miniCoachOpen=false;render();};
   document.querySelectorAll('[data-mini]').forEach(function(b){b.onclick=function(){miniCoachOpen=true;miniCoachSend(b.dataset.mini);};});
   document.querySelectorAll('[data-coach-action]').forEach(function(b){b.onclick=function(){miniCoachOpen=true; const a=b.dataset.coachAction; if(a==='coach-confirm'){miniCoachMessages.push({r:'user',text:'Sì, confermo'}); try{miniCoachMessages.push({r:'bot',text:coachApplyPending()});}catch(err){console.error(err);coachPending=null;miniCoachMessages.push({r:'bot',text:'Ho avuto un problema durante la modifica. Non ho cancellato lo storico. Apri Profilo → Diagnostica e riprova.'});} render(); return;} if(a==='coach-cancel'){coachPending=null;miniCoachMessages.push({r:'user',text:'No'});miniCoachMessages.push({r:'bot',text:'Va bene, non modifico nulla.'});render();return;} if(a.indexOf('reason:')===0){miniCoachSend(a.slice(7));}};});
