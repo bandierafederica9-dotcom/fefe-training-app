@@ -127,6 +127,21 @@ const J = JSON.stringify;
       !/SERIE COMPLETATE/.test(hh.run('homeHTML?homeHTML():""')) || true);
   }
 
+  // ---------- 8) Tendine: la home si legge senza scorrere ----------
+  {
+    const ht = H(REPO);
+    ht.run('cur=new Date("2026-01-19T12:00:00");key="fede:2026-01-19";data=norm({day:"Giorno 1"});');
+    const home = ht.run('homeMealsHTML()');
+    T('gli ingredienti del pasto di adesso stanno in una tendina',
+      /<details class="fold"><summary><span>Ingredienti<\/span><\/summary>/.test(home));
+    T('il resto della giornata sta in una tendina che dice quanti pasti',
+      /<details class="fold fold-sect"><summary><span>Il resto della giornata<\/span><em>5 pasti<\/em>/.test(home));
+    T('le tendine sono chiuse di partenza', !/<details class="fold[^"]*" open/.test(home));
+    T('ma il pasto di adesso resta visibile senza aprire niente',
+      home.indexOf('meal-now') < home.indexOf('<details'), 'ordine');
+    T('e i valori del pasto si leggono subito', /740 kcal \u00b7 67 g di proteine/.test(home) || /640 kcal/.test(home));
+  }
+
   console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
 })();

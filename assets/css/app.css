@@ -752,3 +752,17 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .meal-now .diet-check.on{background:var(--rose);border-color:var(--rose);color:#fff}
 .meal-now.done{opacity:.65;border-color:var(--line)}
 .meal-now.done h3{text-decoration:line-through}
+
+/* ================= TENDINE ================= */
+.fold{margin-top:10px;border-top:1px solid var(--line)}
+.fold>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  min-height:48px;padding:0 2px;cursor:pointer;list-style:none;
+  font-size:12.5px;font-weight:800;color:var(--rose-d)}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary:after{content:'⌄';font-size:17px;line-height:1;color:var(--rose);transition:transform .2s var(--ease-out)}
+.fold[open]>summary:after{transform:rotate(180deg)}
+.fold>summary em{font-style:normal;font-weight:700;color:var(--dim);font-size:11px;margin-left:auto;margin-right:8px}
+.fold-sect{border-top:0;background:var(--card);border:1px solid var(--line);border-radius:18px;
+  padding:0 14px 2px;margin-bottom:10px;box-shadow:var(--sh)}
+.fold-sect[open]{padding-bottom:12px}
+.extra-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:4px}

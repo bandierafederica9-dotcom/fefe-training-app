@@ -2148,14 +2148,13 @@ function homeHTML(){
   const p=dayPlan(data.day), dc=doneCount(data,data.day), t=tot(data), vv=vol(data), prof=profile||DEFAULT_PROFILE;
   const skills=[['Pull-up','🤸',3],['L-Sit','◫',3],['Frog Stand','◌',3]]; let h='<div class="wrap">';
   h+='<div class="sect">Oggi</div><div class="card home-section-card"><div class="home-section-head"><b>'+esc(p.em?p.em+' ':'')+esc(data.day)+'</b><span>'+dc.done+'/'+dc.tot+' serie</span></div><div class="workout-progress-bar"><i style="width:'+(dc.tot?dc.done/dc.tot*100:0)+'%"></i></div><div style="font-size:11px;color:var(--dim);font-weight:700;margin-top:9px">'+esc(p.t||'Recupero')+'</div>'+
-    (p.ex&&p.ex.length?'<div class="today-preview">'+p.ex.map(function(e,i){const ed=exDone(data,data.day,i);return '<div class="today-row'+(ed.tot&&ed.n===ed.tot?' done':'')+'"><b>'+esc(e[0])+'</b><span>'+esc(String(e[1]||''))+'</span></div>';}).join('')+'</div>':'<div class="note" style="margin-top:10px">Giorno di riposo: niente da fare in palestra.</div>')+
+    (p.ex&&p.ex.length?'<details class="fold"><summary><span>'+p.ex.length+' esercizi</span></summary><div class="today-preview">'+p.ex.map(function(e,i){const ed=exDone(data,data.day,i);return '<div class="today-row'+(ed.tot&&ed.n===ed.tot?' done':'')+'"><b>'+esc(e[0])+'</b><span>'+esc(String(e[1]||''))+'</span></div>';}).join('')+'</div></details>':'<div class="note" style="margin-top:10px">Giorno di riposo: niente da fare in palestra.</div>')+
     '<button class="btn" data-go="workout" style="margin-top:12px">'+(p.ex&&p.ex.length?'Apri workout':'Cambia giornata')+'</button></div>';
   // I pasti della giornata al posto dei quattro riquadri: le serie stanno gia'
   // nella card dell'allenamento e l'acqua ha la sua sezione qui sotto.
   h+=homeMealsHTML();
   const waterGlasses=Math.max(0,Math.min(10,Number(data.water)||0));
   h+='<div class="sect">Idratazione</div><div class="water-card"><div class="water-head"><b>💧 Quanta acqua hai bevuto?</b><span class="water-total">'+(waterGlasses*.25).toFixed(2).replace('.00','')+' L / 2,5 L</span></div><div class="glasses">'+Array.from({length:10},function(_,i){return '<button type="button" class="gl '+(i<waterGlasses?'full':'')+'" data-w="'+(i+1)+'" aria-label="'+((i+1)*250)+' ml">💧</button>';}).join('')+'</div><div class="water-controls"><button type="button" class="water-btn" data-water-step="-1" aria-label="Riduci acqua">−</button><button type="button" class="water-btn" data-water-step="1" aria-label="Aggiungi acqua">+</button><span class="water-note">1 bicchiere = 250 ml · tocca un bicchiere o usa + / −</span></div></div>';
-  h+='<div class="sect">✨ Extra di oggi</div><div class="card home-section-card"><div class="home-section-head"><b>Scegli in base a come ti senti</b><span>Non obbligatori</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn ghost" data-go="power">⚡ Power</button><button class="btn ghost" data-go="finishers">🔥 Finisher</button><button class="btn ghost" data-go="accessories">➕ Accessories</button><button class="btn ghost" data-go="mobility">🧘 Mobility</button></div></div>';
   h+='<div class="sect">Il tuo focus</div><div class="card home-section-card"><div style="font-size:13px;font-weight:900">'+esc(prof.goal||'Personalizzato')+'</div><div style="font-size:10.5px;color:var(--dim);font-weight:700;margin-top:4px">'+esc(prof.level||'')+' · '+esc(String(prof.days||5))+' giorni/settimana</div></div>';
   h+='<div class="sect">Da tenere a mente</div><div class="card home-section-card"><div style="font-size:11.5px;line-height:1.5;color:#645359;font-weight:700">Il tuo Coach usa il piano, il profilo e lo storico per aiutarti durante la seduta. Tocca la faccina in basso a destra quando vuoi.</div></div></div>'; return h;
 }
@@ -2415,6 +2414,13 @@ function workoutHTML(){
   h+=skillCardHTML(data.day);
   h+='<div class="video-library-intro"><div><h3>Libreria esercizi</h3><p>Video reali quando disponibili. Illustrazioni dedicate per il resto.</p></div><div class="video-library-legend"><span>● FRAME VIDEO</span><span>＋ ILLUSTRAZIONE</span></div></div>';
   p.ex.forEach(function(e,i){const ed=exDone(data,data.day,i);h+='<div class="exrow exrow-v5" data-ex="'+i+'">'+videoEmbedHTML(e[0],'mini-video-thumb')+'<div class="num '+(ed.n===ed.tot?'done':'')+'">'+(ed.n===ed.tot?'✓':(i+1))+'</div><div class="info"><b>'+esc(e[0])+'</b><span>'+esc(e[1])+' · '+ed.n+'/'+ed.tot+' serie</span></div><div class="tarrow">›</div></div>';});
+  h+='<details class="fold fold-sect"><summary><span>\u2728 Aggiungi un extra</span><em>non obbligatorio</em></summary>'
+    +'<div class="extra-row">'
+    +'<button class="btn ghost" data-go="power">\u26a1 Power</button>'
+    +'<button class="btn ghost" data-go="finishers">\ud83d\udd25 Finisher</button>'
+    +'<button class="btn ghost" data-go="accessories">\u2795 Accessori</button>'
+    +'<button class="btn ghost" data-go="mobility">\ud83e\uddd8 Mobilit\u00e0</button>'
+    +'</div></details>';
   h+='<button class="see-one" data-seeone="1">▶ Uno alla volta</button>';
   h+=addPanelHTML(data.day);
   h+='<div class="sect">Note della sessione</div><div class="card" style="padding:14px"><textarea id="note" style="min-height:70px" placeholder="Sensazioni, PR, energia...">'+esc(data.note)+'</textarea></div></div>'; return h;
@@ -3184,14 +3190,15 @@ function homeMealsHTML(){
       +'<div class="meal-now-top"><span class="meal-now-icon">'+dietSlotIcon(m.slot)+'</span>'
       +'<div><div class="meal-now-slot">'+esc(dietMealLabel(m))+' \u00b7 '+esc(m.time)+'</div>'
       +'<h3>'+esc(m.title)+'</h3></div></div>'
-      +'<div class="meal-now-ing">'+esc(m.ingredients||'')+'</div>'
+      +'<details class="fold"><summary><span>Ingredienti</span></summary>'
+      +'<div class="meal-now-ing">'+esc(m.ingredients||'')+'</div></details>'
       +'<div class="meal-now-foot"><span>'+v.kcal+' kcal \u00b7 '+v.prot+' g di proteine</span>'
       +'<button class="diet-check'+(on?' on':'')+'" data-diet-done="'+esc(m.slot)+'">'+(on?'\u2713':'')+'</button></div>'
       +'</div>';
   }
   const resto=d.meals.map(function(x,i){return {m:x,i:i};}).filter(function(x){return x.i!==idx;});
   if(resto.length){
-    h+='<div class="sect">Il resto della giornata</div><div class="home-meals">';
+    h+='<details class="fold fold-sect"><summary><span>Il resto della giornata</span><em>'+resto.length+' pasti</em></summary><div class="home-meals">';
     resto.forEach(function(x){
       const on=isDietDone(cur,x.m.slot), v=dietMealNutrition(x.m);
       h+='<div class="hm'+(on?' done':'')+'">'
@@ -3200,7 +3207,7 @@ function homeMealsHTML(){
         +'<b>'+esc(x.m.title)+'</b><span>'+v.kcal+' kcal \u00b7 '+v.prot+' g</span></div>'
         +'<button class="diet-check'+(on?' on':'')+'" data-diet-done="'+esc(x.m.slot)+'">'+(on?'\u2713':'')+'</button></div>';
     });
-    h+='</div>';
+    h+='</div></details>';
   }
   h+='<button class="btn ghost" data-go="nutri" style="margin-top:4px">Apri il piano del giorno \u2192</button>';
   h+='<div class="note" style="margin-top:8px">'+n.kcal+' kcal e '+n.prot+' g di proteine in tutta la giornata, '
