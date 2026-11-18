@@ -28,9 +28,37 @@ const J = JSON.stringify;
     '[typeof POWER_LIBRARY!=="undefined"?POWER_LIBRARY:{},typeof FINISHER_LIBRARY!=="undefined"?FINISHER_LIBRARY:{},' +
     ' typeof ACCESSORY_LIBRARY!=="undefined"?ACCESSORY_LIBRARY:{},typeof MOBILITY_LIBRARY!=="undefined"?MOBILITY_LIBRARY:{}]' +
     '.forEach(function(L){Object.keys(L).forEach(function(g){L[g].forEach(function(e){if(e[0]===x)found=true;});});});' +
+    'if(typeof CARDIO_LIBRARY!=="undefined")Object.keys(CARDIO_LIBRARY).forEach(function(g){CARDIO_LIBRARY[g].forEach(function(e){if(e[0]===x)found=true;});});' +
     'return found;})(' + J(n) + ')');
   T('ogni voce del catalogo esiste già in una libreria dell\'app',
     tutti.every(noto), tutti.filter(n => !noto(n)).slice(0, 5).join(', '));
+
+  // Gli unici esercizi creati da zero sono i sei cardio: nell'app non c'era
+  // nulla oltre a Nuoto e Ski Erg. Tutto il resto viene da dentro.
+  const vecchie = n => h.run('(function(x){' +
+    'if(typeof EXDB!=="undefined"&&EXDB[x])return true;' +
+    'if(typeof MUSCLE_DB!=="undefined"&&MUSCLE_DB[x])return true;' +
+    'var found=false;' +
+    'Object.keys(PLAN).forEach(function(d){(PLAN[d].ex||[]).forEach(function(e){if(e[0]===x)found=true;});});' +
+    'if(typeof LAB_CALISTHENICS_PLAN!=="undefined")LAB_CALISTHENICS_PLAN.ex.forEach(function(e){if(e[0]===x)found=true;});' +
+    '[typeof POWER_LIBRARY!=="undefined"?POWER_LIBRARY:{},typeof FINISHER_LIBRARY!=="undefined"?FINISHER_LIBRARY:{},' +
+    ' typeof ACCESSORY_LIBRARY!=="undefined"?ACCESSORY_LIBRARY:{},typeof MOBILITY_LIBRARY!=="undefined"?MOBILITY_LIBRARY:{},' +
+    ' typeof CALISTHENICS_LIBRARY!=="undefined"?{}:{}]' +
+    '.forEach(function(L){Object.keys(L).forEach(function(g){L[g].forEach(function(e){if(e[0]===x)found=true;});});});' +
+    'if(typeof CALISTHENICS_LIBRARY!=="undefined")Object.keys(CALISTHENICS_LIBRARY).forEach(function(sk){' +
+    '  Object.keys(CALISTHENICS_LIBRARY[sk]).forEach(function(lv){CALISTHENICS_LIBRARY[sk][lv].forEach(function(e){if(e[0]===x)found=true;});});});' +
+    'return found;})(' + J(n) + ')');
+  const inventati = tutti.filter(n => !vecchie(n)).sort();
+  T('gli unici esercizi nuovi sono i sei cardio, e sono dichiarati',
+    J(inventati) === J(['Camminata all\u2019aperto', 'Corda', 'Corsa leggera', 'Cyclette', 'Tapis roulant inclinato', 'Vogatore']),
+    J(inventati));
+  T('il cardio che fa davvero è il primo della sezione',
+    (cat.find(g => g.k === 'cardio') || {}).items[0] === 'Tapis roulant inclinato');
+  T('il cardio si misura a tempo e senza carico',
+    ['Tapis roulant inclinato', 'Cyclette', 'Vogatore', 'Corda'].every(n =>
+      h.run('exMeasure([' + J(n) + ',""])') === 'time' && h.run('exLoad([' + J(n) + ',""])') === 'bodyweight'));
+  T('ognuno dichiara i muscoli che usa',
+    ['Tapis roulant inclinato', 'Cyclette', 'Vogatore'].every(n => h.run('!!CARDIO_MUSCLES[' + J(n) + ']')));
   T('nessun doppione fra le sezioni', new Set(tutti).size === tutti.length,
     tutti.filter((n, i) => tutti.indexOf(n) !== i).join(', '));
   T('le varianti "CORE · X" non compaiono se esiste già X',

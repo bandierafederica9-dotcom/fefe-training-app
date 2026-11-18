@@ -2340,12 +2340,29 @@ function videoEmbedHTML(name, cls){
    It never guesses where she is — until she places herself on the ladder the
    plan's own prescription stands and the card asks, once. */
 let addOpen=false, addQuery='', addM='', addL='';
+/* Il cardio non c'era nell'app ma c'e' sempre stato nella sua settimana:
+   almeno 20 minuti di tapis inclinato nei giorni upper. Il primo della lista
+   e' il suo; gli altri sono alternative per quando il tapis e' occupato.
+   Scelti a bassa interferenza: a 53 kg, con l'obiettivo di costruire muscolo,
+   il cardio deve aggiungere movimento senza mangiarsi il recupero delle gambe. */
+const CARDIO_LIBRARY={'Cardio':[
+  ['Tapis roulant inclinato','20-30 min \u00b7 inclinazione 8-12% \u00b7 passo in cui riesci a parlare'],
+  ['Cyclette','20-30 min \u00b7 resistenza media'],
+  ['Camminata all\u2019aperto','30-40 min \u00b7 passo svelto'],
+  ['Vogatore','10-15 min \u00b7 20-24 colpi al minuto'],
+  ['Corsa leggera','20-30 min \u00b7 ritmo conversazionale'],
+  ['Corda','6 x 1 min \u00b7 1 min di pausa']
+]};
+const CARDIO_MUSCLES={'Tapis roulant inclinato':['Glutei','Femorali','Polpacci'],
+  'Cyclette':['Quadricipiti','Glutei'],'Camminata all\u2019aperto':['Glutei','Polpacci'],
+  'Vogatore':['Dorsali','Gambe','Core'],'Corsa leggera':['Gambe','Core'],'Corda':['Polpacci','Core']};
+
 const EX_CATALOG=[
  {k:"lower",label:"Lower body",icon:"\ud83e\uddb5",items:["45° Glute-Ham Raise","Assisted Pistol Squat","B-Stance RDL","Back Extension Glute Bias","Banded Clamshell","Barbell / DB RDL","Belt Squat Sumo","Bulgarian Split Squat","Cable Kickback","Cable Step-Up","Calf Raise","Clamshell","Clamshell con manubrio","Cossack Squat","Depth Drop + Broad Jump","Glute Bridge","Glute Bridge monopodalico","Hang Power Clean","Hip Abduction","Hip Abduction Seated","Hip Adduction","Hip Thrust","Hip Thrust monopodalico manubrio","KAS Glute Bridge","Leg Extension","Leg Press piedi alti","Machine Hip Thrust","Monster Walk","Pin Squat","Power Clean","Reverse Hyperextension","Reverse Lunge","Seated Leg Curl","Single Leg Leg Press","Single-Leg Hip Thrust","Single-Leg Plate Hop to Skater Jump","Squat Jump","Stacco Sumo con Manubrio","Step-Up","Vertical Jump Assisted"]},
  {k:"upper",label:"Upper body",icon:"\ud83d\udcaa",items:["Bayesian Cable Curl","Cable Lateral Raise","Cable Lateral Raise (1 braccio)","Cable Pullover","Cable Rear Delt Pullapart","Chest Supported Row","DB Overhead Press","Dumbbell Lateral Raise","Face Pull","Incline Curl","Incline Side Raise","Lat Pulldown","Lat Pulldown neutral/reverse","Lat Pulldown presa larga","Lat Pulldown presa stretta","Machine Chest Press","Machine Lateral Raise","Machine Shoulder Press","Military Press","Overhead Triceps Extension","Reverse Pec Deck (delt post.)","Rope Biceps Curl","Seated Cable Row","Shoulder Flexion Drill","Single Arm Lat Pulldown","Single Arm Row","Triceps Cable Pushdown","Wrist Extension Prep"]},
  {k:"calisthenics",label:"Calisthenics",icon:"\ud83e\udd38",items:["Active Hang","Assisted Pull-up","Chest-to-Bar Pull-up","Chest-to-Wall Handstand","Frog Stand","Frog Stand Toe Lift","Frog Stand Weight Shift","Hamstring Stretch Compression","Handstand Toe Taps","L-Sit","L-Sit on Parallettes","Machine Dip","Negative Pull-up","Pancake Stretch","Pull-up","Scapular Pull-up","Single-Leg L-Sit","Single-Leg Lift","Strict Pull-up","Tuck L-Sit","Tuck Support","Wall Handstand Toe Taps","Wall Handstand Weight Shift","Wall Walk","Wrist Prep"]},
  {k:"core",label:"Core",icon:"\ud83d\udd25",items:["Ab Wheel","Cable Crunch","CORE · Plank","Dead Bug","Hanging Knee Raise","Hollow Body Hold","Mountain Climbers","Pallof Press (anti-rotazione)","Side Plank Crunch","Vacuum addominale"]},
- {k:"cardio",label:"Cardio",icon:"\ud83e\udec0",items:["Nuoto","Ski Erg"]}
+ {k:"cardio",label:"Cardio",icon:"\ud83e\udec0",items:["Tapis roulant inclinato","Cyclette","Camminata all\u2019aperto","Vogatore","Corsa leggera","Corda","Nuoto","Ski Erg"]}
 ];
 /* ================= CATALOGO ESERCIZI =================
    Una lista sola al posto di nove. Gli esercizi sono quelli che l'app ha gia'
@@ -2372,7 +2389,8 @@ function catalogHTML(){
     h+='<div class="cat-head">'+g.icon+' '+esc(g.label)+'<span>'+g.items.length+'</span></div><div class="cat-list">';
     g.items.forEach(function(n){
       const gia=catalogHasExercise(day,n);
-      const mu=(typeof MUSCLE_DB!=='undefined'&&MUSCLE_DB[n])?MUSCLE_DB[n].slice(0,3).join(' \u00b7 '):'';
+      const mu=(typeof CARDIO_MUSCLES!=='undefined'&&CARDIO_MUSCLES[n])?CARDIO_MUSCLES[n].slice(0,3).join(' \u00b7 ')
+        :((typeof MUSCLE_DB!=='undefined'&&MUSCLE_DB[n])?MUSCLE_DB[n].slice(0,3).join(' \u00b7 '):'');
       h+='<button class="cat-row'+(gia?' in':'')+'" data-catadd="'+esc(n)+'"'+(gia?' disabled':'')+'>'
         +'<img src="'+localThumbnail(n)+'" loading="lazy" decoding="async" alt="">'
         +'<span class="cat-name">'+esc(n)+(mu?'<em>'+esc(mu)+'</em>':'')+'</span>'
@@ -2646,7 +2664,7 @@ function exerciseHTML(){
    another, and a bodyweight hold still asked for kilos. Both are now properties
    of the exercise. Anything not listed keeps the old prose rule, so no day
    changes by accident. */
-const EX_MEASURE={            // 'time' = seconds, 'reps' = repetitions
+const EX_MEASURE={'Tapis roulant inclinato':'time','Cyclette':'time','Camminata all\u2019aperto':'time','Vogatore':'time','Corsa leggera':'time','Corda':'time',            // 'time' = seconds, 'reps' = repetitions
   'L-Sit':'time','Tuck Support':'time','Tuck L-Sit':'time','Single-Leg L-Sit':'time','L-Sit on Parallettes':'time',
   'Frog Stand':'time','Frog Stand Weight Shift':'reps','Frog Stand Toe Lift':'reps',
   'Vacuum addominale':'time','Plank':'time','CORE · Plank':'time','Hollow Body Hold':'time',
@@ -2655,7 +2673,7 @@ const EX_MEASURE={            // 'time' = seconds, 'reps' = repetitions
   'Dead Bug':'reps','CORE · Dead Bug':'reps','Hanging Knee Raise':'reps','CORE · Hanging Knee Raise':'reps',
   'Cable Crunch':'reps','CORE · Cable Crunch':'reps','Pallof Press (anti-rotazione)':'reps'
 };
-const EX_LOAD={               // 'bodyweight' = no kg field, 'external' = a load is entered
+const EX_LOAD={'Tapis roulant inclinato':'bodyweight','Cyclette':'bodyweight','Camminata all\u2019aperto':'bodyweight','Vogatore':'bodyweight','Corsa leggera':'bodyweight','Corda':'bodyweight',               // 'bodyweight' = no kg field, 'external' = a load is entered
   // Only the holds and the wall work: things that genuinely never take a load in
   // this plan. Pull-up can be assisted or weighted, and her own history has Dead Bug
   // at 16 and 18 kg, so neither is listed — anything unlisted keeps its kg field.
