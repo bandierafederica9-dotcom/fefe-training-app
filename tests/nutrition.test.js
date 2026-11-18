@@ -79,8 +79,10 @@ const J = JSON.stringify;
   T('nessun pasto del piano contiene maiale o alcol', colpevoli.length === 0, [...new Set(colpevoli)].join(' | '));
   T('nemmeno la lista della spesa', !VIETATI.test(h.run('JSON.stringify(DIET_SHOPPING)')));
   T('nemmeno le ricette in inglese', !VIETATI.test(h.run('JSON.stringify(DIET_RECIPE_EN)')));
-  T('il piano di partenza invece li conteneva: la regola morde davvero',
-    VIETATI.test(ref.run('JSON.stringify(DIET_DAYS)')));
+  // La regola morde davvero: su un pasto costruito apposta con quello che il
+  // piano non deve contenere, il controllo qui sopra fallisce.
+  T('la regola morde davvero', ['Prosciutto serrano 40 g', 'Vino bianco 100 g', 'Pancetta 30 g']
+    .every(x => VIETATI.test(x)) && !VIETATI.test('Pollo 150 g'));
 
   // Il piano e' stato riallineato al PDF della nutrizionista (11 marzo 2025):
   // la', il maiale e l'alcol non ci sono mai stati. Erano un errore di

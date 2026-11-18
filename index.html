@@ -906,7 +906,7 @@ let strengthEx="Machine Hip Thrust", strengthHist=[], strengthLoading=false;
 let profile=null, userPlan=null, coachMessages=[], coachStep=0;
 
 const k=d=>d.toISOString().slice(0,10);
-const fmtLong=d=>d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+const fmtLong=d=>d.toLocaleDateString(APP_LOCALE(),{weekday:'long',day:'numeric',month:'long'});
 // Normalize legacy English day labels from older backups/localStorage to the current canonical workout keys.
 function canonicalWorkoutDay(day){
   const m=String(day||'').match(/^Day\s*([1-5])$/i);
@@ -1650,7 +1650,7 @@ async function miniLastSession(name,day){
 function coachProgressText(name,day,h){
   if(!h||!h.summary||!h.summary.rows.length)return 'Non trovo ancora una sessione precedente registrata per '+name+'. Quando la registri, potrò confrontarla automaticamente con la prossima.';
   const rows=h.summary.rows.map(function(x){return (x.side?(x.side==='right'?'dx ':'sx '):'')+(x.kg?x.kg+' kg × '+x.r+' reps':x.r+' reps');}).join(' · ');
-  return 'Ultima sessione di '+name+': '+h.date.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' — '+rows+(h.summary.volume?' · volume '+h.summary.volume+' kg':'')+'.';
+  return 'Ultima sessione di '+name+': '+h.date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+' — '+rows+(h.summary.volume?' · volume '+h.summary.volume+' kg':'')+'.';
 }
 function coachRepSuggestion(name,day,h){
   const p=coachPlan()[day],idx=coachFindInDay(day,name),e=idx>-1?p.ex[idx]:null;
@@ -1878,9 +1878,9 @@ function coachLoadHint(day,i,e){
   const tre=runs.slice(0,3);
   if(!tre.every(function(x){return x.topKg===tre[0].topKg;})||!tre[0].topKg)return '';
   const passo=coachLoadStep(exName(e),tre[0].topKg);
-  return '<div class="coach-hint"><b>Suggerimento</b>Tre sedute chiuse a '+tre[0].topKg
-    +' kg. La prossima prova <b>'+String(tre[0].topKg+passo).replace('.',',')+' kg</b>.'
-    +'<em>'+tre.map(function(x){return x.date.toLocaleDateString('it-IT',{day:'numeric',month:'short'});}).reverse().join(' \u00b7 ')+'</em></div>';
+  return '<div class="coach-hint"><b>'+tr('Suggerimento','Suggestion')+'</b>'+tr('Tre sedute chiuse a ','Three sessions closed at ')+tre[0].topKg
+    +tr(' kg. La prossima prova <b>',' kg. Next time try <b>')+(getAppLanguage()==='en'?String(tre[0].topKg+passo):String(tre[0].topKg+passo).replace('.',','))+' kg</b>.'
+    +'<em>'+tre.map(function(x){return x.date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'});}).reverse().join(' \u00b7 ')+'</em></div>';
 }
 
 function coachNotices(){
@@ -1901,8 +1901,8 @@ function coachNotices(){
     if(isTimedExercise([nome,''])||exLoad([nome,''])==='bodyweight')return;
     if(tre.every(function(x){return x.topKg===tre[0].topKg&&x.reps===tre[0].reps;})&&tre[0].topKg>0){
       stalli.push({id:'stallo:'+exId,kind:'stallo',peso:tre[0].topKg,
-        text:nome+': '+tre[0].topKg+' kg \u00d7 '+tre[0].reps+' per tre sedute.',
-        why:'Il '+tre.map(function(x){return x.date.toLocaleDateString('it-IT',{day:'numeric',month:'short'});}).reverse().join(', il ')+'.',
+        text:nome+': '+tre[0].topKg+' kg \u00d7 '+tre[0].reps+tr(' per tre sedute.',' for three sessions.'),
+        why:tr('Il ','On ')+tre.map(function(x){return x.date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'});}).reverse().join(tr(', il ',', on '))+'.',
         urgenza:2});
     }
   });
@@ -1920,26 +1920,26 @@ function coachNotices(){
   // Piu' di due giornate saltate diventano un avviso solo: l'elenco non aiuta.
   if(saltati.length>2){
     items.push({id:'saltato:molti',kind:'saltato',
-      text:saltati.map(function(x){return x.g;}).join(', ')+': nessuna o quasi nelle ultime due settimane.',
-      why:'Sono '+saltati.length+' giornate su '+Object.keys(prev).length+' previste dal calendario.',urgenza:1});
+      text:saltati.map(function(x){return x.g;}).join(', ')+tr(': nessuna o quasi nelle ultime due settimane.',': none or almost none in the last two weeks.'),
+      why:tr('Sono ','That is ')+saltati.length+tr(' giornate su ',' days out of ')+Object.keys(prev).length+tr(' previste dal calendario.',' the calendar plans.'),urgenza:1});
   }else saltati.forEach(function(x){
     items.push({id:'saltato:'+x.g,kind:'saltato',
-      text:x.g+': '+x.veri+' sedute su '+x.attesi+' nelle ultime due settimane.',
-      why:'Il calendario lo mette '+prev[x.g]+(prev[x.g]===1?' volta':' volte')+' a settimana.',urgenza:1});
+      text:x.g+': '+x.veri+tr(' sedute su ',' sessions out of ')+x.attesi+tr(' nelle ultime due settimane.',' in the last two weeks.'),
+      why:tr('Il calendario lo mette ','The calendar sets it ')+prev[x.g]+(prev[x.g]===1?tr(' volta',' time'):tr(' volte',' times'))+tr(' a settimana.',' a week.'),urgenza:1});
   });
   // 3) asimmetria, dalla funzione che gia' esiste
   (asymmetryReport(recentRecords(20))||[]).forEach(function(a){
     items.push({id:'asim:'+a.id,kind:'asimmetria',
-      text:(exNameFromId(a.id)||a.id)+': '+a.pct+'% pi\u00f9 forte a '+(a.stronger==='right'?'destra':'sinistra')+'.',
-      why:'Su '+a.sessions+' sedute con entrambi i lati registrati.',urgenza:3});
+      text:(exNameFromId(a.id)||a.id)+': '+a.pct+tr('% pi\u00f9 forte a ','% stronger on the ')+(a.stronger==='right'?tr('destra','right'):tr('sinistra','left'))+'.',
+      why:tr('Su ','Across ')+a.sessions+tr(' sedute con entrambi i lati registrati.',' sessions with both sides logged.'),urgenza:3});
   });
   // 4) gradino successivo delle skill
   (typeof labSessionToday==='function'?labSessionToday():[]).forEach(function(sk){
     if(!sk||!sk.next||!sk.current)return;
     const runs=coachExerciseRuns(sess,'lab-calisthenics__'+String(sk.current[0]||'').toLowerCase().replace(/[^a-z0-9]+/g,'-'));
     if(runs.length>=2)items.push({id:'skill:'+sk.skill,kind:'skill',
-      text:sk.skill+': il gradino dopo \u00e8 '+sk.next[0]+'.',
-      why:'Hai registrato il gradino attuale in '+runs.length+' sedute. Sali solo se te la senti.',urgenza:4});
+      text:sk.skill+tr(': il gradino dopo \u00e8 ',': the next rung is ')+sk.next[0]+'.',
+      why:tr('Hai registrato il gradino attuale in ','You have logged the current rung in ')+runs.length+tr(' sedute. Sali solo se te la senti.',' sessions. Move up only if you feel ready.'),urgenza:4});
   });
   items.sort(function(a,b){return a.urgenza-b.urgenza;});
   // Tetto complessivo: oltre cinque avvisi smette di essere un consiglio.
@@ -1962,16 +1962,16 @@ function coachUnreadCount(){
 }
 function coachNoticesHTML(){
   const n=coachNotices();
-  if(!n.ready)return '<div class="card"><div class="note"><b>Ancora pochi dati.</b><br>Il coach si accende a '
-    +COACH_MIN_SESSIONS+' sedute pulite: ne ho contate '+n.valide+', ne mancano '+n.mancano+'. '
-    +'Non conto le giornate vuote, quelle con esercizi di piu\u2019 giorni mescolati e i valori impossibili.</div></div>';
-  if(!n.items.length)return '<div class="card"><div class="note"><b>Niente da segnalare.</b><br>'
-    +n.valide+' sedute pulite lette, nessuno stallo, nessun giorno saltato, nessuna asimmetria sopra il 5%.</div></div>';
+  if(!n.ready)return '<div class="card"><div class="note"><b>'+tr('Ancora pochi dati.','Not enough data yet.')+'</b><br>'+tr('Il coach si accende a ','The coach switches on at ')
+    +COACH_MIN_SESSIONS+tr(' sedute pulite: ne ho contate ',' clean sessions: I counted ')+n.valide+tr(', ne mancano ',', ')+n.mancano+tr('. ',' to go. ')
+    +tr('Non conto le giornate vuote, quelle con esercizi di piu\u2019 giorni mescolati e i valori impossibili.','I skip empty days, days mixing exercises from several workouts, and impossible values.')+'</div></div>';
+  if(!n.items.length)return '<div class="card"><div class="note"><b>'+tr('Niente da segnalare.','Nothing to flag.')+'</b><br>'
+    +n.valide+tr(' sedute pulite lette, nessuno stallo, nessun giorno saltato, nessuna asimmetria sopra il 5%.',' clean sessions read: no plateau, no missed day, no imbalance above 5%.')+'</div></div>';
   const ICONA={stallo:'\u23f8',saltato:'\ud83d\udcc5',asimmetria:'\u2696\ufe0f',skill:'\ud83e\udd38'};
-  return '<div class="card coach-notices"><div class="coach-notices-head">Il coach ha notato</div>'
+  return '<div class="card coach-notices"><div class="coach-notices-head">'+tr('Il coach ha notato','The coach noticed')+'</div>'
     +n.items.map(function(x){return '<div class="coach-notice"><span>'+(ICONA[x.kind]||'\u2022')+'</span>'
       +'<div><b>'+esc(x.text)+'</b><em>'+esc(x.why)+'</em></div></div>';}).join('')
-    +'<div class="note" style="margin-top:10px">Sono osservazioni sui tuoi dati, non istruzioni: non cambio niente da solo.</div></div>';
+    +'<div class="note" style="margin-top:10px">'+tr('Sono osservazioni sui tuoi dati, non istruzioni: non cambio niente da solo.','These are observations on your own data, not instructions: I change nothing by myself.')+'</div></div>';
 }
 
 function coachHTML(){
@@ -2302,7 +2302,7 @@ function heroAssetForDay(day){
 }
 
 function topHTML(){
-  const gh=new Date().getHours(); const g=gh<6?"Ancora sveglia":gh<12?"Buongiorno":gh<18?"Buon pomeriggio":"Buonasera";
+  const gh=new Date().getHours(); const g=gh<6?tr("Ancora sveglia","Still up"):gh<12?tr("Buongiorno","Good morning"):gh<18?tr("Buon pomeriggio","Good afternoon"):tr("Buonasera","Good evening");
   const p=dayPlan(data.day), dc=doneCount(data,data.day), t=tot(data), profileName=(profile&&profile.name)||'Fede';
   const segs=[dc.done>0,dc.done===dc.tot&&dc.tot>0,t.kc>0,t.pr>=goals.prot*0.8,!!data.weight];
   const heroDayClass=(/^(Giorno|Day) 1$/i.test(data.day)?'hero-day1':/^(Giorno|Day) 2$/i.test(data.day)?'hero-day2':/^(Giorno|Day) 3$/i.test(data.day)?'hero-day3':/^(Giorno|Day) 4$/i.test(data.day)?'hero-day4':/^(Giorno|Day) 5$/i.test(data.day)?'hero-day5':'hero-rest');
@@ -2416,7 +2416,7 @@ function agendaHTML(){
     const isT=k(a.d)===k(cur);
     const done=dc.tot>0&&dc.done===dc.tot;
     h+='<div class="agrow'+(isT?' today':'')+'" data-date="'+k(a.d)+'">'+
-      '<div class="d"><u>'+a.d.toLocaleDateString('it-IT',{weekday:'short'}).slice(0,3)+'</u><b>'+a.d.getDate()+'</b></div>'+
+      '<div class="d"><u>'+a.d.toLocaleDateString(APP_LOCALE(),{weekday:'short'}).slice(0,3)+'</u><b>'+a.d.getDate()+'</b></div>'+
       '<div class="info"><b>'+pl.em+' '+day+'</b>'+
       '<span>'+pl.t+(dc.tot?' · '+dc.done+'/'+dc.tot+' serie':'')+
       (saved?'':' · da fare')+'</span></div>'+
@@ -2447,7 +2447,7 @@ function agendaHTML(){
 function warmupHTML(){
   const warm=warmFor(data.day);
   let h=hdr("Riscaldamento",dayPlan(data.day).t);
-  h+='<div class="wrap"><div class="card"><div class="note">'+(data.day==="Giorno 3"?"Prepara polsi e spalle prima della skill Frog Stand e del lavoro di spinta.":"Fai il riscaldamento prima della seduta: prepara le articolazioni e attiva i distretti che lavorerai nella sessione.")+' Tocca per segnare come fatto.</div></div>';
+  h+='<div class="wrap"><div class="card"><div class="note">'+(data.day==="Giorno 3"?tr("Prepara polsi e spalle prima della skill Frog Stand e del lavoro di spinta.","Prepares your wrists and shoulders for the Frog Stand skill and the pushing work."):tr("Fai il riscaldamento prima della seduta: prepara le articolazioni e attiva i distretti che lavorerai nella sessione.","Warm up before the session: it prepares the joints and wakes up the areas you'll be training."))+tr(' Tocca per segnare come fatto.',' Tap to mark as done.')+'</div></div>';
   warm.forEach(function(x,i){
     const id=data.day+'|'+i, on=!!data.warm[id];
     h+='<div class="card" style="display:flex;align-items:center;gap:12px">'+
@@ -2750,7 +2750,7 @@ function exerciseHTML(){
   }
   h+='</div>';
   if(lastExLoading)h+='<div class="histbadge" style="margin-bottom:12px">🕓 Carico lo storico…</div>';
-  else if(lastEx)h+='<details class="history-details lasttime-wrap"><summary>📊 Vedi cosa hai fatto l\'ultima volta</summary><div class="history-meta">'+lastExDate.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})+'</div>'+Object.keys(lastEx).sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true});}).map(function(sn){const x=lastEx[sn],parts=sn.split('-'),label=parts.length===2?'Set '+parts[0]+' · '+sideLabel(e,parts[1]):'Set '+sn;return '<div class="history-row"><span>'+label+'</span><b>'+(x.kg?esc(x.kg)+' kg':'—')+' × '+(x.sec?esc(x.sec)+' sec':(x.r?esc(x.r)+' reps':'—'))+'</b></div>';}).join('')+'</details>';  h+=progressCardHTML(e); h+='<div class="rest-box"><div><div style="font-size:10px;color:var(--dim);font-weight:800">'+(getAppLanguage()==='en'?'REST TIMER':'RECUPERO')+'</div><div class="rest-time" id="restTimer">'+Math.floor(restSecondsForExercise(e[1])/60).toString().padStart(2,'0')+':'+(restSecondsForExercise(e[1])%60).toString().padStart(2,'0')+'</div></div><div class="rest-actions"><button data-rest-start>▶</button><button data-rest-add="30">+30s</button><button data-rest-reset>↺</button></div></div>';
+  else if(lastEx)h+='<details class="history-details lasttime-wrap"><summary>📊 Vedi cosa hai fatto l\'ultima volta</summary><div class="history-meta">'+lastExDate.toLocaleDateString(APP_LOCALE(),{weekday:'long',day:'numeric',month:'long'})+'</div>'+Object.keys(lastEx).sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true});}).map(function(sn){const x=lastEx[sn],parts=sn.split('-'),label=parts.length===2?'Set '+parts[0]+' · '+sideLabel(e,parts[1]):'Set '+sn;return '<div class="history-row"><span>'+label+'</span><b>'+(x.kg?esc(x.kg)+' kg':'—')+' × '+(x.sec?esc(x.sec)+' sec':(x.r?esc(x.r)+' reps':'—'))+'</b></div>';}).join('')+'</details>';  h+=progressCardHTML(e); h+='<div class="rest-box"><div><div style="font-size:10px;color:var(--dim);font-weight:800">'+(getAppLanguage()==='en'?'REST TIMER':'RECUPERO')+'</div><div class="rest-time" id="restTimer">'+Math.floor(restSecondsForExercise(e[1])/60).toString().padStart(2,'0')+':'+(restSecondsForExercise(e[1])%60).toString().padStart(2,'0')+'</div></div><div class="rest-actions"><button data-rest-start>▶</button><button data-rest-add="30">+30s</button><button data-rest-reset>↺</button></div></div>';
   const tabs=[['video','Video'],['instructions','Istruzioni'],['muscles','Muscoli'],['tips','Consigli']];
   h+='<div class="exercise-tabs-v5">'+tabs.map(function(t){return '<button type="button" class="'+(exerciseTab===t[0]?'on':'')+'" data-ex-tab="'+t[0]+'">'+t[1]+'</button>';}).join('')+'</div>';
   const cues=localizedCues(e[0]).slice(0,5);
@@ -2816,7 +2816,7 @@ function exerciseHTML(){
   if(exIdx===0&&!isLabDay(exDay())){
     const wu=warmFor(exDay())||[];
     const anyTicked=wu.some(function(x,i){return !!data.warm[exDay()+'|'+i];});
-    if(wu.length&&!anyTicked)h+='<button class="warm-hint" data-seeall="1">Riscaldamento non ancora spuntato · aprilo nella giornata</button>';
+    if(wu.length&&!anyTicked)h+='<button class="warm-hint" data-seeall="1">'+tr('Riscaldamento non ancora spuntato · aprilo nella giornata','Warm-up not ticked yet · open it inside the session')+'</button>';
   }
   h+=coachLoadHint(exDay(),exIdx,dayPlan(exDay()).ex[exIdx]);
   h+='<button class="see-all" data-seeall="1">☰ Tutta la giornata</button>';
@@ -2973,6 +2973,9 @@ const DIET_SLOT_KEYS={
 function dietLang(v){return getAppLanguage()==='en'?(v.en||v.n||v.title||v.slot||v):((v.it||v.n||v.title||v.slot||v));}
 function dietEnglishText(s){
   if(getAppLanguage()!=='en')return s||''; let x=String(s||'');
+  // Il dizionario dell'app vince sulle coppie parola-per-parola: una frase intera
+  // tradotta per intero non deve essere spezzata da una sostituzione parziale.
+  if(Object.prototype.hasOwnProperty.call(APP_EN,x))return APP_EN[x];
   const pairs=[
    ['Tostata senza glutine con pomodoro e uova strapazzate','Gluten-free toast with tomato and scrambled eggs'],['Tostata senza glutine con hummus','Gluten-free toast with hummus'],['Mini muffin ai mirtilli','Blueberry mini muffins'],['Porridge con bevanda di mandorle, mirtilli e noci','Almond milk porridge with blueberries and walnuts'],['Pancake di avena e banana con mela e cannella','Oat and banana pancakes with apple and cinnamon'],['Riso basmati con pollo e verdure al curry','Basmati rice with chicken and curry vegetables'],['Pasta senza glutine con zucchine, spinaci, manzo e anacardi','Gluten-free pasta with zucchini, spinach, beef and cashews'],['Tofu all’aglio con broccoli e quinoa','Garlic tofu with broccoli and quinoa'],['Insalata agrodolce di ceci','Sweet and sour chickpea salad'],['Gnocchi al forno con feta e pomodorini','Baked gnocchi with feta and cherry tomatoes'],['Tacos di insalata di pollo','Chicken salad tacos'],['Chips di patata al forno e filetto di manzo con asparagi','Baked potato chips and beef fillet with asparagus'],['Purè di patate e baccalà alla piastra con verdure','Mashed potatoes and grilled cod with vegetables'],['Insalata di riso con verdure e tonno','Rice salad with vegetables and tuna'],['Uova alla diavola','Deviled eggs'],['Insalata di songino, mais, tonno, tacchino e noci','Lamb’s lettuce, corn, tuna, turkey and walnut salad'],['Tonno alla piastra con pisto e chips di patata','Grilled tuna with vegetable pisto and potato chips'],['Uova strapazzate con tonno e avocado','Scrambled eggs with tuna and avocado'],['Shake proteico con banana e frutta secca','Protein shake with banana and nuts'],['Frutta','Fruit'],['Banana','Banana'],
    ['Pane di mais','Corn bread'],['Uovo di gallina','Egg'],['Pomodoro triturato naturale','Natural crushed tomato'],['Olio di oliva','Olive oil'],['Formaggio Havarti Light','Light Havarti cheese'],['Mela rossa','Red apple'],['Riso basmati crudo','Raw basmati rice'],['Pollo','Chicken'],['Brodo di pollo','Chicken broth'],['Peperone rosso','Red pepper'],['Cipolla','Onion'],['Pepe bianco','White pepper'],['Cioccolato fondente','Dark chocolate'],['Proteina ISO ChocoMonkey','ISO protein ChocoMonkey'],['Burro di arachidi','Peanut butter'],['Bevanda di mandorle','Almond drink'],['Semi di lino','Flax seeds'],['Mandorle macinate','Ground almonds'],['Mandorle','Almonds'],['Noci','Walnuts'],['Mirtilli','Blueberries'],['Hummus','Hummus'],['Latte scremato','Skimmed milk'],['Vaniglia','Vanilla'],['Lievito','Baking powder'],['Sale','Salt'],['Edulcorante','Sweetener'],['Miele','Honey'],['Manzo magro','Lean beef'],['Spinaci','Spinach'],['Pasta senza glutine','Gluten-free pasta'],['Zucchine','Zucchini'],['Anacardi','Cashews'],['Patata dolce','Sweet potato'],['Pesce spada','Swordfish'],['Peperone verde','Green pepper'],['Yogurt proteico senza lattosio','Lactose-free high-protein yogurt'],['Tofu','Tofu'],['Aglio','Garlic'],['Prezzemolo','Parsley'],['Broccoli','Broccoli'],['Songino','Lamb’s lettuce'],['Tonno in acqua','Tuna in water'],['Petto di tacchino','Turkey breast'],['Mais dolce','Sweetcorn'],['Pane tostato senza glutine','Gluten-free crispbread'],['Ceci cotti','Cooked chickpeas'],['Carota','Carrot'],['Uvetta','Raisins'],['Succo d’arancia','Orange juice'],['Aceto balsamico','Balsamic vinegar'],['Origano','Oregano'],['Pepe nero','Black pepper'],['Patata','Potato'],['Tonno','Tuna'],['Pomodorini','Cherry tomatoes'],['Feta','Feta'],['Basilico','Basil'],['Fajitas di mais','Corn tortillas'],['Avocado','Avocado'],['Cetriolo','Cucumber'],['Ravanelli','Radishes'],['Succo di limone','Lemon juice'],['Coriandolo','Coriander'],['Limone','Lemon'],['Farina di avena','Oat flour'],['Albumi pastorizzati','Pasteurised egg whites'],['Cannella','Cinnamon'],['Asparagi','Asparagus'],['Baccalà fresco','Fresh cod'],['Aneto secco','Dried dill'],['Lattuga','Lettuce'],['Aceto','Vinegar'],['Pimienta','Pepper'],['Cereali e derivati','Cereals and derivatives'],['Carne, pesce e uova','Meat, fish and eggs'],['Verdura','Vegetables'],['Oli e grassi','Oils and fats'],['Latticini e bevande','Dairy and drinks'],['Frutta','Fruit'],['Dispensa e altro','Pantry and other'],['Patate, legumi e frutta secca','Potatoes, legumes and nuts'],['Uova','Eggs'],['Latticini','Dairy'],['Crostacei','Crustaceans'],['Sedano','Celery'],['Pesce','Fish'],['Molluschi','Molluscs'],['Soia','Soy'],['Frutta a guscio','Tree nuts'],['Arachidi','Peanuts'],['Glutine','Gluten'],['Sesamo','Sesame'],['Solfiti','Sulphites'],['Pezzo piccolo','small piece'],['g (1 pezzo piccolo)','g (1 small piece)'],['g (1 uova M)','g (2 medium eggs)']
@@ -3099,6 +3102,8 @@ const BUILD_ROLES={
     'Melanzane','Funghi','Broccoli','Spinaci','Zucchine','Asparagi','Peperone rosso',
     'Peperone verde','Pomodoro','Pomodorini','Cetriolo','Lattuga','Songino','Carota','Cipolla']}
 };
+const BUILD_LABEL_EN={prot:'Protein',carb:'Carbs',fat:'Fats',veg:'Vegetables'};
+const BUILD_HINT_EN={prot:'1 portion = 30 g of protein',carb:'1 portion = 230 kcal',fat:'1 portion = 130 kcal',veg:'1 portion = 200 g'};
 function buildRound(g){return g>=50?Math.round(g/5)*5:Math.round(g);}
 function buildPortion(role,name){
   const v=DIET_NUTRI[name]; if(!v)return 0;
@@ -3154,7 +3159,10 @@ function buildCounts(){return {prot:buildSel.prot?1:0, carb:buildSel.carb.length
   fat:buildSel.fat.length, veg:buildSel.veg.length};}
 const BUILD_WORD={prot:['proteina','proteine'],carb:['carboidrato','carboidrati'],
   fat:['grasso','grassi'],veg:['verdura','verdure']};
-function buildWord(role,n){return n+' '+BUILD_WORD[role][n===1?0:1];}
+const BUILD_WORD_EN={prot:['protein','proteins'],carb:['carb','carbs'],
+  fat:['fat','fats'],veg:['vegetable','vegetables']};
+function buildWords(role){return getAppLanguage()==='en'?BUILD_WORD_EN[role]:BUILD_WORD[role];}
+function buildWord(role,n){return n+' '+buildWords(role)[n===1?0:1];}
 function buildCountsText(){
   const c=buildCounts(), out=[];
   ['prot','carb','fat','veg'].forEach(function(r){if(c[r])out.push(buildWord(r,c[r]));});
@@ -3163,14 +3171,14 @@ function buildCountsText(){
 function buildAdviceText(){
   const c=buildCounts(), g=buildTarget();
   if(!c.prot&&!c.carb&&!c.fat&&!c.veg)
-    return 'Tocca una porzione per colonna. Una porzione vale sempre quanto un\u2019altra della stessa colonna: non devi pesare col pensiero.';
-  if(!c.prot)return 'Manca 1 proteina: \u00e8 la colonna che regge il piatto.';
+    return tr('Tocca una porzione per colonna. Una porzione vale sempre quanto un\u2019altra della stessa colonna: non devi pesare col pensiero.','Tap one portion per column. Within a column every portion counts the same: no weighing in your head.');
+  if(!c.prot)return tr('Manca 1 proteina: \u00e8 la colonna che regge il piatto.','1 protein missing: it\u2019s the column the dish rests on.');
   const manca=[],troppi=[];
   ['carb','fat','veg'].forEach(function(r){const d=g[r]-c[r]; if(d>0)manca.push('+'+buildWord(r,d));});
   ['carb','fat'].forEach(function(r){const d=c[r]-g[r]; if(d>0)troppi.push('\u2212'+buildWord(r,d));});
-  if(manca.length)return 'Per '+(buildGym?'un giorno di palestra':'una sera normale')+' aggiungi: '+manca.join(', ')+'.';
-  if(troppi.length)return 'Pi\u00f9 ricca del necessario: togli '+troppi.join(', ')+'.';
-  return 'Cena completa per '+(buildGym?'un giorno di palestra':'una sera normale')+'.';
+  if(manca.length)return tr('Per ','For ')+(buildGym?tr('un giorno di palestra','a gym day'):tr('una sera normale','an ordinary evening'))+tr(' aggiungi: ',' add: ')+manca.join(', ')+'.';
+  if(troppi.length)return tr('Pi\u00f9 ricca del necessario: togli ','Richer than it needs to be: drop ')+troppi.join(', ')+'.';
+  return tr('Cena completa per ','A complete dinner for ')+(buildGym?tr('un giorno di palestra','a gym day'):tr('una sera normale','an ordinary evening'))+'.';
 }
 
 /* Dalla scelta al piatto. Niente modelli e niente chiamate: sono regole sul
@@ -3194,77 +3202,81 @@ function buildDish(){
   const P=buildSel.prot, Cs=buildSel.carb.slice(), C=Cs[0]||'', V=buildSel.veg.slice(), F=buildSel.fat.slice();
   if(!P)return null;
   const kp=buildKind(P), kc=buildKind(C), g=buildItemTotals.bind(null);
-  const qty=function(role,n){return n+' '+buildGramsFor(role,n)+' g';};
-  const elenco=function(a){const l=a.map(function(x){return x.toLowerCase();});
-    return l.length<2?(l[0]||''):l.slice(0,-1).join(', ')+' e '+l[l.length-1];};
-  const verdure=V.length?elenco(V):'le verdure che hai';
-  const olio=F.indexOf('Olio di oliva')>-1?'Olio di oliva '+buildItemTotals('fat','Olio di oliva').g+' g':'un filo d\u2019olio';
+  const nm=function(x){return getAppLanguage()==='en'?dietEnglishText(x):x;};
+  const qty=function(role,n){return nm(n)+' '+buildGramsFor(role,n)+' g';};
+  const elenco=function(a){const l=a.map(function(x){return nm(x).toLowerCase();});
+    return l.length<2?(l[0]||''):l.slice(0,-1).join(', ')+tr(' e ',' and ')+l[l.length-1];};
+  const verdure=V.length?elenco(V):tr('le verdure che hai','the vegetables you have');
+  const olio=F.indexOf('Olio di oliva')>-1?nm('Olio di oliva')+' '+buildItemTotals('fat','Olio di oliva').g+' g':tr('un filo d\u2019olio','a drizzle of oil');
   const passi=[], nome=[];
   // 1) il contorno di carboidrati decide l'impianto
   if(kc==='forno'){
-    nome.push(C+' al forno');
-    passi.push('Forno a 200\u00b0. '+qty('carb',C)+' a tocchetti con met\u00e0 dell\u2019olio, sale e rosmarino: 30-35 minuti.');
+    nome.push(nm(C)+tr(' al forno',', roasted'));
+    passi.push(tr('Forno a 200\u00b0. ','Oven at 200\u00b0. ')+qty('carb',C)+tr(' a tocchetti con met\u00e0 dell\u2019olio, sale e rosmarino: 30-35 minuti.',' in chunks with half the oil, salt and rosemary: 30-35 minutes.'));
   }else if(kc==='lesso'){
-    nome.push(C);
-    passi.push('Metti su '+qty('carb',C)+' e cuocilo come da confezione, a parte.');
+    nome.push(nm(C));
+    passi.push(tr('Metti su ','Put on ')+qty('carb',C)+tr(' e cuocilo come da confezione, a parte.',' and cook it as per the packet, separately.'));
   }else if(kc==='freddo'&&C){
-    nome.push(C);
-    passi.push(qty('carb',C)+': tienilo da parte, va aggiunto alla fine senza cottura.');
+    nome.push(nm(C));
+    passi.push(qty('carb',C)+tr(': tienilo da parte, va aggiunto alla fine senza cottura.',': set it aside, it goes in at the end uncooked.'));
   }
   // 2) le verdure
-  if(Cs.length>1)passi.push(Cs.slice(1).map(function(n){return qty('carb',n);}).join(' e ')+': a parte, come da confezione.');
-  if(V.length)passi.push(V.map(function(n){return qty('veg',n);}).join(' e ')+': in padella larga a fuoco vivo con poco olio, 6-8 minuti, finch\u00e9 prendono colore. Mettile da parte.');
+  if(Cs.length>1)passi.push(Cs.slice(1).map(function(n){return qty('carb',n);}).join(tr(' e ',' and '))+tr(': a parte, come da confezione.',': separately, as per the packet.'));
+  if(V.length)passi.push(V.map(function(n){return qty('veg',n);}).join(tr(' e ',' and '))+tr(': in padella larga a fuoco vivo con poco olio, 6-8 minuti, finch\u00e9 prendono colore. Mettile da parte.',': in a wide pan over a high heat with a little oil, 6-8 minutes, until they colour. Set them aside.'));
   // 3) la proteina, secondo il tipo
   if(kp==='carne'){
-    nome.unshift(P);
-    passi.push('Stessa padella, fuoco alto: '+qty('prot',P)+', 3-4 minuti solo per sigillarlo. Sala e pepa a fine cottura.');
+    nome.unshift(nm(P));
+    passi.push(tr('Stessa padella, fuoco alto: ','Same pan, high heat: ')+qty('prot',P)+tr(', 3-4 minuti solo per sigillarlo. Sala e pepa a fine cottura.',', 3-4 minutes just to seal it. Salt and pepper at the end.'));
   }else if(kp==='pesce'){
-    nome.unshift(P);
-    passi.push(qty('prot',P)+' alla piastra o in padella, 3-4 minuti per lato, finch\u00e9 si sfalda. Limone alla fine.');
+    nome.unshift(nm(P));
+    passi.push(qty('prot',P)+tr(' alla piastra o in padella, 3-4 minuti per lato, finch\u00e9 si sfalda. Limone alla fine.',' on the griddle or in a pan, 3-4 minutes a side, until it flakes. Lemon at the end.'));
   }else if(kp==='pesce-pronto'){
-    nome.unshift(P);
-    passi.push(qty('prot',P)+' sgocciolato: va aggiunto a fine cottura, non cuocerlo.');
+    nome.unshift(nm(P));
+    passi.push(qty('prot',P)+tr(' sgocciolato: va aggiunto a fine cottura, non cuocerlo.',', drained: add it at the end, don\u2019t cook it.'));
   }else if(kp==='uova'){
-    nome.unshift(P==='Uova'?'uova':'albumi');
-    passi.push('Rimetti le verdure in padella, fai delle conche e rompici dentro '+qty('prot',P)+'. Coperchio, 4-5 minuti: albume rappreso, tuorlo morbido.');
+    nome.unshift(P==='Uova'?tr('uova','eggs'):tr('albumi','egg whites'));
+    passi.push(tr('Rimetti le verdure in padella, fai delle conche e rompici dentro ','Return the vegetables to the pan, make wells and crack in ')+qty('prot',P)+tr('. Coperchio, 4-5 minuti: albume rappreso, tuorlo morbido.','. Lid on, 4-5 minutes: whites set, yolk soft.'));
   }else if(kp==='tofu'){
-    nome.unshift(P);
-    passi.push(qty('prot',P)+' a cubi, rosolato con aglio 6-7 minuti finch\u00e9 dora sui lati.');
+    nome.unshift(nm(P));
+    passi.push(qty('prot',P)+tr(' a cubi, rosolato con aglio 6-7 minuti finch\u00e9 dora sui lati.',' in cubes, browned with garlic for 6-7 minutes until golden on all sides.'));
   }else{
-    nome.unshift(P);
-    passi.push(qty('prot',P)+': non va cotto, aggiungilo al piatto a fine preparazione.');
+    nome.unshift(nm(P));
+    passi.push(qty('prot',P)+tr(': non va cotto, aggiungilo al piatto a fine preparazione.',': no cooking needed, add it to the plate at the end.'));
   }
   // 4) i grassi che non sono olio da cottura
   const crudi=F.filter(function(n){return n!=='Olio di oliva';});
-  if(crudi.length)passi.push(crudi.map(function(n){return qty('fat',n);}).join(' e ')+': a crudo sul piatto, a fine cottura.');
+  if(crudi.length)passi.push(crudi.map(function(n){return qty('fat',n);}).join(tr(' e ',' and '))+tr(': a crudo sul piatto, a fine cottura.',': raw on the plate, at the end.'));
   // 5) chiusura
-  if(kp!=='uova'&&V.length)passi.push('Rimetti le verdure in padella con la proteina, mescola e servi'+(kc==='lesso'&&C?' con '+C.toLowerCase()+' a parte.':'.'));
+  if(kp!=='uova'&&V.length)passi.push(tr('Rimetti le verdure in padella con la proteina, mescola e servi','Return the vegetables to the pan with the protein, stir and serve')+(kc==='lesso'&&C?tr(' con ',' with ')+nm(C).toLowerCase()+tr(' a parte.',' on the side.'):'.'));
   const pulito=function(x){return String(x).replace(/ crud[oa]$/i,'').replace(/ cotti$/i,'')
     .replace(/^Petto di /,'').replace(/ fresco$/i,'').replace(/ magro$/i,'')
     .replace(/ al naturale$/i,'').replace(/ senza lattosio$/i,'');};
-  const pl=pulito(P).toLowerCase();
-  const forma={carne:'Padellata di ',pesce:'',uova:'',tofu:'Saltato di ','pesce-pronto':'Insalata di ',
-               freddo:'Piatto freddo con ',formaggio:''}[kp];
-  const chiusa={pesce:' alla piastra',uova:' in padella',formaggio:''}[kp]||'';
+  const pl=nm(pulito(P)).toLowerCase();
+  const forma=(getAppLanguage()==='en'
+    ?{carne:'Pan-fried ',pesce:'',uova:'',tofu:'Stir-fried ','pesce-pronto':'Salad with ',freddo:'Cold plate with ',formaggio:''}
+    :{carne:'Padellata di ',pesce:'',uova:'',tofu:'Saltato di ','pesce-pronto':'Insalata di ',freddo:'Piatto freddo con ',formaggio:''})[kp];
+  const chiusa=(getAppLanguage()==='en'
+    ?{pesce:', griddled',uova:'',formaggio:''}
+    :{pesce:' alla piastra',uova:' in padella',formaggio:''})[kp]||'';
   let testa=(forma||'')+pl+chiusa;
-  if(kp==='uova')testa='Uova in padella';
+  if(kp==='uova')testa=tr('Uova in padella','Pan eggs');
   testa=testa.charAt(0).toUpperCase()+testa.slice(1);
-  const conVerdure=V.map(function(x){return x.toLowerCase();});
-  const contorno=C?pulito(C).toLowerCase()+(kc==='forno'?' al forno':''):'';
+  const conVerdure=V.map(function(x){return nm(x).toLowerCase();});
+  const contorno=C?nm(pulito(C)).toLowerCase()+(kc==='forno'?tr(' al forno',', roasted'):''):'';
   let titolo=testa;
-  if(conVerdure.length)titolo+=' con '+elenco(conVerdure);
-  if(contorno)titolo+=(conVerdure.length?', ':' con ')+contorno;
+  if(conVerdure.length)titolo+=tr(' con ',' with ')+(conVerdure.length<2?conVerdure[0]:conVerdure.slice(0,-1).join(', ')+tr(' e ',' and ')+conVerdure[conVerdure.length-1]);
+  if(contorno)titolo+=(conVerdure.length?', ':tr(' con ',' with '))+contorno;
   return {titolo:titolo.charAt(0).toUpperCase()+titolo.slice(1), passi:passi, olio:olio};
 }
 function buildIngredientsHTML(){
   const c=buildChosen(); if(!c.length)return '';
-  let h='<div class="build-ing"><div class="build-ing-head">Ingredienti</div>';
-  c.forEach(function(x){const t=buildItemTotals(x[0],x[1]);
-    h+='<div class="build-line"><span><i class="build-tag">'+BUILD_WORD[x[0]][0]+'</i>'+esc(x[1])+'</span><b>'+buildGramsFor(x[0],x[1])+' g</b>'
-      +(buildPeople>1?'<em class="build-each">'+t.g+' g a testa</em>':'')+'</div>';});
-  return h+'<div class="note" style="margin-top:8px">In porzioni, a testa: '+buildCountsText()
-    +'. I grammi qui sopra sono per '+(buildPeople===1?'una persona':buildPeople+' persone')
-    +'. Sale, pepe, aglio, limone ed erbe a piacere: non cambiano i conti.</div></div>';
+  let h='<div class="build-ing"><div class="build-ing-head">'+tr('Ingredienti','Ingredients')+'</div>';
+  c.forEach(function(x){const tot=buildItemTotals(x[0],x[1]);
+    h+='<div class="build-line"><span><i class="build-tag">'+buildWords(x[0])[0]+'</i>'+esc(getAppLanguage()==='en'?dietEnglishText(x[1]):x[1])+'</span><b>'+buildGramsFor(x[0],x[1])+' g</b>'
+      +(buildPeople>1?'<em class="build-each">'+tot.g+tr(' g a testa',' g each')+'</em>':'')+'</div>';});
+  return h+'<div class="note" style="margin-top:8px">'+tr('In porzioni, a testa: ','In portions, each: ')+buildCountsText()
+    +tr('. I grammi qui sopra sono per ','. The grams above are for ')+(buildPeople===1?tr('una persona','one person'):buildPeople+tr(' persone',' people'))
+    +tr('. Sale, pepe, aglio, limone ed erbe a piacere: non cambiano i conti.','. Salt, pepper, garlic, lemon and herbs to taste: they don\u2019t change the numbers.')+'</div></div>';
 }
 // Salva la ricetta nel diario di oggi: una voce per ingrediente, cosi' il
 // diario resta modificabile riga per riga come tutto il resto.
@@ -3287,18 +3299,18 @@ let buildSaved='', buildSavedOk=false;
 
 function buildDishHTML(){
   const d=buildDish();
-  if(!d)return '<div class="card build-dish build-dish-empty"><div class="build-dish-head">Che cena fare</div>'
-    +'<p>Scegli una <b>proteina</b> qui sotto e il piatto compare qui, con i passi e i tempi. '
-    +'\u00c8 la colonna che regge la cena: senza, non c\u2019\u00e8 un piatto da proporti.</p>'
+  if(!d)return '<div class="card build-dish build-dish-empty"><div class="build-dish-head">'+tr('Che cena fare','What to cook tonight')+'</div>'
+    +'<p>'+tr('Scegli una <b>proteina</b> qui sotto e il piatto compare qui, con i passi e i tempi. ','Pick a <b>protein</b> below and the dish appears here, with the steps and the timings. ')
+    +tr('\u00c8 la colonna che regge la cena: senza, non c\u2019\u00e8 un piatto da proporti.','It\u2019s the column the dinner rests on: without it there\u2019s no dish to suggest.')+'</p>'
     +(buildSaved?'<div class="build-saved">'+esc(buildSaved)+'</div>':'')+'</div>';
-  const t=buildTotals();
-  let h='<div class="card build-dish"><div class="build-dish-head">La ricetta di stasera</div><h3>'+esc(d.titolo)+'</h3>'
-    +'<div class="build-dish-meta">'+t.kcal+' kcal \u00b7 '+t.prot+' g di proteine \u00b7 a persona'
-      +(buildPeople>1?' \u00b7 dosi per '+buildPeople+'':'')+'</div>'
+  const tt=buildTotals();
+  let h='<div class="card build-dish"><div class="build-dish-head">'+tr('La ricetta di stasera','Tonight\u2019s recipe')+'</div><h3>'+esc(d.titolo)+'</h3>'
+    +'<div class="build-dish-meta">'+tt.kcal+' kcal \u00b7 '+tt.prot+tr(' g di proteine \u00b7 a persona',' g of protein \u00b7 per person')
+      +(buildPeople>1?tr(' \u00b7 dosi per ',' \u00b7 for ')+buildPeople:'')+'</div>'
     +buildIngredientsHTML()
     +'<div class="build-ing-head" style="margin-top:14px">Procedimento</div><ol>';
   d.passi.forEach(function(x){h+='<li>'+esc(x)+'</li>';});
-  h+='</ol><button class="btn" data-buildsave="1" style="margin-top:14px">Salvala nella cena di oggi</button>';
+  h+='</ol><button class="btn" data-buildsave="1" style="margin-top:14px">'+tr('Salvala nella cena di oggi','Save it to today\u2019s dinner')+'</button>';
   if(buildSaved)h+='<div class="build-saved">'+esc(buildSaved)
     +(buildSavedOk?'<button class="btn ghost" data-go="diario">Apri il diario \u2192</button>':'')+'</div>';
   return h+'</div>';
@@ -3308,7 +3320,7 @@ function buildColumnHTML(role){
   const r=BUILD_ROLES[role];
   const multi=(role==='fat'||role==='veg');
   const sel=multi?buildSel[role]:[buildSel[role]].filter(Boolean);
-  let h='<div class="build-col"><div class="build-col-head"><b>'+r.label+'</b><span>'+r.hint+'</span></div>';
+  let h='<div class="build-col"><div class="build-col-head"><b>'+esc(tr(r.label,BUILD_LABEL_EN[role]||r.label))+'</b><span>'+esc(tr(r.hint,BUILD_HINT_EN[role]||r.hint))+'</span></div>';
   r.items.forEach(function(n){
     if(!DIET_NUTRI[n])return;
     const t=buildItemTotals(role,n), on=sel.indexOf(n)>-1;
@@ -3320,26 +3332,26 @@ function buildColumnHTML(role){
   return h+'</div>';
 }
 function buildHTML(){
-  const t=buildTotals(), g=buildTarget();
-  let h='<div class="card"><div class="note">Quando in casa non c\u2019\u00e8 quello che il piano prevede. '
-    +'Una porzione per colonna e la cena \u00e8 fatta: dentro una colonna le porzioni valgono uguale.</div>'
+  const tt=buildTotals(), g=buildTarget();
+  let h='<div class="card"><div class="note">'+tr('Quando in casa non c\u2019\u00e8 quello che il piano prevede. ','For when you don\u2019t have what the plan calls for. ')
+    +tr('Una porzione per colonna e la cena \u00e8 fatta: dentro una colonna le porzioni valgono uguale.','One portion per column and dinner is done: inside a column the portions are interchangeable.')+'</div>'
     +'<div class="build-mode">'
-    +'<button class="'+(!buildGym?'on':'')+'" data-buildmode="normal">Sera normale</button>'
-    +'<button class="'+(buildGym?'on':'')+'" data-buildmode="gym">Giorno di palestra</button></div>'
-    +'<div class="build-people"><span>Per quante persone</span><div>'
+    +'<button class="'+(!buildGym?'on':'')+'" data-buildmode="normal">'+tr('Sera normale','Ordinary evening')+'</button>'
+    +'<button class="'+(buildGym?'on':'')+'" data-buildmode="gym">'+tr('Giorno di palestra','Gym day')+'</button></div>'
+    +'<div class="build-people"><span>'+tr('Per quante persone','How many people')+'</span><div>'
     +[1,2,3,4].map(function(n){return '<button class="'+(buildPeople===n?'on':'')+'" data-buildpeople="'+n+'">'+n+'</button>';}).join('')
     +'</div></div></div>';
   const tgt=['prot','carb','fat','veg'].map(function(r){return buildWord(r,g[r]);}).join(' \u00b7 ');
-  h+='<div class="build-portions"><div class="build-portions-head">La tua cena</div>'
-    +'<b>'+(buildCountsText()||'ancora niente')+'</b>'
-    +'<span>per '+(buildGym?'un giorno di palestra':'una sera normale')+': '+tgt+'</span></div>';
-  h+='<div class="build-total"><div><b>'+t.kcal+' kcal</b><span>di riferimento</span></div>'
-    +'<div><b>'+t.prot+' g</b><span>proteine</span></div></div>';
+  h+='<div class="build-portions"><div class="build-portions-head">'+tr('La tua cena','Your dinner')+'</div>'
+    +'<b>'+(buildCountsText()||tr('ancora niente','nothing yet'))+'</b>'
+    +'<span>'+tr('per ','for ')+(buildGym?tr('un giorno di palestra','a gym day'):tr('una sera normale','an ordinary evening'))+': '+tgt+'</span></div>';
+  h+='<div class="build-total"><div><b>'+tt.kcal+' kcal</b><span>'+tr('di riferimento','reference')+'</span></div>'
+    +'<div><b>'+tt.prot+' g</b><span>'+tr('proteine','protein')+'</span></div></div>';
   h+='<div class="card build-advice">'+esc(buildAdviceText())+'</div>';
   h+=buildDishHTML();
-  if(buildChosen().length)h+='<div class="card"><button class="btn ghost" data-buildclear="1">Ricomincia</button></div>';
+  if(buildChosen().length)h+='<div class="card"><button class="btn ghost" data-buildclear="1">'+tr('Ricomincia','Start again')+'</button></div>';
   ['prot','carb','fat','veg'].forEach(function(r){h+=buildColumnHTML(r);});
-  h+='<div class="card"><div class="note">Le porzioni sono calcolate dai valori del piano, con le stesse tabelle standard del resto della scheda. Per due persone raddoppia tutto.</div></div>';
+  h+='<div class="card"><div class="note">'+tr('Le porzioni sono calcolate dai valori del piano, con le stesse tabelle standard del resto della scheda. Per due persone raddoppia tutto.','Portions are worked out from the plan\u2019s own values, using the same standard tables as the rest of the app. For two people, double everything.')+'</div></div>';
   return h;
 }
 
@@ -3377,7 +3389,7 @@ function homeMealsHTML(){
   const m=d.meals[idx];
   if(m){
     const on=isDietDone(cur,m.slot), v=dietMealNutrition(m);
-    h+='<div class="sect">'+(oggi?'Adesso':'Il primo pasto')+'</div>';
+    h+='<div class="sect">'+(oggi?tr('Adesso','Right now'):tr('Il primo pasto','First meal'))+'</div>';
     h+='<div class="meal-now'+(on?' done':'')+'">'
       +'<div class="meal-now-top"><span class="meal-now-icon">'+dietSlotIcon(m.slot)+'</span>'
       +'<div><div class="meal-now-slot">'+esc(dietMealLabel(m))+' \u00b7 '+esc(m.time)+'</div>'
@@ -3402,8 +3414,8 @@ function homeMealsHTML(){
     h+='</div></details>';
   }
   h+='<button class="btn ghost" data-go="nutri" style="margin-top:4px">Apri il piano del giorno \u2192</button>';
-  h+='<div class="note" style="margin-top:8px">'+n.kcal+' kcal e '+n.prot+' g di proteine in tutta la giornata, '
-    +'contro '+DIET_TARGET.kcal+' kcal e '+DIET_TARGET.prot+' g della PT.</div>';
+  h+='<div class="note" style="margin-top:8px">'+n.kcal+tr(' kcal e ',' kcal and ')+n.prot+tr(' g di proteine in tutta la giornata, ',' g of protein across the day, ')
+    +tr('contro ','against ')+DIET_TARGET.kcal+tr(' kcal e ',' kcal and ')+DIET_TARGET.prot+tr(' g della PT.',' g from the PT.')+'</div>';
   return h;
 }
 
@@ -3571,13 +3583,13 @@ function sessionVolumeHTML(sess){
   const xy=pts.map(function(x,i){return [(i/(pts.length-1))*W, H-((x.volume-mn)/rg)*(H-14)-7];});
   const line=xy.map(function(c){return c[0].toFixed(1)+','+c[1].toFixed(1);}).join(' ');
   let dots='';
-  xy.forEach(function(c,i){dots+='<circle cx="'+c[0].toFixed(1)+'" cy="'+c[1].toFixed(1)+'" r="4.5" fill="#fff" stroke="var(--chart)" stroke-width="2"><title>'+pts[i].volume+' kg · '+pts[i].date.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</title></circle>';});
-  return '<svg class="trend-line" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Volume per seduta, ultime '+pts.length+' sedute">'+
+  xy.forEach(function(c,i){dots+='<circle cx="'+c[0].toFixed(1)+'" cy="'+c[1].toFixed(1)+'" r="4.5" fill="#fff" stroke="var(--chart)" stroke-width="2"><title>'+pts[i].volume+' kg · '+pts[i].date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</title></circle>';});
+  return '<svg class="trend-line" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+tr('Volume per seduta, ultime ','Volume per session, last ')+pts.length+tr(' sedute',' sessions')+'">'+
     '<polygon points="0,'+H+' '+line+' '+W+','+H+'" fill="var(--chart-fill)"/>'+
     '<polyline points="'+line+'" fill="none" stroke="var(--chart)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
     dots+'</svg>'+
-    '<div class="trend-ends"><span>'+pts[0].volume+' kg · '+pts[0].date.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</span>'+
-    '<span>'+pts[pts.length-1].volume+' kg · '+pts[pts.length-1].date.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</span></div>';
+    '<div class="trend-ends"><span>'+pts[0].volume+' kg · '+pts[0].date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</span>'+
+    '<span>'+pts[pts.length-1].volume+' kg · '+pts[pts.length-1].date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</span></div>';
 }
 
 function trendHTML(){
@@ -3695,7 +3707,7 @@ function evoHTML(){
       const last=strengthHist[strengthHist.length-1], first=strengthHist[0];
       const delta=(last.kg-first.kg).toFixed(1);
       h+='<div class="grid2"><div class="tile t-mint"><span>ultima sessione</span><div><b>'+last.kg+' '+u+'</b><em>'+(isLab?(u==='sec'?'tenuta migliore':'serie migliore'):'x'+last.r+' reps')+'</em></div></div>'+
-        '<div class="tile t-pink"><span>variazione</span><div><b>'+(delta>=0?'+':'')+delta+' '+u+'</b><em>dal '+first.d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</em></div></div></div>';
+        '<div class="tile t-pink"><span>variazione</span><div><b>'+(delta>=0?'+':'')+delta+' '+u+'</b><em>dal '+first.d.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</em></div></div></div>';
     }
   }
 
@@ -3904,8 +3916,8 @@ function lineChart(pts,unit){
     '<polyline points="'+line+'" fill="none" stroke="var(--chart)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
     dots+'</svg>'+
     '<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);font-weight:700;margin-top:6px">'+
-    '<span>'+pts[0].w+' '+u+' · '+pts[0].d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</span>'+
-    '<span>'+pts[pts.length-1].w+' '+u+' · '+pts[pts.length-1].d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</span></div>';
+    '<span>'+pts[0].w+' '+u+' · '+pts[0].d.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</span>'+
+    '<span>'+pts[pts.length-1].w+' '+u+' · '+pts[pts.length-1].d.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</span></div>';
 }
 function ringHTML(pct){
   const r=38, c=2*Math.PI*r, off=c-(pct/100)*c;
@@ -3920,8 +3932,702 @@ function ringHTML(pct){
 
 /* ================= PROFILE / SETTINGS · V5 ================= */
 function getAppLanguage(){return localStorage.getItem('fede:lang')==='en'?'en':'it';}
+function APP_LOCALE(){return getAppLanguage()==='en'?'en-GB':'it-IT';}
+// tr(it,en): una stringa composta a runtime, tradotta alla sorgente invece che dal passaggio sul DOM.
+function tr(it,en){return getAppLanguage()==='en'?en:it;}
 function setAppLanguage(lang){localStorage.setItem('fede:lang',lang==='en'?'en':'it');render();}
 const APP_EN={
+ '— scegli alimento —':'— choose a food —',
+ '✏️ Altro (scrivi tu)':'✏️ Other (type it)',
+ 'Scegli la lingua dell’app.':'Choose the app language.',
+ 'Calendario':'Calendar',
+ 'Benessere':'Wellbeing',
+ 'Nutrizione':'Nutrition',
+ 'Forza + lean mass. Pull-up per prima, poi dorsali, deltoidi laterali/posteriori e bicipiti. Mantieni 1–2 RIR sui fondamentali.':'Strength + lean mass. Pull-up first, then lats, side/rear delts and biceps. Keep 1–2 RIR on the main lifts.',
+ 'Lower-body forza. Hip thrust e RDL sono i principali: progressione dei carichi senza trasformare la seduta in volume inutile.':'Lower-body strength. Hip thrust and RDL are the main lifts: add load without turning the session into junk volume.',
+ 'Secondo stimolo glutei, più orientato a lean mass e controllo. L-Sit come skill breve prima del lavoro principale.':'A second glute stimulus, leaning towards lean mass and control. L-Sit as a short skill before the main work.',
+ 'Scegli A per forza + lean mass oppure B per power/force. Non fare entrambe nella stessa settimana.':'Pick A for strength + lean mass or B for power. Don\'t do both in the same week.',
+ '📌 Per viaggi o giorni senza palestra. Recupero 45-60 sec.':'📌 For travel or days without a gym. Rest 45-60 sec.',
+ 'Carboidrati':'Carbs',
+ 'Grassi':'Fats',
+ 'Verdure':'Vegetables',
+ 'Proteine':'Protein',
+ /* nutrizione: alimenti, piatti, ricette */
+ 'Aceto balsamico':'Balsamic vinegar',
+ 'Aceto':'Vinegar',
+ 'Aglio':'Garlic',
+ 'Albumi pastorizzati':'Pasteurised egg whites',
+ 'Anacardi':'Cashews',
+ 'Aneto secco':'Dried dill',
+ 'Asparagi':'Asparagus',
+ 'Avena':'Oats',
+ 'Avocado':'Avocado',
+ 'Baccalà fresco':'Fresh cod',
+ 'Banana':'Banana',
+ 'Basilico':'Basil',
+ 'Bevanda di mandorle':'Almond drink',
+ 'Biscotti tostati senza glutine':'Gluten-free toasted biscuits',
+ 'Broccoli':'Broccoli',
+ 'Brodo di pollo':'Chicken stock',
+ 'Burro di arachidi':'Peanut butter',
+ 'Cannella':'Cinnamon',
+ 'Carota':'Carrot',
+ 'Ceci cotti':'Cooked chickpeas',
+ 'Cetriolo':'Cucumber',
+ 'Cioccolato fondente':'Dark chocolate',
+ 'Cipolla':'Onion',
+ 'Coriandolo':'Coriander',
+ 'Curry':'Curry',
+ 'Edulcorante':'Sweetener',
+ 'Fajitas di mais':'Corn fajitas',
+ 'Farina di avena':'Oat flour',
+ 'Feta':'Feta',
+ 'Formaggio Havarti Light':'Havarti Light cheese',
+ 'Frutta':'Fruit',
+ 'Gnocchi':'Gnocchi',
+ 'Hummus':'Hummus',
+ 'Latte scremato':'Skimmed milk',
+ 'Lattuga':'Lettuce',
+ 'Lievito':'Baking powder',
+ 'Limone':'Lemon',
+ 'Mais dolce':'Sweetcorn',
+ 'Rucola':'Rocket',
+ 'Melanzane':'Aubergine',
+ 'Funghi champignon':'Button mushrooms',
+ 'Funghi':'Mushrooms',
+ 'Riso integrale':'Brown rice',
+ 'Gamberoni':'King prawns',
+ 'Lime':'Lime',
+ 'Olive verdi':'Green olives',
+ 'Porro':'Leek',
+ 'Salmone affumicato':'Smoked salmon',
+ 'Salmone':'Salmon',
+ 'Semi di zucca':'Pumpkin seeds',
+ 'Hamburger di pollo':'Chicken burger',
+ 'Salsa di soia':'Soy sauce',
+ 'Mandorle macinate':'Ground almonds',
+ 'Mandorle':'Almonds',
+ 'Manzo magro':'Lean beef',
+ 'Mela rossa':'Red apple',
+ 'Mela':'Apple',
+ 'Miele':'Honey',
+ 'Mirtilli':'Blueberries',
+ 'Noci':'Walnuts',
+ 'Olio di oliva':'Olive oil',
+ 'Origano':'Oregano',
+ 'Pane di mais':'Cornbread',
+ 'Pane tostato senza glutine':'Gluten-free toast',
+ 'Pasta senza glutine':'Gluten-free pasta',
+ 'Patata dolce':'Sweet potato',
+ 'Patata':'Potato',
+ 'Pepe bianco':'White pepper',
+ 'Pepe di Cayenna':'Cayenne pepper',
+ 'Pepe nero':'Black pepper',
+ 'Peperone rosso':'Red pepper',
+ 'Peperone verde':'Green pepper',
+ 'Pesce spada':'Swordfish',
+ 'Petto di tacchino':'Turkey breast',
+ 'Pollo':'Chicken',
+ 'Pomodorini':'Cherry tomatoes',
+ 'Pomodoro triturato naturale':'Crushed tomatoes',
+ 'Pomodoro triturato':'Crushed tomatoes',
+ 'Pomodoro':'Tomato',
+ 'Prezzemolo':'Parsley',
+ 'Prosciutto cotto':'Cooked ham',
+ 'Prosciutto serrano':'Serrano ham',
+ 'Proteina ISO ChocoMonkey':'ISO ChocoMonkey protein',
+ 'Quinoa':'Quinoa',
+ 'Ravanelli':'Radishes',
+ 'Riso basmati crudo':'Basmati rice, uncooked',
+ 'Riso bianco crudo':'White rice, uncooked',
+ 'Sale':'Salt',
+ 'Semi di lino':'Flaxseed',
+ 'Songino':'Lamb\'s lettuce',
+ 'Spinaci':'Spinach',
+ 'Succo di limone':'Lemon juice',
+ 'Succo d’arancia':'Orange juice',
+ 'Tofu':'Tofu',
+ 'Tonno al naturale':'Tuna in brine',
+ 'Tonno in acqua':'Tuna in water',
+ 'Tonno':'Tuna',
+ 'Uova':'Eggs',
+ 'Uovo di gallina':'Hen\'s egg',
+ 'Uovo':'Egg',
+ 'Uvetta':'Raisins',
+ 'Vaniglia':'Vanilla',
+ 'Vino bianco':'White wine',
+ 'Yogurt proteico senza lattosio':'Lactose-free protein yoghurt',
+ 'Zucchine':'Courgette',
+ 'Tostata senza glutine con pomodoro e uova strapazzate':'Gluten-free toast with tomato and scrambled eggs',
+ 'Riso basmati con pollo e verdure al curry':'Basmati rice with chicken and curried vegetables',
+ 'Shake proteico con banana e frutta secca':'Protein shake with banana and nuts',
+ 'Uovo alla piastra con peperonata':'Griddled egg with pepper stew',
+ 'Porridge con bevanda di mandorle, mirtilli e noci':'Porridge with almond drink, blueberries and walnuts',
+ 'Saltato di zucchine e spinaci con pasta senza glutine, manzo e anacardi':'Courgette and spinach stir-fry with gluten-free pasta, beef and cashews',
+ 'Salmone alla piastra su letto di verdure con patata dolce al forno':'Griddled salmon on vegetables with baked sweet potato',
+ 'Insalata di riso integrale con avocado e gamberoni':'Brown rice salad with avocado and king prawns',
+ 'Insalata di songino, mais, tonno, tacchino e noci':'Lamb\'s lettuce salad with sweetcorn, tuna, turkey and walnuts',
+ 'Ceci con salsa di verdure e quinoa':'Chickpeas in vegetable sauce with quinoa',
+ 'Tonno alla piastra con peperonata e chips di patata':'Griddled tuna with pepper stew and potato crisps',
+ 'Gnocchi al forno con feta e pomodorini':'Baked gnocchi with feta and cherry tomatoes',
+ 'Tacos di insalata di pollo':'Chicken salad tacos',
+ 'Hamburger di pollo con peperonata e chips di patata':'Chicken burger with pepper stew and potato crisps',
+ 'Uova strapazzate e salmone affumicato con insalata di rucola e semi di zucca':'Scrambled eggs and smoked salmon with rocket salad and pumpkin seeds',
+ 'Petto di pollo alla piastra con champignon e asparagi':'Griddled chicken breast with button mushrooms and asparagus',
+ 'Poke bowl di riso, salmone e avocado':'Rice, salmon and avocado poke bowl',
+ '1. Sbatti le uova in una ciotola. Scalda l’olio in padella, versa e rimesta senza fermarti finché rapprendono. 2. Spalma il pomodoro sul pane tostato e metti sopra le uova. Completa con l’Havarti e la mela.':'1. Beat the eggs in a bowl. Heat the oil in a pan, pour them in and keep stirring until they set. 2. Spread the tomato on the toast and put the eggs on top. Finish with the Havarti and the apple.',
+ '1. Fai appassire cipolla e peperone tagliati fini. 2. Pepa il pollo a dadi e uniscilo al soffritto, lascia dorare. 3. Unisci il riso e tostalo un minuto. 4. Scalda il brodo con il curry. 5. Bagna con il brodo caldo e cuoci 15 minuti. 6. Lascia riposare 5 minuti.':'1. Soften the finely sliced onion and pepper. 2. Pepper the diced chicken and add it, letting it brown. 3. Add the rice and toast it for a minute. 4. Warm the stock with the curry. 5. Pour in the hot stock and cook for 15 minutes. 6. Let it rest 5 minutes.',
+ 'Frulla la proteina con la bevanda di mandorle e la banana. Burro di arachidi, semi di lino, mandorle e noci a parte o dentro, come preferisci.':'Blend the protein with the almond drink and the banana. Peanut butter, flaxseed, almonds and walnuts on the side or blended in, whichever you prefer.',
+ '1. Fai appassire la cipolla e i peperoni a dadini; quando la cipolla imbiondisce unisci il pomodoro e cuoci piano. 2. In padella antiaderente cuoci l’uovo coperto, così si rapprende col suo vapore. 3. Servi l’uovo sulla peperonata, con il pane.':'1. Soften the onion and the diced peppers; once the onion turns golden add the tomato and cook gently. 2. In a non-stick pan cook the egg covered, so it sets in its own steam. 3. Serve the egg on the pepper stew, with the bread.',
+ '1. Scalda la bevanda di mandorle e, quando sfiora il bollore, unisci l’avena. Cuoci a fuoco molto basso mescolando, 5 minuti. 2. Quando diventa cremoso togli dal fuoco: se stringe troppo allunga con altra bevanda. 3. Aggiungi mirtilli e noci tritate, e il miele. Si può preparare la sera prima.':'1. Heat the almond drink and, just before it boils, stir in the oats. Cook on a very low heat, stirring, for 5 minutes. 2. When it turns creamy take it off the heat: if it thickens too much, loosen it with more drink. 3. Add blueberries, chopped walnuts and the honey. You can make it the night before.',
+ '1. Cuoci la pasta in acqua abbondante, 10 minuti, scola e tieni da parte. 2. Lava le zucchine e tagliale a dadini; falle stufare a fuoco medio con l’olio. Quando ammorbidiscono unisci gli spinaci tritati e gli anacardi. 3. Salta il manzo a striscioline a fuoco vivo. 4. Unisci la pasta e impiatta.':'1. Cook the pasta in plenty of water, 10 minutes, drain and set aside. 2. Wash and dice the courgettes; stew them over a medium heat with the oil. Once soft, add the chopped spinach and the cashews. 3. Stir-fry the beef strips over a high heat. 4. Stir through the pasta and serve.',
+ '1. Forno a 175°: la patata dolce intera con la buccia, 45 minuti. 2. Taglia a julienne peperone, zucchine e cipolla e saltale a fuoco vivo finché dorano. 3. Scotta il salmone sulla piastra. 4. Servi il salmone sulle verdure, con aneto.':'1. Oven at 175°: the whole sweet potato in its skin, 45 minutes. 2. Julienne the pepper, courgette and onion and stir-fry over a high heat until golden. 3. Sear the salmon on the griddle. 4. Serve the salmon on the vegetables, with dill.',
+ '1. Ammolla il riso integrale almeno 20 minuti, poi cuocilo nel triplo d’acqua 25-30 minuti; scola. 2. Salta i gamberoni sgusciati 5 minuti, finché la carne è bianca. 3. Unisci riso e gamberoni in una ciotola, aggiungi pomodorini e olive tagliate a metà. 4. Schiaccia la polpa dell’avocado con una forchetta e condiscila con il succo di lime. 5. Incorpora all’insalata e mescola.':'1. Soak the brown rice for at least 20 minutes, then cook it in three times its volume of water for 25-30 minutes; drain. 2. Fry the peeled prawns for 5 minutes, until the flesh is white. 3. Combine rice and prawns in a bowl, add the cherry tomatoes and the halved olives. 4. Mash the avocado flesh with a fork and dress it with the lime juice. 5. Fold it through the salad and mix.',
+ '1. Taglia a dadini il petto di tacchino. 2. Metti il songino alla base, sopra il mais e il tonno sgocciolato, i dadini di tacchino e le noci tritate. 3. Condisci con l’olio. Spalma l’hummus sulle fette di pane tostato.':'1. Dice the turkey breast. 2. Put the lamb\'s lettuce at the base, then the sweetcorn and the drained tuna, the diced turkey and the chopped walnuts. 3. Dress with the oil. Spread the hummus on the slices of toast.',
+ '1. Cuoci la quinoa come da confezione. 2. Fai appassire aglio, cipolla, carota e porro tritati; unisci pomodoro e zucchine e cuoci piano finché diventa una salsa. 3. Unisci i ceci scolati e scalda qualche minuto. 4. Servi con la quinoa e l’uovo.':'1. Cook the quinoa as per the packet. 2. Soften the chopped garlic, onion, carrot and leek; add the tomato and courgette and cook gently until it becomes a sauce. 3. Stir in the drained chickpeas and warm through. 4. Serve with the quinoa and the egg.',
+ '1. Forno a 200°: patata a fettine sottili con l’olio e il pepe, 25-30 minuti finché croccante. 2. Prepara la peperonata facendo appassire cipolla e peperoni e unendo il pomodoro. 3. Scotta il tonno sulla piastra, 2 minuti per lato: dentro deve restare rosato.':'1. Oven at 200°: thinly sliced potato with the oil and pepper, 25-30 minutes until crisp. 2. Make the pepper stew by softening the onion and peppers and adding the tomato. 3. Sear the tuna on the griddle, 2 minutes a side: it should stay pink inside.',
+ '1. Forno a 200°. In una teglia metti i pomodorini interi e la feta al centro, olio, sale, pepe e origano: 25 minuti. 2. Intanto lessa gli gnocchi. 3. Schiaccia la feta cotta con i pomodorini a formare una crema e mescolaci gli gnocchi. Basilico fresco alla fine.':'1. Oven at 200°. Put the whole cherry tomatoes in a dish with the feta in the middle, oil, salt, pepper and oregano: 25 minutes. 2. Meanwhile boil the gnocchi. 3. Mash the cooked feta with the tomatoes into a sauce and stir the gnocchi through it. Fresh basil at the end.',
+ '1. Cuoci il pollo sulla piastra e taglialo a dadini. 2. Taglia a dadini pomodoro, cetriolo, cipolla e ravanelli e mescola con il pollo. 3. Condisci con olio, succo di limone e coriandolo. 4. Scalda le fajitas e riempile, con l’avocado a fette.':'1. Griddle the chicken and dice it. 2. Dice the tomato, cucumber, onion and radishes and mix them with the chicken. 3. Dress with oil, lemon juice and coriander. 4. Warm the fajitas and fill them, with the sliced avocado.',
+ '1. Forno a 200°: patata a fettine con olio e pepe, 25-30 minuti. 2. Peperonata: cipolla e peperoni appassiti, poi il pomodoro, cuocendo piano. 3. Cuoci l’hamburger sulla piastra e servilo sulla peperonata.':'1. Oven at 200°: sliced potato with oil and pepper, 25-30 minutes. 2. Pepper stew: softened onion and peppers, then the tomato, cooking gently. 3. Cook the burger on the griddle and serve it on the pepper stew.',
+ '1. Strapazza le uova in padella a fuoco basso, mescolando. 2. Condisci la rucola con olio e semi di zucca. 3. Servi le uova con il salmone affumicato e l’insalata. Hummus sulle fette di pane tostato.':'1. Scramble the eggs in a pan over a low heat, stirring. 2. Dress the rocket with oil and pumpkin seeds. 3. Serve the eggs with the smoked salmon and the salad. Hummus on the slices of toast.',
+ '1. Lessa la patata e schiacciala con l’olio e il prezzemolo. 2. Salta champignon e asparagi in padella. 3. Cuoci il petto di pollo sulla piastra e servilo con le verdure e il puré.':'1. Boil the potato and mash it with the oil and the parsley. 2. Fry the mushrooms and asparagus in a pan. 3. Griddle the chicken breast and serve it with the vegetables and the mash.',
+ '1. Cuoci il riso e lascialo intiepidire. 2. Taglia il salmone a cubetti, il pomodoro a spicchi e l’avocado a fettine. 3. Componi la ciotola: riso alla base, poi salmone, pomodoro, avocado e rucola. Semi di zucca e salsa di soia alla fine.':'1. Cook the rice and let it cool to warm. 2. Cube the salmon, cut the tomato into wedges and slice the avocado. 3. Build the bowl: rice at the base, then salmon, tomato, avocado and rocket. Pumpkin seeds and soy sauce at the end.',
+ ' (1 uovo M)':' (1 medium egg)',
+ ' (2 uova M)':' (2 medium eggs)',
+ ' (1 media)':' (1 medium)',
+ ' (1 tazza)':' (1 cup)',
+ ' (3 cucchiai)':' (3 tbsp)',
+ ' (1 cucchiaio)':' (1 tbsp)',
+ ' (1 fetta)':' (1 slice)',
+ ' (3 fette)':' (3 slices)',
+ ' (5 fette)':' (5 slices)',
+ ' (2 tranci)':' (2 steaks)',
+ 'Uova · Latticini':'Eggs · Dairy',
+ 'Latticini':'Dairy',
+ 'Frutta a guscio':'Tree nuts',
+ 'Arachidi':'Peanuts',
+ 'Soia':'Soy',
+ 'Glutine':'Gluten',
+ 'Pesce':'Fish',
+ 'Sesamo':'Sesame',
+ 'Crostacei':'Shellfish',
+ 'Giorno di palestra':'Gym day',
+ 'La tua cena':'Your dinner',
+ 'Che cena fare':'What to cook tonight',
+ 'Scegli una':'Pick one',
+ 'ancora niente':'nothing yet',
+ '11 marzo 2025':'11 March 2025',
+ 'Frame reali quando il video è disponibile, illustrazioni dedicate per ogni altro esercizio.':'Real frames where a video exists, custom illustrations for every other exercise.',
+ '2 serie leggere · controllo scapolare e alzate laterali senza arrivare a fatica':'2 light sets · scapular control and lateral raises, stopping short of fatigue',
+ '5 min · mobilità anca, ginocchia e caviglie + attivazione leggera di glutei e femorali':'5 min · hip, knee and ankle mobility + light glute and hamstring activation',
+ '5 min · mobilità spalle e scapole, circonduzioni braccia e attivazione leggera della parte alta':'5 min · shoulder and scapular mobility, arm circles and light upper-body activation',
+ 'Tutte le categorie':'All categories',
+ 'Tutti gli esercizi':'All exercises',
+ 'Tutti i livelli':'All levels',
+ 'Categoria muscolare':'Muscle group',
+ 'Glutei & gambe':'Glutes & legs',
+ 'Spalle & braccia':'Shoulders & arms',
+ 'Schiena':'Back',
+ 'Intermedio':'Intermediate',
+ 'Avanzato':'Advanced',
+ 'Base':'Beginner',
+ 'Libreria esercizi':'Exercise library',
+ 'Video & tecnica':'Video & technique',
+ 'ILLUSTRAZIONE':'ILLUSTRATION',
+ 'FRAME VIDEO':'VIDEO FRAME',
+ 'Riscaldamento — Glutei / Gambe':'Warm-up — Glutes / Legs',
+ 'Riscaldamento — Parte alta':'Warm-up — Upper body',
+ /* cue tecniche EXDB */
+ '15 passi a destra e 15 a sinistra':'15 steps to the right and 15 to the left',
+ '3 x 12-15 per lato, controllo lento':'3 x 12-15 per side, slow and controlled',
+ '3 x 15 come attivazione prima dei giorni gambe':'3 x 15 as activation before leg days',
+ '35-45 min a sessione, ritmo gestibile':'35-45 min per session, at a pace you can hold',
+ 'A stomaco vuoto, meglio la mattina':'On an empty stomach, mornings are better',
+ 'Addome attivo e gambe più distese possibile senza perdere la posizione':'Core engaged and legs as straight as you can hold',
+ 'Adduttori tonici = coscia più compatta e anca più stabile':'Strong adductors = a more compact thigh and a steadier hip',
+ 'Allontana le spalle dalle orecchie':'Keep your shoulders away from your ears',
+ 'Allunga bene in alto tra una rep e l\'altra':'Stretch fully at the top between reps',
+ 'Allungamento completo dietro la testa':'Full stretch behind your head',
+ 'Allungamento completo in basso':'Full stretch at the bottom',
+ 'Allungamento completo in basso, pausa 1 sec':'Full stretch at the bottom, pause 1 sec',
+ 'Allungamento controllato in basso, senza perdere posizione':'Controlled stretch at the bottom, without losing position',
+ 'Alte ripetizioni e carico leggero: è un muscolo piccolo':'High reps and light load: it\'s a small muscle',
+ 'Alterna i lati':'Alternate sides',
+ 'Alternativa al Bulgarian: la macchina stabilizza, meno stress lombare':'An alternative to the Bulgarian: the machine steadies you, less strain on the lower back',
+ 'Alternativa al back extension se la macchina è disponibile':'An alternative to the back extension when the machine is free',
+ 'Alternativa alla Machine Shoulder Press: più stabilizzatori coinvolti':'An alternative to the Machine Shoulder Press: more stabilisers involved',
+ 'Alternativa alla leg press piedi alti nel Giorno 3':'An alternative to the feet-high leg press on Day 3',
+ 'Apertura lenta: l\'allungamento è la parte utile':'Open slowly: the stretch is the useful part',
+ 'Appoggia le ginocchia delicatamente sui tricipiti e sposta il peso in avanti':'Rest your knees gently on your triceps and shift your weight forward',
+ 'Apri conducendo con i gomiti, non con le mani':'Open by leading with your elbows, not your hands',
+ 'Apri controllando, chiudi lento senza far sbattere i pesi':'Open under control, close slowly without clanging the weights',
+ 'Apri il ginocchio SENZA ruotare il bacino indietro':'Open the knee WITHOUT rolling your hips back',
+ 'Apri il ginocchio superiore tenendo il bacino fermo':'Open the top knee keeping your hips still',
+ 'Apri senza ruotare il bacino indietro':'Open without rolling your hips back',
+ 'Arrotola la schiena: costole verso il bacino':'Curl your spine: ribs towards your hips',
+ 'Atterra morbida':'Land softly',
+ 'Atterra morbida sulla gamba di lavoro':'Land softly on the working leg',
+ 'Aumenta il tempo prima di estendere le gambe':'Build up the time before you straighten your legs',
+ 'Bacino controllato, senza collassare sul lato':'Hips under control, don\'t collapse to one side',
+ 'Bacino e spalle frontali, fermi':'Hips and shoulders facing forward, held still',
+ 'Bacino in linea: non ruotarlo verso il lato scarico':'Hips level: don\'t rotate towards the unloaded side',
+ 'Bacino in linea: né alto né sprofondato':'Hips level: neither high nor sagging',
+ 'Bacino indietro, schiena neutra':'Hips back, neutral spine',
+ 'Bacino leggermente retroverso':'Hips tucked slightly under',
+ 'Bacino neutro in cima, non iperestendere':'Neutral hips at the top, don\'t hyperextend',
+ 'Bacino neutro in cima, non oltre — pausa 2 sec':'Neutral hips at the top, no further — pause 2 sec',
+ 'Banda sopra le ginocchia o alle caviglie, mezzo squat':'Band above the knees or at the ankles, half squat',
+ 'Bordo della panca sotto le scapole, piedi a larghezza anche':'Bench edge under your shoulder blades, feet hip-width',
+ 'Braccia quasi tese, gomiti appena piegati':'Arms almost straight, elbows just soft',
+ 'Braccio e gamba OPPOSTI, movimento lento':'OPPOSITE arm and leg, moving slowly',
+ 'Busto appoggiato, gambe che salgono dietro':'Chest supported, legs rising behind you',
+ 'Busto eretto, schiena appoggiata':'Upright torso, back against the pad',
+ 'Busto fermo: non ruotare il bacino per allungare il movimento':'Torso still: don\'t rotate your hips to lengthen the movement',
+ 'Busto inclinato in avanti = più gluteo medio':'Torso leaning forward = more glute medius',
+ 'Busto indietro = più gluteo grande: alterna':'Torso leaning back = more glute max: alternate',
+ 'Busto leggermente inclinato in avanti per caricare il gluteo':'Torso tilted slightly forward to load the glute',
+ 'Busto stabile e schiena neutra':'Steady torso and a neutral spine',
+ 'Cammina con i piedi verso il muro controllando il core':'Walk your feet towards the wall keeping your core tight',
+ 'Carico progressivo sulle mani':'Build the load on your hands gradually',
+ 'Carico sempre vicino alle gambe, quasi a sfiorarle':'Keep the weight close to your legs, almost brushing them',
+ 'Cavo all\'altezza del viso, corda stabile':'Cable at face height, rope held steady',
+ 'Cavo basso, braccio dietro la linea del corpo':'Low cable, arm behind the line of your body',
+ 'Cavo basso, passa dietro il corpo: tensione anche in basso':'Low cable, passing behind your body: tension at the bottom too',
+ 'Cavo basso, piede su una panca bassa':'Low cable, foot on a low bench',
+ 'Chiudi le gambe controllando, pausa breve':'Close your legs under control, short pause',
+ 'Circa 90% del carico sulla gamba avanti':'About 90% of the load on the front leg',
+ 'Completa il range che controlli':'Use the range you can control',
+ 'Conta solo secondi con forma pulita':'Count only the seconds held with clean form',
+ 'Conta solo secondi mantenuti con forma pulita':'Count only the seconds you hold with clean form',
+ 'Contrai il gluteo 1 sec in cima':'Squeeze the glute for 1 sec at the top',
+ 'Controlla il ritorno':'Control the way back',
+ 'Controlla il trasferimento di peso':'Control the weight shift',
+ 'Controlla la discesa':'Control the way down',
+ 'Controlla soprattutto la discesa':'Control the way down above all',
+ 'Core attivo per stabilizzare tutto il movimento':'Core engaged to steady the whole movement',
+ 'Core forte e bacino controllato':'Strong core and controlled hips',
+ 'Corpo stabile e scapole attive':'Steady body and active shoulder blades',
+ 'Costole basse':'Ribs down',
+ 'Costole basse e addome attivo':'Ribs down and core engaged',
+ 'Costole basse, glutei e addome contratti':'Ribs down, glutes and core tight',
+ 'Delfino escluso: carico eccessivo su spalle e lombare':'Dolphin excluded: too much load on shoulders and lower back',
+ 'Discesa controllata fino a sentire allungare il petto':'Lower under control until you feel the chest stretch',
+ 'Discesa controllata senza appoggiare del tutto':'Lower under control without resting all the way down',
+ 'Discesa controllata, non lasciarti cadere':'Lower under control, don\'t drop',
+ 'Discesa lenta 2-3 sec':'Slow descent, 2-3 sec',
+ 'Discesa lenta 2-3 sec: è lì che cresce il deltoide':'Slow descent, 2-3 sec: that\'s where the delt grows',
+ 'Discesa lenta: metà del lavoro sta qui':'Slow descent: half the work is here',
+ 'Disco al petto per il carico (tu usi ~10 kg)':'Plate on your chest for load (you use about 10 kg)',
+ 'Distribuisci il carico sulle dita':'Spread the load across your fingers',
+ 'Esci dalla posizione prima di perdere controllo':'Come out of the position before you lose control',
+ 'Espira TUTTA l\'aria, poi tira l\'ombelico verso la colonna':'Breathe ALL the air out, then draw your navel towards your spine',
+ 'Espira mentre estendi':'Breathe out as you extend',
+ 'Espira mentre ti arrotoli':'Breathe out as you curl up',
+ 'Estendi braccia e gambe solo finché mantieni la posizione':'Extend arms and legs only as far as you hold the position',
+ 'Estendi l\'anca, non inarcare la lombare':'Extend the hip, don\'t arch your lower back',
+ 'Estendi le braccia davanti al petto e torna':'Extend your arms in front of your chest and return',
+ 'Estendi rapidamente anche e ginocchia':'Extend hips and knees fast',
+ 'Estendi senza bloccare di scatto':'Extend without snapping the joint',
+ 'Estensione completa, pausa 1 sec in cima':'Full extension, pause 1 sec at the top',
+ 'Evita di inclinarti all\'indietro':'Don\'t lean backwards',
+ 'Evita di portare i gomiti in avanti per chiudere la rep':'Don\'t bring your elbows forward to finish the rep',
+ 'Evita di ruotare il bacino':'Don\'t rotate your hips',
+ 'Evita di ruotare il busto per aumentare il range':'Don\'t twist your torso to get more range',
+ 'Evita slancio e kipping: la ripetizione deve restare controllata':'No swing and no kipping: the rep stays controlled',
+ 'Evita slancio eccessivo':'Don\'t use momentum',
+ 'Evita slancio eccessivo del busto':'Don\'t swing your torso',
+ 'Ferma la sbarra alla clavicola, non dietro la nuca':'Stop the bar at your collarbone, not behind your neck',
+ 'Finisher ad alte ripetizioni: tensione costante':'A high-rep finisher: constant tension',
+ 'Gambe aperte in modo confortevole':'Legs open as wide as is comfortable',
+ 'Gambe più larghe delle spalle, punte fuori 30-45°':'Feet wider than your shoulders, toes out 30-45°',
+ 'Gambe più larghe delle spalle, punte fuori 45°':'Feet wider than your shoulders, toes out 45°',
+ 'Gambe tese quanto possibile':'Legs as straight as you can manage',
+ 'Ginocchia al petto':'Knees to your chest',
+ 'Ginocchia in linea con le punte, mai crollate dentro':'Knees tracking over your toes, never caving in',
+ 'Ginocchia morbide, mai bloccate né piegate come uno squat':'Soft knees, never locked and never bent as if squatting',
+ 'Ginocchia quasi tese per il gastrocnemio':'Knees almost straight for the gastrocnemius',
+ 'Ginocchia raccolte e core attivo':'Knees tucked and core engaged',
+ 'Ginocchia sempre spinte in fuori contro la banda':'Knees always pushing out against the band',
+ 'Ginocchio allineato al perno della macchina':'Knee lined up with the machine\'s pivot',
+ 'Glutei e addome attivi':'Glutes and core engaged',
+ 'Gomiti fermi: fletti solo l\'avambraccio':'Elbows still: only your forearm moves',
+ 'Gomiti morbidi e spalle attive':'Soft elbows and active shoulders',
+ 'Gomiti quasi estesi':'Elbows almost straight',
+ 'Gomiti stretti e fermi, puntati in avanti':'Elbows tucked and still, pointing forward',
+ 'Gomito fermo: si muove solo l\'avambraccio':'Elbow still: only the forearm moves',
+ 'Gomito leggermente piegato e fisso':'Elbow slightly bent and fixed',
+ 'Guarda leggermente avanti, non tra le mani, per mantenere equilibrio':'Look slightly ahead, not between your hands, to keep your balance',
+ 'Guida col gomito, gomito appena piegato':'Lead with the elbow, elbow just soft',
+ 'Guida col gomito, non con la mano; gomito appena piegato':'Lead with the elbow, not the hand; elbow just soft',
+ 'Guida i gomiti verso i fianchi':'Lead your elbows towards your hips',
+ 'Guida i gomiti verso il basso e leggermente indietro':'Lead your elbows down and slightly back',
+ 'Guida il gomito verso il fianco':'Lead the elbow towards your hip',
+ 'Guida il petto verso la sbarra':'Lead your chest towards the bar',
+ 'Ideale per te: obliqui tonici senza allargare la vita':'Ideal for you: firm obliques without widening the waist',
+ 'Il carico è sul bacino, non sulla schiena: ottimo se la lombare è affaticata':'The load sits on your hips, not your back: good when your lower back is tired',
+ 'Il peso resta sulla gamba avanti: quella davanti lavora, non quella dietro':'The weight stays on the front leg: the front one works, not the back one',
+ 'Il piede che scende sfiora appena il pavimento: tensione costante':'The lowering foot barely brushes the floor: constant tension',
+ 'Il senso è RESISTERE alla rotazione, non ruotare':'The point is to RESIST the rotation, not to rotate',
+ 'Imposta i pin appena sotto la profondità target':'Set the pins just below your target depth',
+ 'Impugnature all\'altezza del petto, non delle spalle':'Handles at chest height, not shoulder height',
+ 'In cima fermati a bacino NEUTRO, non spingere oltre':'Stop at NEUTRAL hips at the top, don\'t push past',
+ 'In piedi o su panca, cavo alto, braccia quasi tese':'Standing or on a bench, high cable, arms almost straight',
+ 'In piedi, bilanciere davanti alle spalle':'Standing, barbell in front of your shoulders',
+ 'Inclina il bacino in avanti':'Tilt your hips forward',
+ 'Interrompi prima di perdere equilibrio':'Stop before you lose your balance',
+ 'Lavora il gluteo medio: aiuta l\'hip dip, non allarga la vita':'Works the glute medius: it helps the hip dip and doesn\'t widen the waist',
+ 'Lavora il trasverso: è ciò che stringe la vita':'Works the transverse: that\'s what cinches the waist',
+ 'Lombare a terra':'Lower back on the floor',
+ 'Lombare schiacciata a terra per tutta la serie':'Lower back pressed to the floor for the whole set',
+ 'Macchina O cavo, mai entrambi nella stessa seduta':'Machine OR cable, never both in the same session',
+ 'Mai forzare il range':'Never force the range',
+ 'Mani alla larghezza delle spalle':'Hands shoulder-width apart',
+ 'Mani sotto le spalle':'Hands under your shoulders',
+ 'Mani sotto le spalle, dita ben aperte e polsi preparati':'Hands under your shoulders, fingers spread wide and wrists prepared',
+ 'Mani stabili e dita aperte':'Steady hands and spread fingers',
+ 'Mantieni controllo del range':'Stay in control of the range',
+ 'Mantieni costole basse e scapole attive':'Keep your ribs down and your shoulder blades active',
+ 'Mantieni costole e bacino controllati':'Keep your ribs and hips under control',
+ 'Mantieni ginocchia allineate':'Keep your knees in line',
+ 'Mantieni ginocchia leggere sui tricipiti':'Keep your knees resting lightly on your triceps',
+ 'Mantieni il bacino controllato':'Keep your hips under control',
+ 'Mantieni il bacino orizzontale':'Keep your hips level',
+ 'Mantieni il busto stabile e la spalla controllata':'Keep your torso steady and your shoulder under control',
+ 'Mantieni il corpo stabile e porta il petto verso la sbarra':'Keep your body steady and bring your chest towards the bar',
+ 'Mantieni il movimento controllato':'Keep the movement controlled',
+ 'Mantieni la posizione senza collassare':'Hold the position without collapsing',
+ 'Mantieni la schiena lunga':'Keep your back long',
+ 'Mantieni le spalle attive':'Keep your shoulders active',
+ 'Mantieni schiena lunga':'Keep your back long',
+ 'Mantieni spalle attive':'Keep your shoulders active',
+ 'Mantieni una linea pulita senza inarcare la lombare':'Hold a clean line without arching your lower back',
+ 'Manubri all\'altezza delle spalle, polsi neutri e core attivo':'Dumbbells at shoulder height, neutral wrists and an engaged core',
+ 'Manubrio sul bacino, una gamba a terra, l\'altra sollevata':'Dumbbell on your hips, one foot on the floor, the other lifted',
+ 'Manubrio tra le gambe, schiena neutra':'Dumbbell between your legs, neutral spine',
+ 'Meglio 30 sec perfetti che 60 sbracati':'Better 30 clean seconds than 60 sloppy ones',
+ 'Meglio poco carico e tanto controllo':'Better light load and plenty of control',
+ 'Mento in dentro, sguardo verso il basso':'Chin tucked, eyes down',
+ 'Molto più duro dell\'hip thrust bipodalico: pesi leggeri, tanto controllo':'Much harder than the two-legged hip thrust: light weight, lots of control',
+ 'Molto tassante: non farlo nello stesso giorno dell\'hip thrust pesante':'Very demanding: don\'t do it on the same day as a heavy hip thrust',
+ 'Movimenti graduali in estensione e flessione':'Gradual movement into extension and flexion',
+ 'Movimento lento e controllato':'Slow, controlled movement',
+ 'Movimento lento e controllato, pausa in apertura':'Slow, controlled movement, pause at the open position',
+ 'Movimento lento: i polpacci rispondono al tempo sotto tensione':'Slow movement: calves respond to time under tension',
+ 'Muovi le braccia senza compensare con la lombare':'Move your arms without compensating with your lower back',
+ 'Muovi principalmente le scapole':'Move mainly from the shoulder blades',
+ 'NON piegarti dalle anche: il bacino resta fermo':'Do NOT bend at the hips: the pelvis stays still',
+ 'Nessun dolore acuto':'No sharp pain',
+ 'Niente kipping':'No kipping',
+ 'Niente slancio':'No swinging',
+ 'Niente slancio, movimento pulito':'No swinging, a clean movement',
+ 'Niente slancio: sono alte ripetizioni':'No swinging: these are high reps',
+ 'Non bloccare i gomiti in alto: mantieni tensione':'Don\'t lock your elbows at the top: keep the tension',
+ 'Non bloccare i gomiti in chiusura':'Don\'t lock your elbows at the end of the rep',
+ 'Non compensare inarcando la lombare':'Don\'t compensate by arching your lower back',
+ 'Non dondolare col busto per tirare più carico':'Don\'t rock your torso to pull more weight',
+ 'Non inarcare la lombare per salire più su':'Don\'t arch your lower back to get higher',
+ 'Non inarcare la lombare: costole basse':'Don\'t arch your lower back: ribs down',
+ 'Non inarcare la schiena per spingere di più':'Don\'t arch your back to press more',
+ 'Non portare il gomito in avanti per finire la rep':'Don\'t bring your elbow forward to finish the rep',
+ 'Non ruotare il busto per aiutarti':'Don\'t twist your torso to help yourself',
+ 'Non scaricare mai a terra tra una rep e l\'altra':'Never rest the weight on the floor between reps',
+ 'Non scrollare le spalle verso le orecchie':'Don\'t shrug your shoulders towards your ears',
+ 'Non sollevare il bacino per aiutarti':'Don\'t lift your hips to help yourself',
+ 'Non staccare il petto per usare più peso':'Don\'t peel your chest off the pad to use more weight',
+ 'Non tagliarlo quando sei stanca: è la priorità clessidra':'Don\'t cut it when you\'re tired: it\'s the hourglass priority',
+ 'Non usare il trapezio: spalle basse':'Don\'t use your traps: shoulders down',
+ 'Non usare le braccia per tirare: guidano le scapole':'Don\'t pull with your arms: the shoulder blades lead',
+ 'Ottimo in superset con Bulgarian per un finish di gluteo intenso':'Great in a superset with the Bulgarian for an intense glute finish',
+ 'Panca inclinata, spalle appoggiate e braccia lasciate scendere':'Incline bench, shoulders supported and arms hanging down',
+ 'Parti con il mento sopra la sbarra':'Start with your chin above the bar',
+ 'Parti da chest-to-wall o wall handstand stabile':'Start from a steady chest-to-wall or wall handstand',
+ 'Parti da frog stand stabile':'Start from a steady frog stand',
+ 'Parti da sospensione attiva':'Start from an active hang',
+ 'Parti da una sospensione attiva: spalle lontane dalle orecchie':'Start from an active hang: shoulders away from your ears',
+ 'Parti da una sospensione controllata':'Start from a controlled hang',
+ 'Parti da una sospensione stabile senza oscillare':'Start from a steady hang without swinging',
+ 'Parti da una trazione stretta e controllata':'Start from a tight, controlled pull',
+ 'Parti dall\'hang con schiena neutra':'Start from the hang with a neutral spine',
+ 'Passi corti e controllati, busto fermo':'Short, controlled steps, torso still',
+ 'Pausa 1 sec in contrazione, discesa controllata 2 sec':'Pause 1 sec at the squeeze, 2 sec controlled descent',
+ 'Pausa breve e ritorno controllato':'Short pause and a controlled return',
+ 'Pausa breve in alto, discesa controllata':'Short pause at the top, controlled descent',
+ 'Pausa breve in contrazione':'Short pause at the squeeze',
+ 'Pausa breve quando le maniglie arrivano al tronco':'Short pause when the handles reach your torso',
+ 'Pausa in cima senza iperestendere la lombare':'Pause at the top without hyperextending your lower back',
+ 'Pensa a esplodere lateralmente, non a fare volume':'Think of exploding sideways, not of racking up volume',
+ 'Petto aperto e busto stabile, senza dondolare':'Open chest and steady torso, no rocking',
+ 'Petto in fuori, tira i gomiti verso i fianchi':'Chest out, pull your elbows towards your hips',
+ 'Petto sempre appoggiato: è il senso dell\'esercizio':'Chest always on the pad: that\'s the point of the exercise',
+ 'Piede dietro solo in appoggio sulla punta, come stabilizzatore':'Back foot only on the toes, as a stabiliser',
+ 'Piede posteriore appoggiato su panca, busto inclinato in avanti':'Back foot on a bench, torso leaning forward',
+ 'Piedi a larghezza anche, talloni vicini al sedere':'Feet hip-width, heels close to your bum',
+ 'Piedi in alto e larghi, punte ruotate fuori 20-30°':'Feet high and wide, toes turned out 20-30°',
+ 'Poche ripetizioni, recupero completo':'Few reps, full recovery',
+ 'Porta il busto verso la gamba senza forzare':'Bring your torso towards your leg without forcing',
+ 'Porta il petto leggermente verso la sbarra':'Bring your chest slightly towards the bar',
+ 'Porta la sbarra verso la parte alta del petto':'Bring the bar towards your upper chest',
+ 'Porta la sbarra verso la parte alta del petto senza dondolare':'Bring the bar towards your upper chest without rocking',
+ 'Porta le braccia dall\'alto in basso, gomiti leggermente piegati':'Bring your arms down from above, elbows slightly bent',
+ 'Porta le ginocchia su arrotolando leggermente il bacino':'Bring your knees up, curling your hips slightly',
+ 'Presa larga e petto aperto, busto stabile':'Wide grip and open chest, steady torso',
+ 'Progressione di carico graduale':'Add load gradually',
+ 'Progressione lenta':'Progress slowly',
+ 'Progressione naturale quando la banda elastica non basta più':'The natural step up when the band isn\'t enough any more',
+ 'Progressione: a corpo libero → con banda → side plank clamshell':'Progression: bodyweight → with a band → side plank clamshell',
+ 'Prova a comprimere attivamente la gamba verso il busto':'Try actively squeezing your leg towards your torso',
+ 'Qualità > quantità':'Quality > quantity',
+ 'Quando completi 3-4 serie al limite alto delle reps, aumenta gradualmente la difficoltà':'Once you hit 3-4 sets at the top of the rep range, step the difficulty up',
+ 'Rana in priorità per il drenaggio linfatico':'Breaststroke first, for lymphatic drainage',
+ 'Range confortevole':'A comfortable range',
+ 'Range profondo ma controllato, senza far crollare il bacino':'A deep but controlled range, without letting your hips collapse',
+ 'Recupera completamente tra i salti':'Recover fully between jumps',
+ 'Regola il sedile per avere una posizione stabile':'Set the seat so your position is stable',
+ 'Regola il supporto sopra la parte alta delle cosce':'Set the pad above your upper thighs',
+ 'Regola lo schienale: bacino fermo, ginocchio allineato al perno':'Set the backrest: hips still, knee lined up with the pivot',
+ 'Regredisci piegando ginocchia':'Make it easier by bending your knees',
+ 'Respira normalmente':'Breathe normally',
+ 'Respira normalmente, non trattenere il fiato':'Breathe normally, don\'t hold your breath',
+ 'Retroversione del bacino e ginocchia verso il petto':'Tuck your hips under and bring your knees towards your chest',
+ 'Ricevi il bilanciere alto e stabile senza inseguire il carico':'Catch the bar high and steady without chasing the weight',
+ 'Riduci ampiezza se perdi equilibrio':'Shorten the range if you lose your balance',
+ 'Riduci il carico se perdi il controllo':'Drop the load if you lose control',
+ 'Riduci il range se compare slancio':'Shorten the range if swinging creeps in',
+ 'Riduci il range se perdi la linea':'Shorten the range if you lose the line',
+ 'Rimani stabile sul box/pin senza rimbalzare':'Stay steady on the box/pins without bouncing',
+ 'Riparti mantenendo tensione e busto controllato':'Start again keeping the tension and your torso controlled',
+ 'Ripeti per entrambi i lati':'Repeat on both sides',
+ 'Ripeti solo finché il controllo resta alto':'Repeat only while your control stays high',
+ 'Risali spingendo il bacino avanti, ginocchia in linea con le punte':'Stand up by driving your hips forward, knees tracking over your toes',
+ 'Ritorna lentamente lasciando allungare il dorsale':'Return slowly, letting your lat stretch',
+ 'Ritorna lentamente per completare l\'allungamento del dorsale':'Return slowly to finish the lat stretch',
+ 'Ritorna lentamente per sentire l\'allungamento del dorsale':'Return slowly to feel the lat stretch',
+ 'Ritorno lento 2-3 sec (ma senza esagerare: ti dà DOMS)':'Slow return, 2-3 sec (but don\'t overdo it: it gives you DOMS)',
+ 'Ritorno lento con scapole controllate':'Slow return with the shoulder blades under control',
+ 'Ritorno lento e controllato':'Slow, controlled return',
+ 'Ritorno lento, senza farti tirare su dal cavo':'Slow return, don\'t let the cable pull you up',
+ 'Ruota leggermente le mani senza inarcare la schiena':'Rotate your hands slightly without arching your back',
+ 'Sali contraendo i glutei e fermati quando sei in linea':'Rise by squeezing your glutes and stop when you\'re in line',
+ 'Sali contraendo i glutei, fermati quando sei in linea':'Rise by squeezing your glutes, stop when you\'re in line',
+ 'Sali fino all\'altezza della spalla, non oltre':'Raise to shoulder height, no higher',
+ 'Sali fino all\'altezza della spalla, non sopra':'Raise to shoulder height, not above',
+ 'Sali fino in cima e contrai 1 sec':'Go all the way up and squeeze for 1 sec',
+ 'Scapole retratte e appoggiate':'Shoulder blades retracted and supported',
+ 'Scendi cercando l\'allungamento dei glutei, non della lombare':'Lower looking for the stretch in your glutes, not your lower back',
+ 'Scendi controllando fino a una posizione confortevole':'Lower under control to a comfortable position',
+ 'Scendi dalla pedana bassa e assorbi l\'atterraggio':'Step down off the low box and absorb the landing',
+ 'Scendi fin dove mantieni controllo e comfort':'Lower as far as you keep control and comfort',
+ 'Scendi finché il bacino sta per staccarsi, non oltre':'Lower until your hips are about to lift, no further',
+ 'Scendi finché il ginocchio posteriore sfiora terra':'Lower until your back knee brushes the floor',
+ 'Scendi finché senti tirare i femorali, poi risali':'Lower until you feel your hamstrings pull, then come back up',
+ 'Scendi fino a gomiti circa 90°':'Lower until your elbows are at about 90°',
+ 'Scendi in profondità mantenendo il bacino neutro':'Go deep while keeping your hips neutral',
+ 'Scendi lentamente per 3-5 secondi':'Lower slowly over 3-5 seconds',
+ 'Scendi prima che la posizione collassi':'Come down before the position collapses',
+ 'Scendi solo nel range che controlli':'Only lower through the range you control',
+ 'Schiena appoggiata, non staccare il bacino':'Back against the pad, don\'t lift your hips',
+ 'Schiena ferma appoggiata, il movimento è tutto d\'anca':'Back still against the pad, the movement is all from the hip',
+ 'Schiena leggermente arrotondata, NON inarcata':'Back slightly rounded, NOT arched',
+ 'Schiena neutra, busto fermo':'Neutral spine, torso still',
+ 'Schienale verticale, lombare appoggiata':'Backrest upright, lower back supported',
+ 'Sdraiata sul fianco, anche e ginocchia piegate, piedi uniti':'Lie on your side, hips and knees bent, feet together',
+ 'Sdraiata sul fianco, piedi uniti, banda sopra le ginocchia':'Lie on your side, feet together, band above your knees',
+ 'Se i femorali sono ancora indolenziti, saltalo o tienilo leggero':'If your hamstrings are still sore, skip it or keep it light',
+ 'Se il femorale crampa, avvicina il tallone al sedere':'If your hamstring cramps, bring your heel closer to your bum',
+ 'Se la schiena si stacca, riduci il range':'If your back lifts, shorten the range',
+ 'Se la versione completa cala di qualità, passa temporaneamente al tuck':'If the full version loses quality, drop back to the tuck for now',
+ 'Senti l\'allungamento del gran dorsale in alto':'Feel the lat stretch at the top',
+ 'Serie brevi e pulite':'Short, clean sets',
+ 'Siediti alta e mantieni il core attivo':'Sit tall and keep your core engaged',
+ 'Solleva una gamba usando i flessori dell\'anca':'Lift one leg using your hip flexors',
+ 'Solleva una punta alla volta':'Lift one toe at a time',
+ 'Solo la parte alta del movimento: range corto, tensione costante':'Only the top half of the movement: short range, constant tension',
+ 'Spalle attive, non appese passivamente':'Active shoulders, not hanging passively',
+ 'Spalle basse e scapole controllate':'Shoulders down and shoulder blades under control',
+ 'Spalle depresse e braccia attive':'Shoulders down and arms active',
+ 'Spalle depresse e scapole stabili':'Shoulders down and shoulder blades steady',
+ 'Spingi col tallone del piede sopra, non slanciare quello sotto':'Push through the heel of the top foot, don\'t swing the bottom one',
+ 'Spingi col tallone, ginocchio in linea con la punta':'Push through your heel, knee tracking over your toes',
+ 'Spingi col tallone, pausa 1 sec in cima':'Push through your heel, pause 1 sec at the top',
+ 'Spingi con i talloni, costole basse':'Push through your heels, ribs down',
+ 'Spingi con i talloni, costole basse e mento in dentro':'Push through your heels, ribs down and chin tucked',
+ 'Spingi con i talloni: se si alzano le punte va bene':'Push through your heels: your toes lifting is fine',
+ 'Spingi con il tallone appoggiato, bacino neutro in cima':'Push through the planted heel, neutral hips at the top',
+ 'Spingi dal tallone della gamba di lavoro':'Push through the heel of the working leg',
+ 'Spingi forte il pavimento':'Push hard into the floor',
+ 'Spingi forte sulle mani':'Push hard through your hands',
+ 'Spingi forte sulle parallettes':'Push hard through the parallettes',
+ 'Spingi forte verso il basso con le mani e tieni le spalle depresse':'Push hard down through your hands and keep your shoulders down',
+ 'Spingi i manubri sopra la testa seguendo una traiettoria naturale':'Press the dumbbells overhead along a natural path',
+ 'Spingi il bacino indietro, schiena neutra per tutto il movimento':'Push your hips back, neutral spine throughout',
+ 'Spingi il pavimento verso il basso':'Push the floor away',
+ 'Spingi l\'anca avanti senza iperestendere la lombare':'Drive your hip forward without hyperextending your lower back',
+ 'Spingi senza slanciare il busto né bloccare bruscamente i gomiti':'Press without swinging your torso or snapping your elbows straight',
+ 'Spingi sopra la testa senza inarcare la lombare':'Press overhead without arching your lower back',
+ 'Sposta il peso lentamente a destra e sinistra':'Shift your weight slowly right and left',
+ 'Sposta il peso su una mano alla volta':'Shift your weight onto one hand at a time',
+ 'Stesso movimento del clamshell classico, manubrio appoggiato sul ginocchio superiore':'Same movement as the classic clamshell, with a dumbbell resting on the top knee',
+ 'Stile libero per il condizionamento generale':'Freestyle for general conditioning',
+ 'Stop se la qualità dell\'atterraggio cala':'Stop if your landings lose quality',
+ 'Tallone della gamba piegata ben appoggiato':'Heel of the bent leg firmly planted',
+ 'Tieni 15-20 sec respirando poco e superficiale':'Hold 15-20 sec breathing lightly and shallowly',
+ 'Tira con i gomiti, scapole che si avvicinano':'Pull with your elbows, shoulder blades drawing together',
+ 'Tira con i talloni, pausa breve in massima contrazione':'Pull with your heels, short pause at full squeeze',
+ 'Tira i gomiti indietro senza compensare con il busto':'Pull your elbows back without compensating with your torso',
+ 'Tira i gomiti verso i fianchi':'Pull your elbows towards your hips',
+ 'Tira i gomiti verso il fianco':'Pull your elbows towards your hip',
+ 'Tira il gomito verso il fianco, non verso la spalla':'Pull your elbow towards your hip, not towards your shoulder',
+ 'Tira verso fronte/naso aprendo i gomiti':'Pull towards your forehead/nose, opening your elbows',
+ 'Tocca con la punta senza ruotare il bacino':'Tap with your toe without rotating your hips',
+ 'Tocca il target senza perdere la linea':'Touch the target without losing the line',
+ 'Un piede sulla pedana, l\'altro appoggiato o sollevato':'One foot on the box, the other resting or lifted',
+ 'Una gamba a terra, l\'altra sollevata a 90°':'One leg on the floor, the other raised to 90°',
+ 'Una gamba estesa, l\'altra raccolta':'One leg extended, the other tucked',
+ 'Una gamba piega mentre l\'altra si estende':'One leg bends while the other extends',
+ 'Usa assistenza se non controlli la discesa':'Use assistance if you can\'t control the descent',
+ 'Usa assistenza sufficiente per reps pulite':'Use enough assistance for clean reps',
+ 'Usa il piede libero solo come assistenza se serve':'Use your free foot only as support if you need it',
+ 'Usa l\'assistenza per massimizzare velocità e altezza':'Use the assistance to get the most speed and height',
+ 'Usa subito la reazione elastica per saltare avanti':'Use the elastic rebound straight away to jump forward',
+ 'Usa un carico leggero e tecnico':'Use a light load and focus on technique',
+ 'Usa una presa neutra o inversa stabile e petto aperto':'Use a steady neutral or reverse grip with an open chest',
+ 'Usalo prima delle skill':'Do it before the skill work',
+ 'Zero slancio: se dondoli stai usando l\'inerzia':'Zero swing: if you\'re rocking, you\'re using momentum',
+ 'Dal catalogo':'From the catalogue',
+ 'Preferenze, priorità, vincoli…':'Preferences, priorities, limits…',
+ 'Es. esercizi che non vuoi fare…':'E.g. exercises you\'d rather not do…',
+ 'Ci sono esercizi che non vuoi fare o che non puoi fare?':'Are there exercises you don\'t want to do, or can\'t do?',
+ 'Calorie al giorno':'Calories per day',
+ 'Proteine al giorno (g)':'Protein per day (g)',
+ 'esercizio':'exercise',
+ 'esercizi':'exercises',
+ 'seduta':'session',
+ 'sedute':'sessions',
+ 'giornata':'day',
+ 'giornate':'days',
+ /* traduzione completa EN - vedi tests/english.test.js */
+ 'Backup completo: include profilo, piano personalizzato, obiettivi, storico e tutti i dati fede:* salvati in questo dispositivo. Un solo file per ripristinare tutto. Puoi copiarlo o scaricarlo come JSON e mandarmelo.':'Full backup: profile, custom plan, goals, history and every fede:* item saved on this device. One file restores everything. You can copy it or download it as JSON and send it to me.',
+ 'Ciao 👋 Sono Fede Coach. Posso aiutarti con tecnica, storico, progressione e modifiche al programma. Se vuoi cambiare qualcosa, prima capisco il contesto e poi ti propongo una modifica da confermare.':'Hi 👋 I\'m Fede Coach. I can help with technique, history, progression and changes to the programme. If you want to change something, I\'ll look at the context first and then propose a change for you to confirm.',
+ 'In definizione un calo di 0,3-0,5 kg a settimana preserva la massa muscolare. Scendere più in fretta significa perdere anche muscolo, che è esattamente ciò che ti serve per la clessidra.':'When cutting, losing 0.3-0.5 kg a week protects muscle. Going faster means losing muscle too, which is exactly what you need for the hourglass shape.',
+ 'Pesati sempre nelle stesse condizioni: mattina, a digiuno, dopo il bagno. Il peso oscilla di 1-2 kg per acqua e ciclo: guarda la tendenza su settimane, non il singolo giorno.':'Always weigh yourself the same way: morning, fasted, after the bathroom. Weight swings 1-2 kg with water and your cycle, so read the trend over weeks, not a single day.',
+ '“cambia questo”, “sostituisci Incline Curl con Cable Lateral Raise”, “togli questo”, “aggiungi Pull-up”, “cosa ho fatto l’ultima volta?”, “come posso progredire?”':'“change this”, “swap Incline Curl for Cable Lateral Raise”, “remove this”, “add Pull-up”, “what did I do last time?”, “how can I progress?”',
+ 'Questa sezione raccoglie solo skill e progressioni di calisthenics. Puoi usarla come complemento alla palestra senza confonderla con il piano principale.':'This section holds calisthenics skills and progressions only. Use it alongside the gym without mixing it up with the main plan.',
+ 'Per importare: incolla il backup nel riquadro (o scegli il file) e premi “Analizza e importa”. Vedrai un’anteprima prima di qualsiasi modifica.':'To import: paste the backup in the box (or pick the file) and press “Analyse and import”. You\'ll see a preview before anything changes.',
+ 'Scegli uno schema suggerito, poi aggiusta i singoli giorni se serve. Lower = glutei e gambe (Giorno 2, 4, 5), upper = dorso e spalle (Giorno 1, 3).':'Pick a suggested pattern, then adjust single days if you need to. Lower = glutes and legs (Day 2, 4, 5), upper = back and shoulders (Day 1, 3).',
+ 'Il tuo Coach usa il piano, il profilo e lo storico per aiutarti durante la seduta. Tocca la faccina in basso a destra quando vuoi.':'Your Coach uses the plan, your profile and your history to help you during the session. Tap the face at the bottom right whenever you want.',
+ 'Somma di kg × ripetizioni delle serie segnate, Lab escluso. Serve a vedere il verso, non a confrontare giornate diverse fra loro.':'The sum of kg × reps across logged sets, Lab excluded. It shows the direction of travel, not a comparison between different days.',
+ 'Obiettivo, livello, giorni, attrezzatura e misure: otto domande, tutte a tocco tranne peso e altezza. Servono al piano e al coach.':'Goal, level, days, equipment and measurements: eight questions, all by tapping except weight and height. The plan and the coach need them.',
+ 'Aggiornare il piano modifica la scheda attiva, ma non cancella lo storico salvato. Prima di farlo viene chiesta conferma.':'Updating the plan changes the active programme but never deletes saved history. You\'ll be asked to confirm first.',
+ 'Non cancella automaticamente i workout registrati. Ti farà ripartire dalle domande del Coach per ricreare il piano.':'It does not delete your logged workouts. It takes you back to the Coach\'s questions to rebuild the plan.',
+ 'Servono almeno due sessioni con questo esercizio per vedere il grafico. Continua a segnare i carichi in Palestra.':'You need at least two sessions with this exercise to see the chart. Keep logging your loads in the Gym.',
+ 'Il tuo profilo guida il Coach e la personalizzazione del piano. Le modifiche vengono salvate sul dispositivo.':'Your profile drives the Coach and how the plan is tailored. Changes are saved on this device.',
+ 'Skill prima della fatica. Frog Stand, poi forza upper e core. Qualità tecnica prima di aggiungere tempo o volume.':'Skill before fatigue. Frog Stand first, then upper-body strength and core. Clean technique before adding time or volume.',
+ 'Prepara polsi e spalle prima della skill Frog Stand e del lavoro di spinta. Tocca per segnare come fatto.':'Prepares wrists and shoulders for the Frog Stand skill and the pushing work. Tap to mark as done.',
+ 'Finisce nella giornata di oggi (':'It lands in today\u2019s session (',') con i suoi campi, e conta nello storico come ogni altro esercizio.':'It lands in today\'s session (Day 3) with its own fields, and counts in your history like any other exercise.',
+ 'Premi “Esegui controllo” per verificare profilo, piano, Stable IDs, storico e gestione errori del Coach.':'Press “Run check” to verify profile, plan, Stable IDs, history and the Coach\'s error handling.',
+ 'Dove sei su questa scala? Scegli una volta: da lì in poi il tuo allenamento parte dal gradino giusto.':'Where are you on this scale? Choose once, and from then on your session starts from the right rung.',
+ 'I video si aprono su YouTube/TikTok e appartengono ai rispettivi autori; non sono salvati nell’app.':'Videos open on YouTube/TikTok and belong to their authors; they are not stored in the app.',
+ 'L’obiettivo è costruire mobilità attiva e compression strength, non solo allungare passivamente.':'The aim is active mobility and compression strength, not just passive stretching.',
+ 'Fresh: 2–4 esercizi · Normal: 1–2 · Tired: salta il Power Lab. Qualità e velocità prima del volume.':'Fresh: 2–4 exercises · Normal: 1–2 · Tired: skip the Power Lab. Quality and speed before volume.',
+ 'Il finisher è opzionale. Se sei stanca, una camminata leggera o mobility è sufficiente.':'The finisher is optional. If you\'re tired, an easy walk or some mobility is enough.',
+ '3-5 min · mobilità polsi e spalle, scapular push-ups e preparazione progressiva al carico':'3-5 min · wrist and shoulder mobility, scapular push-ups and a gradual build-up under load',
+ 'Può leggere il tuo piano e lo storico, proporre sostituzioni e applicarle solo dopo conferma.':'It can read your plan and history, propose swaps and apply them only after you confirm.',
+ 'Minimum 20 min · target 30–45 min. Le calorie sono solo una stima, non un obbligo.':'Minimum 20 min · target 30–45 min. The calories are an estimate, not a target you must hit.',
+ 'Scegli al massimo 1–2 esercizi. Il volume extra viene registrato separatamente.':'Pick 1–2 exercises at most. The extra volume is logged separately.',
+ 'Il confronto fra mesi compare dopo otto settimane piene di storico.':'The month-on-month comparison appears after eight full weeks of history.',
+ 'Prima della seduta · tocca ✓ quando hai completato ogni parte.':'Before the session · tap ✓ as you complete each part.',
+ 'Registra il peso per almeno due giorni per vedere il grafico.':'Log your weight on at least two days to see the chart.',
+ 'Video reali quando disponibili. Illustrazioni dedicate per il resto.':'Real video where it exists. Custom illustrations for the rest.',
+ 'Allineato all’indicazione della PT: 2000 kcal e almeno 110 g di proteine.':'In line with the PT\'s guidance: 2000 kcal and at least 110 g of protein.',
+ 'Warm-up non ancora spuntato · aprilo nella giornata':'Warm-up not ticked yet · open it inside the session',
+ 'Oppure scegli il file del backup (.json o .txt):':'Or choose the backup file (.json or .txt):',
+ 'Scegli per proseguire: non registro un profilo a metà.':'Choose to continue: I won\'t save a half-filled profile.',
+ '1 bicchiere = 250 ml · tocca un bicchiere o usa + / −':'1 glass = 250 ml · tap a glass or use + / −',
+ 'Fonti e licenze delle immagini degli esercizi':'Sources and licences for the exercise images',
+ '3 lower · 2 upper, con Pull-up, Frog Stand e L-Sit':'3 lower · 2 upper, with Pull-up, Frog Stand and L-Sit',
+ '3 lower · 2 upper, senza skill':'3 lower · 2 upper, no skill work',
+ 'Non cambiano il piano principale':'They don\'t change the main plan',
+ '⚡ Scegli in base a come ti senti':'⚡ Choose by how you feel',
+ 'Extra · solo se hai energie':'Extra · only if you have energy left',
+ 'Esplosività · salti · forza':'Explosiveness · jumps · strength',
+ 'Apri Mobility / Compression Lab →':'Open Mobility / Compression Lab →',
+ 'Modifica il piano, non solo rispondere':'It changes the plan, not just answers',
+ '😴 Riposo — Giorno di riposo':'😴 Rest — Rest day',
+ 'Glutei a casa — senza attrezzi':'Glutes at home — no equipment',
+ 'Per viaggi o giorni senza palestra. Recupero 45-60 sec.':'For travel or days without a gym. Rest 45-60 sec.',
+ 'Giorno di riposo · da fare':'Rest day · to do',
+ '💧 Quanta acqua hai bevuto?':'💧 How much water have you had?',
+ 'Il tuo profilo è incompleto':'Your profile is incomplete',
+ 'Qual è il tuo obiettivo?':'What\'s your goal?',
+ 'Apri il piano del giorno →':'Open today\'s meal plan →',
+ 'Il resto della giornata':'The rest of the day',
+ '➕ Aggiungi dal catalogo':'➕ Add from the catalogue',
+ '＋ Aggiungi esercizio':'＋ Add exercise',
+ 'Aggiungi esercizio':'Add exercise',
+ 'Note della sessione':'Session notes',
+ 'Esercizi da evitare':'Exercises to avoid',
+ 'Note per il Coach':'Notes for the Coach',
+ 'Giorni / settimana':'Days / week',
+ 'Aggiorna piano usando il profilo':'Update plan from the profile',
+ 'Completa il profilo →':'Complete your profile →',
+ 'Inizia allenamento':'Start workout',
+ 'Il tuo allenamento':'Your workout',
+ '☰ Tutta la giornata':'☰ Whole session',
+ '+ aggiungi alimento':'+ add food',
+ 'Salva camminata':'Save walk',
+ 'già in giornata':'already in today',
+ 'Il tuo focus':'Your focus',
+ 'Il tuo profilo':'Your profile',
+ 'La tua settimana':'Your week',
+ 'questa settimana':'this week',
+ 'Sedute per settimana':'Sessions per week',
+ 'Volume per seduta':'Volume per session',
+ 'Calorie al giorno':'Calories per day',
+ 'Proteine al giorno (g)':'Protein per day (g)',
+ 'Peso oggi (kg)':'Today\'s weight (kg)',
+ 'Andamento peso':'Weight trend',
+ 'Peso di partenza':'Starting weight',
+ 'Peso iniziale':'Starting weight',
+ 'Peso obiettivo':'Target weight',
+ 'Peso attuale':'Current weight',
+ 'Peso (kg)':'Weight (kg)',
+ 'Esercizio':'Exercise',
+ '▶ Uno alla volta':'▶ One at a time',
+ '▶ Guarda il video':'▶ Watch the video',
+ 'Apri workout':'Open workout',
+ 'Cerca un video guida per ':'Find a guide video for ',
+ 'Apri il video di ':'Open the video for ',
+ 'Aggiungi acqua':'Add water',
+ 'Apri ':'Open ',
+ 'Lunedì':'Monday',
+ 'Martedì':'Tuesday',
+ 'Mercoledì':'Wednesday',
+ 'Giovedì':'Thursday',
+ 'Venerdì':'Friday',
+ 'Sabato':'Saturday',
+ 'Domenica':'Sunday',
+ 'Settimana':'Week',
+ 'Oggi':'Today',
+ 'SERIE':'SETS',
+ 'ESERCIZI':'EXERCISES',
+ '🥣 Colazione':'🥣 Breakfast',
+ '🥗 Pranzo':'🥗 Lunch',
+ '🍲 Cena':'🍲 Dinner',
+ 'Difficoltà':'Difficulty',
+ 'Tutti i livelli':'All levels',
+ ' serie':' sets',
+ ' giorni/settimana':' days/week',
+ ' giorni':' days',
+ ' pasti':' meals',
+ ' · da fare':' · to do',
+ ' · tecnica':' · technique',
+ ' · controllo':' · control',
+ ' · qualità':' · quality',
+ ' x ':' x ',
+ ' sec/lato':' sec/side',
+ '/lato':'/side',
+ 'inclinazione':'incline',
+ 'passo in cui riesci a parlare':'a pace where you can still talk',
  'Profilo':'Profile','Impostazioni personali e app':'Personal and app settings','Dati personali':'Personal details','Nome':'Name','Obiettivo':'Goal','Dove ti alleni':'Where do you train','Attrezzatura':'Equipment','Livello':'Level','Giorni a settimana':'Days per week','Durata':'Duration','Note':'Notes','Allenamento':'Workout','Diagnostica':'Diagnostics','Backup & dati':'Backup & data','Salva profilo':'Save profile','Aggiorna piano':'Update plan','Reimposta onboarding':'Reset onboarding',
  'Lingua':'Language','Scegli la lingua dell’app':'Choose the app language','Italiano':'Italian','Inglese':'English','English':'English','Seleziona':'Select',
  'Home':'Home','Piano':'Plan','Progressi':'Progress','Coach':'Coach','Allenamenti':'Workouts','Evoluzione':'Progress','Metriche':'Metrics','Carichi':'Loads','Obiettivi':'Goals','Backup':'Backup',
@@ -3941,7 +4647,12 @@ function i18nProtectedNode(n){
   }
   return false;
 }
-function applyLanguage(){if(getAppLanguage()!=='en')return;const root=document.getElementById('page');if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){return i18nProtectedNode(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;}});const nodes=[];while(w.nextNode())nodes.push(w.currentNode);nodes.forEach(function(n){let t=n.nodeValue;Object.keys(APP_EN).forEach(function(k){const v=APP_EN[k];t=t.split(k).join(v);});n.nodeValue=t;});root.querySelectorAll('input,textarea').forEach(function(e){if(APP_EN[e.placeholder])e.placeholder=APP_EN[e.placeholder];});}
+let __appEnKeys=null;
+function APP_EN_KEYS(){if(!__appEnKeys)__appEnKeys=Object.keys(APP_EN).sort(function(a,b){return b.length-a.length;});return __appEnKeys;}
+function applyLanguage(){if(getAppLanguage()!=='en')return;
+  // La barra in basso e la sfera del coach vivono fuori da #page: vanno tradotte anche loro.
+  ['page','nav','minicoach'].forEach(function(id){const el=document.getElementById(id);if(el)applyLanguageTo(el);});}
+function applyLanguageTo(root){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){return i18nProtectedNode(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;}});const nodes=[];while(w.nextNode())nodes.push(w.currentNode);const keys=APP_EN_KEYS();nodes.forEach(function(n){let t=n.nodeValue;keys.forEach(function(k){const v=APP_EN[k];if(t.indexOf(k)>=0)t=t.split(k).join(v);});n.nodeValue=t;});root.querySelectorAll('input,textarea').forEach(function(e){if(APP_EN[e.placeholder])e.placeholder=APP_EN[e.placeholder];});root.querySelectorAll('[aria-label]').forEach(function(e){let a=e.getAttribute('aria-label');if(!a)return;keys.forEach(function(k){if(a.indexOf(k)>=0)a=a.split(k).join(APP_EN[k]);});e.setAttribute('aria-label',a);});}
 
 // Third-party exercise photos bundled in assets/exercises/photos (required CC BY 2.0 attribution lives here, not on the exercise cards).
 const PHOTO_CREDITS=[
@@ -3963,7 +4674,7 @@ function profileHTML(){
   const name=p.name||'Fede';
   let h=hdr('Profilo','Impostazioni personali e app');
   h+='<div class="wrap">';
-  h+='<div class="lang-card"><div class="lang-title">🌐 Lingua / Language</div><div class="lang-sub">Scegli la lingua dell’app.</div><div class="lang-toggle"><button id="langIT" class="'+(getAppLanguage()==='it'?'on':'')+'">🇮🇹 Italiano</button><button id="langEN" class="'+(getAppLanguage()==='en'?'on':'')+'">🇬🇧 English</button></div></div>';
+  h+='<div class="lang-card"><div class="lang-title" data-no-i18n>🌐 Lingua / Language</div><div class="lang-sub">Scegli la lingua dell’app.</div><div class="lang-toggle"><button id="langIT" class="'+(getAppLanguage()==='it'?'on':'')+'">🇮🇹 Italiano</button><button id="langEN" class="'+(getAppLanguage()==='en'?'on':'')+'">🇬🇧 English</button></div></div>';
   if(!profileComplete(p))h+='<div class="card setup-call"><b>Il tuo profilo \u00e8 incompleto</b><div class="note" style="margin-top:6px">Obiettivo, livello, giorni, attrezzatura e misure: otto domande, tutte a tocco tranne peso e altezza. Servono al piano e al coach.</div><button class="btn" data-setupopen="1" style="margin-top:12px">Completa il profilo \u2192</button></div>';
   h+='<div class="profile-hero"><div class="profile-avatar">'+esc((name.trim()[0]||'F').toUpperCase())+'</div>'+
     '<div class="profile-title">'+esc(name)+'</div>'+

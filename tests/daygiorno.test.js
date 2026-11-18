@@ -11,9 +11,10 @@ const J = JSON.stringify;
     function el(tag,attrs,kids){const e={nodeType:1,nodeName:tag,attrs:attrs||{},childNodes:[],parentNode:null,placeholder:(attrs||{}).placeholder||'',hasAttribute:function(a){return Object.prototype.hasOwnProperty.call(this.attrs,a);}};(kids||[]).forEach(k=>{k.parentNode=e;e.childNodes.push(k);});return e;}
     function tx(v){return {nodeType:3,nodeValue:v,parentNode:null};}
     globalThis.__t={label:tx("Glutei · Giorno 1 · Nuoto"),note:tx("Note: Giorno 1 Glutei pesante, Nuoto 30 min"),json:tx('{"fede:2026-01-01":"{\\"day\\":\\"Giorno 2\\",\\"sets\\":{\\"Giorno 2|giorno-2__bulgarian-split-squat|1\\":{}}}","n":"Hip Abduction Seated /gamba"}'),keep:tx("Giorno 3 Glutei")};
+    const __aria={attrs:{"aria-label":"Apri Giorno 1"},getAttribute:function(a){return this.attrs[a];},setAttribute:function(a,v){this.attrs[a]=v;}};globalThis.__aria=__aria;
     const ta1=el("TEXTAREA",{},[__t.note]), ta2=el("TEXTAREA",{"data-no-i18n":""},[__t.json]), nb=el("DIV",{"data-no-i18n":""},[el("SPAN",{},[__t.keep])]), inp=el("INPUT",{placeholder:"Note"});
     const root=el("DIV",{},[el("B",{},[__t.label]),ta1,ta2,nb,inp]);
-    root.querySelectorAll=function(){return [inp,ta1,ta2];};
+    root.querySelectorAll=function(sel){if(String(sel).indexOf('aria-label')>=0)return [__aria];return [inp,ta1,ta2];};
     document.getElementById=function(id){return id==="page"?root:null;};
     document.createTreeWalker=function(r,what,filter){const list=[];(function walk(n){(n.childNodes||[]).forEach(c=>{if(c.nodeType===3){if(!filter||filter.acceptNode(c)===NodeFilter.FILTER_ACCEPT)list.push(c);}else walk(c);});})(r);let i=-1;return {currentNode:null,nextNode:function(){i++;this.currentNode=list[i]||null;return !!list[i];}};};
     globalThis.__inp=inp;
@@ -24,7 +25,8 @@ const J = JSON.stringify;
   T('user note in textarea untouched (byte-exact)', h.run('__t.note.nodeValue') === before.note);
   T('backup JSON textarea untouched (byte-exact)', h.run('__t.json.nodeValue') === before.json);
   T('[data-no-i18n] subtree untouched', h.run('__t.keep.nodeValue') === before.keep);
-  T('placeholder still translated (not user content)', h.run('__inp.placeholder') === 'Notes'); }
+  T('placeholder still translated (not user content)', h.run('__inp.placeholder') === 'Notes');
+  T('aria-label translated too (screen reader hears English)', h.run('__aria.attrs["aria-label"]') === 'Open Day 1', h.run('__aria.attrs["aria-label"]')); }
 
 // ---------- 2) Export built from storage, byte-exact, language-independent ----------
 { const store = { 'fede:2026-01-05': J({ day: 'Day 2', sets: { 'Day 2|giorno-2__machine-hip-thrust__3-x-6-8|1': { kg: '30', r: '8' }, 'Giorno 2|giorno-2__machine-hip-thrust|1': { kg: '31', r: '8' } }, done: {}, note: 'Glutei ok · Giorno 2' }),
