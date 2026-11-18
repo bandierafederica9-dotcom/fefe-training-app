@@ -735,3 +735,20 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .hm.next .hm-time,.hm.next .hm-slot{color:var(--rose-d)}
 .hm.done{opacity:.6}
 .hm.done .hm-body b{text-decoration:line-through}
+
+/* Il pasto di adesso, in grande */
+.meal-now{background:var(--card);border:1px solid var(--rose);border-radius:22px;padding:16px;
+  margin-bottom:12px;box-shadow:0 12px 28px -20px rgba(201,85,127,.8)}
+.meal-now-top{display:flex;gap:13px;align-items:flex-start}
+.meal-now-icon{flex:0 0 52px;width:52px;height:52px;border-radius:16px;background:var(--rose-l);
+  display:flex;align-items:center;justify-content:center;font-size:26px;line-height:1}
+.meal-now-slot{font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:var(--rose-d)}
+.meal-now h3{margin:4px 0 0;font-size:18px;line-height:1.3}
+.meal-now-ing{margin-top:12px;font-size:12.5px;line-height:1.6;color:var(--dim);white-space:pre-line}
+.meal-now-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+.meal-now-foot>span{font-size:12.5px;font-weight:800;color:var(--rose-d)}
+.meal-now .diet-check{width:48px;height:48px;min-width:48px;min-height:48px;border-radius:50%;
+  border:2px solid var(--rose-b);background:var(--card);color:var(--rose);font-size:19px;font-weight:900}
+.meal-now .diet-check.on{background:var(--rose);border-color:var(--rose);color:#fff}
+.meal-now.done{opacity:.65;border-color:var(--line)}
+.meal-now.done h3{text-decoration:line-through}

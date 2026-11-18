@@ -95,9 +95,20 @@ const J = JSON.stringify;
     const hh = H(REPO);
     hh.run('cur=new Date("2026-01-19T12:00:00");key="fede:2026-01-19";data=norm({day:"Giorno 1"});');
     const home = hh.run('homeMealsHTML()');
-    T('la home elenca i sei pasti del giorno', (home.match(/<div class="hm[ "]/g) || []).length === 6);
+    T('in cima c\'è un pasto solo, in grande', (home.match(/class="meal-now/g) || []).length >= 1);
+    T('gli altri cinque stanno sotto', (home.match(/<div class="hm[ "]/g) || []).length === 5);
     T('ognuno porta orario, nome e valori', /09:00/.test(home) && /Tostata senza glutine/.test(home) && /640 kcal \u00b7 29 g/.test(home));
-    T('ognuno ha la sua spunta', (home.match(/data-diet-done="/g) || []).length === 6);
+    T('ognuno ha la sua spunta, compreso quello in grande', (home.match(/data-diet-done="/g) || []).length === 6);
+    T('ogni pasto ha la sua icona', (home.match(/\ud83e\udd5e|\ud83c\udf4e|\ud83e\udd57|\ud83e\udd64|\ud83c\udf4c|\ud83c\udf72/g) || []).length >= 6);
+
+    // a che ora quale pasto
+    const giorno = 'DIET_DAYS[1]';
+    const att = (hhh, mm) => JSON.parse(hhh.run('JSON.stringify(' + giorno + '.meals[dietMealIndexAt(' + giorno + ',' + mm + ')].slot)'));
+    T('alle 9:30 la colazione', att(hh, 9 * 60 + 30) === 'Colazione');
+    T('alle 11:00 lo spuntino', att(hh, 11 * 60) === 'Spuntino mattutino');
+    T('alle 13:30 il pranzo', att(hh, 13 * 60 + 30) === 'Pranzo');
+    T('alle 22:00 la cena', att(hh, 22 * 60) === 'Cena');
+    T('prima del primo pasto vale il primo, non il nulla', att(hh, 5 * 60) === 'Colazione');
     T('e un modo per aprire il piano intero', /data-go="nutri"/.test(home));
     T('in fondo il totale della giornata contro il target della PT',
       /2857 kcal e 158 g/.test(home) && /2000 kcal e 110 g/.test(home));
@@ -107,7 +118,10 @@ const J = JSON.stringify;
     T('spuntare in home vale anche nel piano',
       /class="diet-check on" data-diet-done="Colazione"/.test(hh.run('homeMealsHTML()'))
       && /class="diet-check on" data-diet-done="Colazione"/.test(hh.run('nutriHTML()')));
-    T('e il pasto fatto si vede barrato', /hm done/.test(hh.run('homeMealsHTML()')));
+    T('e il pasto fatto si vede barrato', /class="meal-now done"/.test(hh.run('homeMealsHTML()')));
+    T('anche nella lista sotto un pasto fatto si barra', (() => {
+      hh.run('setDietDone(cur,"Cena",true);');
+      return /class="hm done"/.test(hh.run('homeMealsHTML()')); })());
 
     T('i vecchi riquadri con il target vecchio non ci sono piu\'',
       !/SERIE COMPLETATE/.test(hh.run('homeHTML?homeHTML():""')) || true);

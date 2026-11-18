@@ -3148,28 +3148,60 @@ function buildHTML(){
 /* I pasti di oggi in home: orario, cosa mangiare, e la spunta.
    Stessi dati e stessa spunta della scheda Nutrizione: un pasto segnato qui
    risulta segnato anche la'. */
+// L'icona del pasto: quella del diario dove esiste, le altre scelte per slot.
+const DIET_SLOT_ICON={'Colazione':'\ud83e\udd5e','Spuntino mattutino':'\ud83c\udf4e',
+  'Pranzo':'\ud83e\udd57','Merenda':'\ud83e\udd64','Merenda 2':'\ud83c\udf4c','Cena':'\ud83c\udf72'};
+function dietSlotIcon(slot){
+  const s=String(slot||'');
+  if(DIET_SLOT_ICON[s])return DIET_SLOT_ICON[s];
+  if(/spuntino|merenda/i.test(s))return '\ud83c\udf4e';
+  if(/colazione/i.test(s))return '\ud83e\udd5e';
+  if(/pranzo/i.test(s))return '\ud83e\udd57';
+  if(/cena/i.test(s))return '\ud83c\udf72';
+  return '\ud83c\udf7d\ufe0f';
+}
+function dietMinutes(t){const p=String(t||'').split(':');return (+p[0]||0)*60+(+p[1]||0);}
+// Il pasto "di adesso": quello la cui fascia contiene l'ora. La fascia di un
+// pasto va dal suo orario a quello del pasto successivo; prima del primo vale
+// il primo, dopo l'ultimo vale l'ultimo.
+function dietMealIndexAt(day,minuti){
+  const m=(day&&day.meals)||[]; if(!m.length)return -1;
+  if(minuti<dietMinutes(m[0].time))return 0;
+  for(let i=m.length-1;i>=0;i--)if(minuti>=dietMinutes(m[i].time))return i;
+  return 0;
+}
 function homeMealsHTML(){
   const d=dietDayForDate(cur), now=new Date();
   const oggi=k(cur)===k(now);
-  const minutiOra=now.getHours()*60+now.getMinutes();
-  const minuti=function(t){const p=String(t||'').split(':');return (+p[0]||0)*60+(+p[1]||0);};
-  let prossimo=-1;
-  if(oggi)d.meals.forEach(function(m,i){
-    if(prossimo<0&&!isDietDone(cur,m.slot)&&minuti(m.time)+90>=minutiOra)prossimo=i;});
+  const idx=oggi?dietMealIndexAt(d,now.getHours()*60+now.getMinutes()):0;
   const n=dietDayNutrition(d);
-  let h='<div class="sect">I pasti di oggi</div>';
-  h+='<div class="home-meals">';
-  d.meals.forEach(function(m,i){
-    const on=isDietDone(cur,m.slot), nx=i===prossimo;
-    const v=dietMealNutrition(m);
-    h+='<div class="hm'+(on?' done':'')+(nx?' next':'')+'">'
-      +'<div class="hm-time">'+esc(m.time)+'</div>'
-      +'<div class="hm-body"><div class="hm-slot">'+esc(dietMealLabel(m))+(nx?' \u00b7 ora':'')+'</div>'
-      +'<b>'+esc(m.title)+'</b>'
-      +'<span>'+v.kcal+' kcal \u00b7 '+v.prot+' g</span></div>'
-      +'<button class="diet-check'+(on?' on':'')+'" data-diet-done="'+esc(m.slot)+'">'+(on?'\u2713':'')+'</button></div>';
-  });
-  h+='</div>';
+  let h='';
+  const m=d.meals[idx];
+  if(m){
+    const on=isDietDone(cur,m.slot), v=dietMealNutrition(m);
+    h+='<div class="sect">'+(oggi?'Adesso':'Il primo pasto')+'</div>';
+    h+='<div class="meal-now'+(on?' done':'')+'">'
+      +'<div class="meal-now-top"><span class="meal-now-icon">'+dietSlotIcon(m.slot)+'</span>'
+      +'<div><div class="meal-now-slot">'+esc(dietMealLabel(m))+' \u00b7 '+esc(m.time)+'</div>'
+      +'<h3>'+esc(m.title)+'</h3></div></div>'
+      +'<div class="meal-now-ing">'+esc(m.ingredients||'')+'</div>'
+      +'<div class="meal-now-foot"><span>'+v.kcal+' kcal \u00b7 '+v.prot+' g di proteine</span>'
+      +'<button class="diet-check'+(on?' on':'')+'" data-diet-done="'+esc(m.slot)+'">'+(on?'\u2713':'')+'</button></div>'
+      +'</div>';
+  }
+  const resto=d.meals.map(function(x,i){return {m:x,i:i};}).filter(function(x){return x.i!==idx;});
+  if(resto.length){
+    h+='<div class="sect">Il resto della giornata</div><div class="home-meals">';
+    resto.forEach(function(x){
+      const on=isDietDone(cur,x.m.slot), v=dietMealNutrition(x.m);
+      h+='<div class="hm'+(on?' done':'')+'">'
+        +'<div class="hm-time">'+esc(x.m.time)+'</div>'
+        +'<div class="hm-body"><div class="hm-slot">'+dietSlotIcon(x.m.slot)+' '+esc(dietMealLabel(x.m))+'</div>'
+        +'<b>'+esc(x.m.title)+'</b><span>'+v.kcal+' kcal \u00b7 '+v.prot+' g</span></div>'
+        +'<button class="diet-check'+(on?' on':'')+'" data-diet-done="'+esc(x.m.slot)+'">'+(on?'\u2713':'')+'</button></div>';
+    });
+    h+='</div>';
+  }
   h+='<button class="btn ghost" data-go="nutri" style="margin-top:4px">Apri il piano del giorno \u2192</button>';
   h+='<div class="note" style="margin-top:8px">'+n.kcal+' kcal e '+n.prot+' g di proteine in tutta la giornata, '
     +'contro '+DIET_TARGET.kcal+' kcal e '+DIET_TARGET.prot+' g della PT.</div>';
