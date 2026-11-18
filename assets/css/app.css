@@ -766,3 +766,23 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
   padding:0 14px 2px;margin-bottom:10px;box-shadow:var(--sh)}
 .fold-sect[open]{padding-bottom:12px}
 .extra-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:4px}
+
+/* ================= CATALOGO ESERCIZI ================= */
+.cat-tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px;-webkit-overflow-scrolling:touch}
+.cat-tabs button{flex:0 0 auto;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--dim);font-weight:800;font-size:12.5px;white-space:nowrap}
+.cat-tabs button.on{background:var(--rose);border-color:var(--rose);color:#fff}
+.cat-head{position:sticky;top:0;z-index:2;background:var(--bg);padding:12px 2px 8px;
+  font-size:16px;font-weight:900;color:var(--ink);display:flex;align-items:center;gap:8px}
+.cat-head span{margin-left:auto;font-size:11px;font-weight:800;color:var(--dim)}
+.cat-list{display:flex;flex-direction:column;gap:7px;margin-bottom:6px}
+.cat-row{display:grid;grid-template-columns:46px 1fr auto;gap:11px;align-items:center;width:100%;
+  min-height:60px;padding:7px 12px 7px 7px;border:1px solid var(--line);border-radius:16px;
+  background:var(--card);text-align:left;font:inherit;color:var(--ink)}
+.cat-row img{width:46px;height:46px;border-radius:12px;object-fit:cover;background:var(--rose-l)}
+.cat-name{font-size:13.5px;font-weight:800;min-width:0}
+.cat-name em{display:block;margin-top:2px;font-size:10.5px;font-weight:700;font-style:normal;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-act{font-size:19px;font-weight:900;color:var(--rose);min-width:34px;text-align:center}
+.cat-row.in{opacity:.5}
+.cat-row.in .cat-act{font-size:10px;font-weight:800;color:var(--dim);min-width:84px}

@@ -2340,6 +2340,49 @@ function videoEmbedHTML(name, cls){
    It never guesses where she is — until she places herself on the ladder the
    plan's own prescription stands and the card asks, once. */
 let addOpen=false, addQuery='', addM='', addL='';
+const EX_CATALOG=[
+ {k:"lower",label:"Lower body",icon:"\ud83e\uddb5",items:["45° Glute-Ham Raise","Assisted Pistol Squat","B-Stance RDL","Back Extension Glute Bias","Banded Clamshell","Barbell / DB RDL","Belt Squat Sumo","Bulgarian Split Squat","Cable Kickback","Cable Step-Up","Calf Raise","Clamshell","Clamshell con manubrio","Cossack Squat","Depth Drop + Broad Jump","Glute Bridge","Glute Bridge monopodalico","Hang Power Clean","Hip Abduction","Hip Abduction Seated","Hip Adduction","Hip Thrust","Hip Thrust monopodalico manubrio","KAS Glute Bridge","Leg Extension","Leg Press piedi alti","Machine Hip Thrust","Monster Walk","Pin Squat","Power Clean","Reverse Hyperextension","Reverse Lunge","Seated Leg Curl","Single Leg Leg Press","Single-Leg Hip Thrust","Single-Leg Plate Hop to Skater Jump","Squat Jump","Stacco Sumo con Manubrio","Step-Up","Vertical Jump Assisted"]},
+ {k:"upper",label:"Upper body",icon:"\ud83d\udcaa",items:["Bayesian Cable Curl","Cable Lateral Raise","Cable Lateral Raise (1 braccio)","Cable Pullover","Cable Rear Delt Pullapart","Chest Supported Row","DB Overhead Press","Dumbbell Lateral Raise","Face Pull","Incline Curl","Incline Side Raise","Lat Pulldown","Lat Pulldown neutral/reverse","Lat Pulldown presa larga","Lat Pulldown presa stretta","Machine Chest Press","Machine Lateral Raise","Machine Shoulder Press","Military Press","Overhead Triceps Extension","Reverse Pec Deck (delt post.)","Rope Biceps Curl","Seated Cable Row","Shoulder Flexion Drill","Single Arm Lat Pulldown","Single Arm Row","Triceps Cable Pushdown","Wrist Extension Prep"]},
+ {k:"calisthenics",label:"Calisthenics",icon:"\ud83e\udd38",items:["Active Hang","Assisted Pull-up","Chest-to-Bar Pull-up","Chest-to-Wall Handstand","Frog Stand","Frog Stand Toe Lift","Frog Stand Weight Shift","Hamstring Stretch Compression","Handstand Toe Taps","L-Sit","L-Sit on Parallettes","Machine Dip","Negative Pull-up","Pancake Stretch","Pull-up","Scapular Pull-up","Single-Leg L-Sit","Single-Leg Lift","Strict Pull-up","Tuck L-Sit","Tuck Support","Wall Handstand Toe Taps","Wall Handstand Weight Shift","Wall Walk","Wrist Prep"]},
+ {k:"core",label:"Core",icon:"\ud83d\udd25",items:["Ab Wheel","Cable Crunch","CORE · Plank","Dead Bug","Hanging Knee Raise","Hollow Body Hold","Mountain Climbers","Pallof Press (anti-rotazione)","Side Plank Crunch","Vacuum addominale"]},
+ {k:"cardio",label:"Cardio",icon:"\ud83e\udec0",items:["Nuoto","Ski Erg"]}
+];
+/* ================= CATALOGO ESERCIZI =================
+   Una lista sola al posto di nove. Gli esercizi sono quelli che l'app ha gia'
+   dentro - piano, Lab, scala delle skill, le quattro librerie extra, EXDB -
+   raggruppati per zona del corpo. La zona viene dai muscoli di MUSCLE_DB dove
+   ci sono, a mano dove non c'erano. Toccare un esercizio lo aggiunge alla
+   giornata passando da addExerciseToDay: lo stesso percorso di
+   "+ Aggiungi esercizio", quindi campi giusti, storico vero, niente doppioni. */
+let catSection='';
+function catalogCount(){return EX_CATALOG.reduce(function(a,g){return a+g.items.length;},0);}
+function catalogHasExercise(day,name){
+  const p=dayPlan(day); return !!(p&&p.ex&&p.ex.some(function(e){return exName(e)===name;}));
+}
+function catalogHTML(){
+  const day=exCtx&&exCtx.day?exCtx.day:data.day;
+  let h=hdr('Aggiungi esercizio','Dal catalogo \u00b7 '+catalogCount()+' esercizi');
+  h+='<div class="wrap">';
+  h+='<div class="cat-tabs">'+EX_CATALOG.map(function(g){
+    return '<button class="'+(catSection===g.k?'on':'')+'" data-catsec="'+g.k+'">'+g.icon+' '+esc(g.label)+'</button>';
+  }).join('')+'</div>';
+  h+='<div class="note" style="margin-bottom:10px">Finisce nella giornata di oggi ('+esc(day)+') con i suoi campi, e conta nello storico come ogni altro esercizio.</div>';
+  EX_CATALOG.forEach(function(g){
+    if(catSection&&catSection!==g.k)return;
+    h+='<div class="cat-head">'+g.icon+' '+esc(g.label)+'<span>'+g.items.length+'</span></div><div class="cat-list">';
+    g.items.forEach(function(n){
+      const gia=catalogHasExercise(day,n);
+      const mu=(typeof MUSCLE_DB!=='undefined'&&MUSCLE_DB[n])?MUSCLE_DB[n].slice(0,3).join(' \u00b7 '):'';
+      h+='<button class="cat-row'+(gia?' in':'')+'" data-catadd="'+esc(n)+'"'+(gia?' disabled':'')+'>'
+        +'<img src="'+localThumbnail(n)+'" loading="lazy" decoding="async" alt="">'
+        +'<span class="cat-name">'+esc(n)+(mu?'<em>'+esc(mu)+'</em>':'')+'</span>'
+        +'<span class="cat-act">'+(gia?'gi\u00e0 in giornata':'+')+'</span></button>';
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
 function addPanelHTML(day){
   if(!addOpen)return '<button class="add-ex" data-addopen="1">＋ Aggiungi esercizio</button>';
   const q=(addQuery||'').trim().toLowerCase();
@@ -2414,13 +2457,7 @@ function workoutHTML(){
   h+=skillCardHTML(data.day);
   h+='<div class="video-library-intro"><div><h3>Libreria esercizi</h3><p>Video reali quando disponibili. Illustrazioni dedicate per il resto.</p></div><div class="video-library-legend"><span>● FRAME VIDEO</span><span>＋ ILLUSTRAZIONE</span></div></div>';
   p.ex.forEach(function(e,i){const ed=exDone(data,data.day,i);h+='<div class="exrow exrow-v5" data-ex="'+i+'">'+videoEmbedHTML(e[0],'mini-video-thumb')+'<div class="num '+(ed.n===ed.tot?'done':'')+'">'+(ed.n===ed.tot?'✓':(i+1))+'</div><div class="info"><b>'+esc(e[0])+'</b><span>'+esc(e[1])+' · '+ed.n+'/'+ed.tot+' serie</span></div><div class="tarrow">›</div></div>';});
-  h+='<details class="fold fold-sect"><summary><span>\u2728 Aggiungi un extra</span><em>non obbligatorio</em></summary>'
-    +'<div class="extra-row">'
-    +'<button class="btn ghost" data-go="power">\u26a1 Power</button>'
-    +'<button class="btn ghost" data-go="finishers">\ud83d\udd25 Finisher</button>'
-    +'<button class="btn ghost" data-go="accessories">\u2795 Accessori</button>'
-    +'<button class="btn ghost" data-go="mobility">\ud83e\uddd8 Mobilit\u00e0</button>'
-    +'</div></details>';
+  h+='<button class="btn ghost" data-go="catalog" style="margin-top:4px">\u2795 Aggiungi dal catalogo</button>';
   h+='<button class="see-one" data-seeone="1">▶ Uno alla volta</button>';
   h+=addPanelHTML(data.day);
   h+='<div class="sect">Note della sessione</div><div class="card" style="padding:14px"><textarea id="note" style="min-height:70px" placeholder="Sensazioni, PR, energia...">'+esc(data.note)+'</textarea></div></div>'; return h;
@@ -3973,6 +4010,7 @@ function renderCore(){
   else if(view==='video')    h=videoHTML();
   else if(view==='evo')      h=evoHTML();
   else if(view==='coach')    h=coachHTML();
+  else if(view==='catalog')  h=catalogHTML();
   else if(view==='setup')    h=setupHTML();
   else if(view==='profile')  h=profileHTML();
   else if(view==='calisthenics') h=calisthenicsHTML();
@@ -4242,6 +4280,13 @@ function bind(){
     buildSavedOk=!!r.ok;
     buildSaved=r.ok?('Salvata nella cena di oggi: '+r.n+' voci.'):r.error;
     render();};});
+  document.querySelectorAll('[data-catsec]').forEach(function(b){b.onclick=function(){
+    catSection=catSection===b.dataset.catsec?'':b.dataset.catsec;render();};});
+  document.querySelectorAll('[data-catadd]').forEach(function(b){b.onclick=function(){
+    const day=exCtx&&exCtx.day?exCtx.day:data.day;
+    const r=addExerciseToDay(day,b.dataset.catadd,'','');
+    if(r&&r.ok){view='workout';exCtx=null;exIdx=null;render();}
+    else{b.textContent=(r&&r.error)||'Non aggiunto';}};});
   document.querySelectorAll('[data-setup]').forEach(function(b){b.onclick=function(){
     const p=b.dataset.setup.split('|');setupPick(p[0],p[1],p[2]==='1');render();};});
   document.querySelectorAll('[data-setupnext]').forEach(function(b){b.onclick=function(){
