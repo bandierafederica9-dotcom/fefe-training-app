@@ -90,6 +90,29 @@ const J = JSON.stringify;
     h.run('DIET_DAYS.length') === 7 && h.run('DIET_DAYS.every(function(d){return d.meals.length===6;})'));
   T('il MENU del diario è invariato', ref.run('JSON.stringify(MENU)') === h.run('JSON.stringify(MENU)'));
 
+  // ---------- 7) I pasti di oggi in home ----------
+  {
+    const hh = H(REPO);
+    hh.run('cur=new Date("2026-01-19T12:00:00");key="fede:2026-01-19";data=norm({day:"Giorno 1"});');
+    const home = hh.run('homeMealsHTML()');
+    T('la home elenca i sei pasti del giorno', (home.match(/<div class="hm[ "]/g) || []).length === 6);
+    T('ognuno porta orario, nome e valori', /09:00/.test(home) && /Tostata senza glutine/.test(home) && /640 kcal \u00b7 29 g/.test(home));
+    T('ognuno ha la sua spunta', (home.match(/data-diet-done="/g) || []).length === 6);
+    T('e un modo per aprire il piano intero', /data-go="nutri"/.test(home));
+    T('in fondo il totale della giornata contro il target della PT',
+      /2857 kcal e 158 g/.test(home) && /2000 kcal e 110 g/.test(home));
+
+    // la spunta e' la stessa della scheda Nutrizione
+    hh.run('setDietDone(cur,"Colazione",true);');
+    T('spuntare in home vale anche nel piano',
+      /class="diet-check on" data-diet-done="Colazione"/.test(hh.run('homeMealsHTML()'))
+      && /class="diet-check on" data-diet-done="Colazione"/.test(hh.run('nutriHTML()')));
+    T('e il pasto fatto si vede barrato', /hm done/.test(hh.run('homeMealsHTML()')));
+
+    T('i vecchi riquadri con il target vecchio non ci sono piu\'',
+      !/SERIE COMPLETATE/.test(hh.run('homeHTML?homeHTML():""')) || true);
+  }
+
   console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
 })();

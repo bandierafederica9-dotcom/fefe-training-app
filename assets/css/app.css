@@ -709,3 +709,21 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .setup-nav .btn[disabled]{opacity:.45}
 .setup-call{border:1px solid var(--rose-b);background:var(--rose-l)}
 .setup-call b{font-size:15px}
+
+/* ================= I PASTI DI OGGI, IN HOME ================= */
+.home-meals{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.hm{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
+  background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px;
+  box-shadow:0 6px 18px -16px rgba(36,27,32,.5)}
+.hm-time{font-size:13px;font-weight:900;color:var(--dim);min-width:44px}
+.hm-body{min-width:0}
+.hm-slot{font-size:9.5px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+.hm-body b{display:block;margin-top:2px;font-size:14px;line-height:1.3}
+.hm-body span{display:block;margin-top:3px;font-size:11px;font-weight:700;color:var(--dim)}
+.hm .diet-check{flex:0 0 auto;width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;
+  border:2px solid var(--rose-b);background:var(--card);color:var(--rose);font-size:17px;font-weight:900}
+.hm .diet-check.on{background:var(--rose);border-color:var(--rose);color:#fff}
+.hm.next{border-color:var(--rose);box-shadow:0 8px 22px -16px rgba(201,85,127,.75)}
+.hm.next .hm-time,.hm.next .hm-slot{color:var(--rose-d)}
+.hm.done{opacity:.6}
+.hm.done .hm-body b{text-decoration:line-through}
