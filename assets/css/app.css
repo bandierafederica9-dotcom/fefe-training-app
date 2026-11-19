@@ -872,3 +872,11 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
   100%{opacity:0;transform:translateX(-50%) translateY(0)}}
 @media (prefers-reduced-motion: reduce){
   .dayclosed.on{animation:none;opacity:1}}
+
+/* Per quale pasto stai costruendo. Quattro colonne, nessuno scorrimento. */
+.build-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:10px}
+.build-slots button{min-height:44px;border:1px solid #ece3e6;background:#fff;color:var(--navy);
+  -webkit-appearance:none;appearance:none;border-radius:11px;font-size:11px;font-weight:800;padding:0 4px}
+.build-slots button.on{background:var(--rose);color:#fff;border-color:var(--rose)}
+.build-slots button:active{transform:scale(.96);opacity:.85}
+.build-slots button{transition:transform var(--d-press) var(--ease-out),opacity var(--d-press) var(--ease-out)}

@@ -60,8 +60,13 @@ const J = JSON.stringify;
 
   // ---------- 6) Il consiglio dice la cosa giusta ----------
   h.run('buildGym=true;buildSel={prot:"Manzo magro",carb:["Patata","Riso basmati crudo"],fat:["Olio di oliva"],veg:["Melanzane"]};');
+  h.run('buildSlot="Cena";');
   T('con le porzioni giuste dice che la cena è completa',
     h.run('buildAdviceText()') === 'Cena completa per un giorno di palestra.', h.run('buildAdviceText()'));
+  h.run('buildSlot="Pranzo";');
+  T('e lo dice con il genere giusto per ogni pasto',
+    h.run('buildAdviceText()') === 'Pranzo completo per un giorno di palestra.', h.run('buildAdviceText()'));
+  h.run('buildSlot="Cena";');
   h.run('buildSel={prot:"",carb: [],fat:[],veg:[]};');
   T('a mani vuote spiega come si usa, in porzioni', /una porzione per colonna/i.test(h.run('buildAdviceText()')), h.run('buildAdviceText()'));
   h.run('buildSel={prot:"",carb: ["Patata"],fat:[],veg:[]};');
@@ -69,7 +74,11 @@ const J = JSON.stringify;
     /Manca 1 proteina/.test(h.run('buildAdviceText()')), h.run('buildAdviceText()'));
   h.run('buildGym=false;buildSel={prot:"Tonno al naturale",carb: [],fat:[],veg:[]};');
   T('quel che manca lo elenca in porzioni, una per una',
-    h.run('buildAdviceText()') === 'Per una sera normale aggiungi: +1 carboidrato, +1 grasso, +1 verdura.', h.run('buildAdviceText()'));
+    h.run('buildAdviceText()') === 'Alla cena aggiungi: +1 carboidrato, +1 grasso, +1 verdura.', h.run('buildAdviceText()'));
+  h.run('buildSlot="Colazione";');
+  T('e alla colazione non chiede le verdure, perche\u2019 il piano non ne mette',
+    h.run('buildAdviceText()') === 'Alla colazione aggiungi: +1 carboidrato, +1 grasso.', h.run('buildAdviceText()'));
+  h.run('buildSlot="Cena";');
   h.run('buildSel={prot:"Uova",carb:["Patata"],fat:["Olio di oliva","Noci","Avocado"],veg:["Zucchine"]};buildGym=false;');
   T('e quel che avanza allo stesso modo',
     h.run('buildAdviceText()') === 'Più ricca del necessario: togli −2 grassi.', h.run('buildAdviceText()'));
@@ -100,6 +109,8 @@ const J = JSON.stringify;
     hs.run('buildSel={prot:"Manzo magro",carb: ["Patata"],fat:["Olio di oliva"],veg:["Melanzane"]};');
     const r = JSON.parse(hs.run('JSON.stringify(buildSaveToDiary())'));
     T('salva una voce per ingrediente', r.ok === true && r.n === 4, J(r));
+    hs.run('buildSlot="Cena";');
+    hs.run('data.food={};data.dishLog=[];buildSaveToDiary();');
     const cena = JSON.parse(hs.run('JSON.stringify(data.food.Cena)'));
     T('ogni voce porta nome, grammi, kcal e proteine nei campi giusti',
       cena.length === 4 && cena.every(v => v.n && !/\d+ g$/.test(v.n) && v.g > 0
@@ -119,6 +130,14 @@ const J = JSON.stringify;
     // salvare due volte aggiunge, non sostituisce: il diario e' un registro
     hs.run('buildSaveToDiary();');
     T('un secondo salvataggio aggiunge invece di sovrascrivere', hs.run('data.food.Cena.length') === 8);
+
+    // e se costruisci per un altro pasto, finisce in quello
+    hs.run('buildSlot="Colazione";data.food={};data.dishLog=[];buildSaveToDiary();');
+    T('scelta la colazione, il piatto finisce nella colazione',
+      hs.run('(data.food.Colazione||[]).length') === 4 && hs.run('(data.food.Cena||[]).length') === 0,
+      J(Object.keys(JSON.parse(hs.run('JSON.stringify(data.food)')))));
+    T('e il nome del piatto resta legato a quel pasto',
+      hs.run('data.dishLog[0].slot') === 'Colazione');
   }
 
   // ---------- 9) La schermata ----------
@@ -212,6 +231,7 @@ const J = JSON.stringify;
       J(JSON.parse(hp.run('JSON.stringify(buildTotals())'))) === J(uno));
     T('le porzioni contate non cambiano con le persone',
       hp.run('buildCountsText()') === '1 proteina \u00b7 1 carboidrato \u00b7 1 grasso \u00b7 1 verdura');
+    hp.run('buildSlot="Cena";');
     T('e nemmeno il consiglio', /Cena completa/.test(hp.run('buildAdviceText()')), hp.run('buildAdviceText()'));
 
     const passi = JSON.parse(hp.run('JSON.stringify(buildDish().passi)'));
@@ -240,7 +260,7 @@ const J = JSON.stringify;
   {
     const hd = H(REPO);
     hd.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});');
-    hd.run('buildSel={prot:"",carb:[],fat:[],veg:[]};buildPeople=2;buildGym=false;');
+    hd.run('buildSel={prot:"",carb:[],fat:[],veg:[]};buildPeople=2;buildGym=false;buildSlot="Cena";');
     ['prot|Manzo magro','carb|Patata','fat|Olio di oliva','veg|Melanzane'].forEach(k => {
       const [r, n] = k.split('|'); hd.run('buildToggle(' + J(r) + ',' + J(n) + ');'); });
     const titolo = JSON.parse(hd.run('JSON.stringify(buildDish())')).titolo;
@@ -254,6 +274,12 @@ const J = JSON.stringify;
     T('e dice per quante persone era', /dosi per 2/.test(diario));
     T('il titolo sta sotto Cena, non sotto Colazione',
       diario.indexOf(titolo) > diario.indexOf('Cena'), 'posizione');
+    // costruito per la colazione, nel diario finisce sotto Colazione
+    hd.run('buildSlot="Colazione";data.food={};data.dishLog=[];buildSaveToDiary();');
+    const diario2 = hd.run('diarioHTML()');
+    T('e scegliendo la colazione finisce sotto Colazione',
+      diario2.indexOf(titolo) > diario2.indexOf('Colazione') && diario2.indexOf(titolo) < diario2.indexOf('Cena'),
+      'posizione');
 
     // la selezione sopravvive alla chiusura dell'app
     T('la cena in costruzione viene salvata', !!hd.store['fede:build'], Object.keys(hd.store).join(','));
