@@ -791,7 +791,9 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .coach-badge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;border-radius:999px;
   background:var(--rose);color:#fff;font-size:11px;font-weight:900;font-style:normal;
   display:flex;align-items:center;justify-content:center;border:2px solid #fff;padding:0 5px}
-.minicoach-fab{position:relative}
+/* Il bollino si ancora al pulsante senza toccarne la posizione: position:fixed
+   e' gia' un contenitore per un figlio assoluto. Scrivere qui position:relative
+   staccava la sfera dallo schermo e la faceva scorrere con la pagina. */
 .coach-notices{border:1px solid var(--rose-b);background:var(--rose-l)}
 .coach-notices-head{font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;
   color:var(--rose-d);margin-bottom:10px}

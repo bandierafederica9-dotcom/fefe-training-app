@@ -172,6 +172,16 @@ const OTTO = ['2026-01-02', '2026-01-05', '2026-01-07', '2026-01-09', '2026-01-1
     T('e dice quante sedute mancano', /ne mancano 4/.test(c), c.slice(0, 90));
   }
 
+  // ---------- 9bis) La sfera resta attaccata allo schermo ----------
+  {
+    const css = require('fs').readFileSync(REPO + '/assets/css/app.css', 'utf8');
+    const blocchi = css.match(/\.minicoach-fab[^{]*\{[^}]*\}/g) || [];
+    const posizioni = blocchi.map(b => (b.match(/position:\s*([a-z]+)/) || [])[1]).filter(Boolean);
+    T('la sfera del coach e\' dichiarata fixed', posizioni.indexOf('fixed') > -1, posizioni.join(','));
+    T('e nessuna regola successiva la stacca dallo schermo',
+      posizioni.every(x => x === 'fixed'), posizioni.join(','));
+  }
+
   // ---------- 10) Niente chiamate esterne ----------
   {
     const src = require('fs').readFileSync(REPO + '/index.html', 'utf8');
