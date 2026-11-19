@@ -153,6 +153,10 @@ const J = JSON.stringify;
 
   // il coach non propone carichi su una cosa che non ha carichi
   T('il coach non suggerisce kg sul tapis', h.run('coachLoadHint("Giorno 1",6,PLAN["Giorno 1"].ex[6])') === '');
+
+  // il cronometro del recupero non ha senso su venti minuti di tapis
+  T('sul cardio non compare il recupero fra le serie', !/rest-box/.test(h.run('exerciseHTML()')));
+  T('ma resta su tutto il resto', (() => { h.run('exIdx=1;'); return /rest-box/.test(h.run('exerciseHTML()')); })());
 }
 
 console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
