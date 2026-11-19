@@ -18,6 +18,7 @@
 <div id="app">
   <div id="page"></div>
   <div class="status" id="status"></div>
+  <div class="dayclosed" id="dayclosed" aria-live="polite"></div>
   <div class="nav" id="nav"></div>
 </div>
 
@@ -5672,6 +5673,18 @@ function bind(){
     data.sets[id][inp.dataset.f]=inp.value;
     mirrorRightToLeft(id,inp.dataset.f,inp.value);
     save();};});
+  // Quando spunti l'ultima serie non succedeva niente. Un segnale breve, una
+  // volta sola: non e' una medaglia, e' la conferma che la giornata e' chiusa.
+  function segnalaGiornataChiusa(){
+    const el=document.getElementById('dayclosed'); if(!el)return;
+    const dc=doneCount(data,data.day); if(!dc.tot||dc.done<dc.tot)return;
+    if(el.dataset.day===data.day)return;            // gia' detto per questa giornata
+    el.dataset.day=data.day;
+    el.textContent=tr('Giornata chiusa \u00b7 ','Session complete \u00b7 ')+dc.done+'/'+dc.tot+tr(' serie',' sets');
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(window.__dayClosedT);
+    window.__dayClosedT=setTimeout(function(){el.classList.remove('on');el.textContent='';},2600);
+  }
   document.querySelectorAll('[data-done]').forEach(function(b){b.onclick=function(){
     const id=b.dataset.done;
     // Toggle what the user SEES (the button state), so a set shown as done via a legacy key can be unticked.
@@ -5682,6 +5695,7 @@ function bind(){
     const pair=b.dataset.donePair; if(pair)data.done[pair]=data.done[id];
     b.className='chk'+(data.done[id]?' on':'');
     b.textContent=data.done[id]?'✓':'';
+    if(data.done[id])segnalaGiornataChiusa();
     save();};});
 
   const n=document.getElementById('note');if(n)n.oninput=function(){data.note=n.value;save();};

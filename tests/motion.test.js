@@ -91,4 +91,39 @@ T('existing press rules kept (task/water/fab/mini-action)', /\.task:active\{tran
   T('PLAN and content constants unchanged', ['PLAN', 'MUSCLE_DB', 'EXDB', 'APP_EN'].every(n => { const re = new RegExp('const ' + n + '\\s*=\\s*'); const a = base.search(re), b = html.search(re); return a > -1 && base.slice(a, a + 4000) === html.slice(b, b + 4000); }));
   const J = JSON.stringify; T('sw.js: only cache bump + new illustration/photo precache; manifest.json unchanged', (() => { const d = REF.diffLines('sw.js'); return REF.unchanged('manifest.json') && d.every(l => /^[-+]const CACHE = "fede-tracker-v6[23456]";$/.test(l) || /^\+  "\.\/assets\/exercises\/photos\/[a-z0-9-]+\.jpg",$/.test(l) || /^\+  "\.\/assets\/exercises\/[a-z0-9-]+\.svg",$/.test(l) || /^\+  "\.\/assets\/css\/app\.css",$/.test(l)); })()); }
 
+// ---------- Due conferme che prima non si vedevano ----------
+{
+  const css = require('fs').readFileSync(REPO + '/assets/css/app.css', 'utf8');
+  const blocco = n => (css.match(new RegExp('\\' + n + '\\{[^}]*\\}')) || [''])[0];
+
+  // 1) "salvato" c'era gia' ma viveva in fondo alla pagina, fuori dallo schermo
+  const st = blocco('.status');
+  T('la conferma di salvataggio galleggia sullo schermo', /position:fixed/.test(st), st.slice(0, 80));
+  T('e sta sopra la barra in basso', /bottom:calc\(\d+px/.test(st) && /z-index:\d+/.test(st));
+  T('non intercetta i tocchi', /pointer-events:none/.test(st));
+  T('sparisce quando non ha niente da dire', /\.status:empty\{[^}]*opacity:0/.test(css));
+  T('e compare solo in dissolvenza, senza muovere il contenuto',
+    /\.status\{[^}]*transition:opacity/.test(css) || /\.status\{[^}]*\}[\s\S]{0,400}transition:opacity/.test(css));
+
+  // 2) giornata chiusa
+  T('il segnale di giornata chiusa esiste nello scheletro della pagina', /id="dayclosed"/.test(html));
+  T('ed e\' annunciato a chi usa il lettore di schermo', /id="dayclosed" aria-live="polite"/.test(html));
+  const dc = blocco('.dayclosed');
+  T('galleggia anche lui, sopra la conferma di salvataggio', /position:fixed/.test(dc) && /z-index:61/.test(dc));
+  T('parte invisibile', /opacity:0/.test(dc));
+  const kf = (css.match(/@keyframes fedeDayClosed\{[^@]*?\}\s*\}/) || [''])[0];
+  T('l\'animazione muove solo opacita\' e posizione', /opacity/.test(kf) && /transform/.test(kf)
+    && !/(width|height|top|left|margin|box-shadow|filter):/.test(kf.replace(/translateX|translateY/g, '')), kf.slice(0, 60));
+  T('e si spegne con "riduci movimento"', /prefers-reduced-motion: reduce\)\{\s*\.dayclosed\.on\{animation:none/.test(css));
+
+  // il segnale scatta una volta sola per giornata, e solo a giornata completa
+  T('lo dice solo quando la giornata e\' davvero finita',
+    /if\(!dc\.tot\|\|dc\.done<dc\.tot\)return;/.test(html));
+  T('e non lo ripete per la stessa giornata',
+    /if\(el\.dataset\.day===data\.day\)return;/.test(html));
+  T('parte dalla spunta, non da un salvataggio',
+    /if\(data\.done\[id\]\)segnalaGiornataChiusa\(\);/.test(html));
+  T('e non scrive niente', !/segnalaGiornataChiusa[\s\S]{0,700}localStorage/.test(html));
+}
+
 console.log(fail === 0 ? '\nALL MOTION P0 CHECKS PASSED' : '\nFAILURES: ' + fail); process.exit(fail ? 1 : 0);
