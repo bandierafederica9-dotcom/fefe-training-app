@@ -813,7 +813,10 @@ const WARM={
 };
 function warmFor(day){
   if(day==="Giorno 3")return WARM.d3;
-  if(["Giorno 1","Giorno 5"].indexOf(day)>-1)return WARM.upper;
+  // Il Giorno 5 ha Bulgarian Split Squat e Leg Extension: oltre alla parte alta
+  // vuole la stessa attivazione glutei degli altri giorni con lavoro sulle gambe.
+  if(day==="Giorno 5")return WARM.upper.concat(WARM.lower.filter(function(w){return /Glute activation/i.test(w.n);}));
+  if(day==="Giorno 1")return WARM.upper;
   if(["Giorno 2","Giorno 4","Casa"].indexOf(day)>-1)return WARM.lower;
   return [];
 }
@@ -1263,7 +1266,9 @@ const WEEK_PRESETS={
   clessidra:{label:'🍑 Clessidra',sub:'3 lower · 2 upper, senza skill',calisthenics:false,
     sched:{1:'Giorno 2',2:'Giorno 1',3:'Giorno 4',4:'Riposo',5:'Giorno 3',6:'Giorno 5',0:'Riposo'}},
   calisthenics:{label:'🤸 Clessidra + Calisthenics',sub:'3 lower · 2 upper, con Pull-up, Frog Stand e L-Sit',calisthenics:true,
-    sched:{1:'Giorno 1',2:'Giorno 2',3:'Giorno 3',4:'Riposo',5:'Giorno 4',6:'Giorno 5',0:'Riposo'}}};
+    sched:{1:'Giorno 1',2:'Giorno 2',3:'Giorno 3',4:'Riposo',5:'Giorno 4',6:'Giorno 5',0:'Riposo'}},
+  weekend:{label:'🗓️ Weekend libero',sub:'5 giorni da lunedì a venerdì, lower martedì e giovedì',calisthenics:true,
+    sched:{1:'Giorno 1',2:'Giorno 2',3:'Giorno 3',4:'Giorno 4',5:'Giorno 5',6:'Riposo',0:'Riposo'}}};
 function applyWeekPreset(id){
   const pr=WEEK_PRESETS[id]; if(!pr)return;
   goals.calisthenics=pr.calisthenics;
@@ -3218,6 +3223,25 @@ const DIET_DAYS=[
 ];
 const DIET_SHOPPING={"Verdura e frutta":["Aglio 3 g","Aneto secco 3 g","Asparagi 75 g","Avocado 275 g","Banana 1.1 kg","Basilico 1 g","Carota 60 g","Cetriolo 50 g","Cipolla 440 g","Coriandolo 1 g","Funghi champignon 100 g","Lime 45 g","Mela rossa 600 g","Mirtilli 225 g","Olive verdi 25 g","Origano 1 g","Peperone rosso 350 g","Peperone verde 190 g","Pomodorini 225 g","Pomodoro 505 g","Pomodoro triturato naturale 420 g","Porro 60 g","Prezzemolo 5 g","Ravanelli 80 g","Rucola 90 g","Songino 100 g","Spinaci 150 g","Zucchine 375 g"],"Dispensa":["Anacardi 20 g","Bevanda di mandorle 2.5 kg","Burro di arachidi 56 g","Cioccolato fondente 70 g","Curry 3 g","Hummus 90 g","Mandorle 56 g","Miele 90 g","Noci 110 g","Olio di oliva 155 g","Pepe bianco 2 g","Pepe nero 3 g","Sale 0 g","Salsa di soia 8 g","Semi di lino 56 g","Semi di zucca 15 g","Succo di limone 10 g"],"Carboidrati":["Avena 135 g","Ceci cotti 175 g","Fajitas di mais 60 g","Gnocchi 250 g","Mais dolce 40 g","Pane di mais 480 g","Pane tostato senza glutine 40 g","Pasta senza glutine 80 g","Patata 640 g","Patata dolce 250 g","Quinoa 60 g","Riso basmati crudo 180 g","Riso integrale 80 g"],"Proteine":["Brodo di pollo 250 g","Feta 50 g","Formaggio Havarti Light 100 g","Gamberoni 100 g","Hamburger di pollo 150 g","Manzo magro 150 g","Petto di tacchino 60 g","Pollo 470 g","Proteina ISO ChocoMonkey 210 g","Salmone 290 g","Salmone affumicato 60 g","Tonno 200 g","Tonno in acqua 75 g","Uovo di gallina 785 g"]};
 const DIET_ALLERGENS={0:"Uova · Latticini · Pesce · Frutta a guscio · Arachidi · Soia",1:"Uova · Latticini · Frutta a guscio · Arachidi · Soia",2:"Pesce · Frutta a guscio · Arachidi · Soia · Glutine",3:"Uova · Latticini · Pesce · Crostacei · Frutta a guscio · Arachidi · Soia · Sesamo",4:"Uova · Pesce · Frutta a guscio · Arachidi · Soia · Glutine",5:"Uova · Latticini · Frutta a guscio · Arachidi · Soia",6:"Uova · Pesce · Frutta a guscio · Arachidi · Soia · Sesamo · Glutine"};
+
+/* Allineamento menu' / allenamento, deciso da Federica il 2026-11-19.
+   Il piano della PT resta parola per parola: cambia solo su quale giorno della
+   settimana cade un menu', perche' i giorni di gambe vogliono il menu' piu'
+   ricco e il riposo quello piu' leggero. Ogni voce ricorda da dove viene (pt),
+   cosi' nel parlare con la nutrizionista si sa sempre di quale giorno parla. */
+(function allineaMenuAllAllenamento(){
+  DIET_DAYS.forEach(function(d){ if(!d.pt)d.pt=d.n; });
+  const scambi=[[4,5]];  // giovedi' <-> venerdi': il lower si sposta al giovedi'
+  scambi.forEach(function(coppia){
+    const a=DIET_DAYS.find(function(d){return d.k===coppia[0];});
+    const b=DIET_DAYS.find(function(d){return d.k===coppia[1];});
+    if(!a||!b)return;
+    const m=a.meals; a.meals=b.meals; b.meals=m;
+    const t=a.pt; a.pt=b.pt; b.pt=t;
+    const al=DIET_ALLERGENS[a.k]; DIET_ALLERGENS[a.k]=DIET_ALLERGENS[b.k]; DIET_ALLERGENS[b.k]=al;
+  });
+})();
+
 const DIET_SLOT_KEYS={
  'Colazione':{it:'Colazione',en:'Breakfast'},'Spuntino mattutino':{it:'Spuntino mattutino',en:'Morning snack'},'Pranzo':{it:'Pranzo',en:'Lunch'},'Merenda':{it:'Merenda',en:'Afternoon snack'},'Merenda 2':{it:'Merenda 2',en:'Snack 2'},'Cena':{it:'Cena',en:'Dinner'}
 };
@@ -3676,7 +3700,7 @@ function nutriHTML(){
   const dayNutri=dietDayNutrition(d);
   let h=hdr(getAppLanguage()==='en'?'Nutrition plan':'Piano nutrizionale',(getAppLanguage()==='en'?'Official 7-day plan':'Piano ufficiale 7 giorni')+' · 11 marzo 2025');
   h+='<div class="wrap">';
-  h+='<div class="nutri-hero"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><div style="font-size:10px;color:var(--rose-d);font-weight:900;text-transform:uppercase;letter-spacing:.06em">'+(getAppLanguage()==='en'?'Today':'Oggi')+'</div><h2 style="margin:3px 0 0">'+esc(getAppLanguage()==='en'?d.en:d.n)+'</h2><div class="note" style="margin-top:5px">'+sum.done+'/'+sum.total+' '+(getAppLanguage()==='en'?'meals completed':'pasti completati')+'</div><div class="nutri-totals">'+dayNutri.kcal+' kcal \u00b7 '+dayNutri.prot+' g '+(getAppLanguage()==='en'?'protein':'proteine')+'<span>'+dietGapLabel(dayNutri)+'</span></div></div><div style="font-size:28px;font-weight:900">'+pct+'%</div></div>'+dietProgressBar(pct)+'</div>';
+  h+='<div class="nutri-hero"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><div style="font-size:10px;color:var(--rose-d);font-weight:900;text-transform:uppercase;letter-spacing:.06em">'+(getAppLanguage()==='en'?'Today':'Oggi')+'</div><h2 style="margin:3px 0 0">'+esc(getAppLanguage()==='en'?d.en:d.n)+'</h2><div class="note" style="margin-top:5px">'+sum.done+'/'+sum.total+' '+(getAppLanguage()==='en'?'meals completed':'pasti completati')+(d.pt&&d.pt!==d.n?' \u00b7 '+tr('men\u00f9 del ','menu from ')+esc(d.pt.toLowerCase())+tr(' nel piano della PT',' in the PT\u2019s plan'):'')+'</div><div class="nutri-totals">'+dayNutri.kcal+' kcal \u00b7 '+dayNutri.prot+' g '+(getAppLanguage()==='en'?'protein':'proteine')+'<span>'+dietGapLabel(dayNutri)+'</span></div></div><div style="font-size:28px;font-weight:900">'+pct+'%</div></div>'+dietProgressBar(pct)+'</div>';
   h+='<div class="diet-section-tabs">'+[['today',getAppLanguage()==='en'?'Today':'Oggi'],['week',getAppLanguage()==='en'?'Week':'Settimana'],['recipes',getAppLanguage()==='en'?'Recipes':'Ricette'],['shopping',getAppLanguage()==='en'?'Shopping':'Spesa'],['allergens',getAppLanguage()==='en'?'Allergens':'Allergeni'],['build',getAppLanguage()==='en'?'Build dinner':'Costruisci'],['diary',getAppLanguage()==='en'?'Diary':'Diario']].map(function(x){return '<button data-diet-section="'+x[0]+'" class="'+(section===x[0]?'on':'')+'">'+x[1]+'</button>';}).join('')+'</div>';
   if(section==='today'){
     // Sette giorni in sette colonne: a 390px il nome intero non ci sta ("Mercoled\u00ec" da solo
@@ -4190,6 +4214,8 @@ function APP_LOCALE(){return getAppLanguage()==='en'?'en-GB':'it-IT';}
 function tr(it,en){return getAppLanguage()==='en'?en:it;}
 function setAppLanguage(lang){localStorage.setItem('fede:lang',lang==='en'?'en':'it');render();}
 const APP_EN={
+ '🗓️ Weekend libero':'🗓️ Free weekend',
+ '5 giorni da lunedì a venerdì, lower martedì e giovedì':'5 days Monday to Friday, lower on Tuesday and Thursday',
  'Tapis roulant inclinato':'Incline treadmill',
  '20-30 min · inclinazione 8-12% · passo in cui riesci a parlare':'20-30 min · 8-12% incline · a pace where you can still talk',
  'Sì, sostituisci':'Yes, swap it',

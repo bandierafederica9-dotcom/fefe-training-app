@@ -91,12 +91,15 @@ const J = JSON.stringify;
     h.run('DIET_DAYS.length') === 7 && h.run('DIET_DAYS.every(function(d){return d.meals.length===4;})'));
   T('gli orari sono quelli del piano: 9, 13, 19, 21',
     h.run('JSON.stringify(DIET_DAYS[0].meals.map(function(m){return m.time;}))') === '["09:00","13:00","19:00","21:00"]');
+  // Fedelta' al PDF: i piatti si controllano sul giorno della PT (d.pt), non sul
+  // giorno della settimana, perche' giovedi e venerdi sono stati scambiati fra loro.
+  const ORDINE_PT = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
   T('i piatti sono quelli del PDF, non quelli di prima', (() => {
-    const titoli = JSON.parse(h.run('JSON.stringify(DIET_DAYS.map(function(d){return d.meals[3].title;}))'));
+    const titoli = ORDINE_PT.map(g => h.run('(DIET_DAYS.find(function(d){return (d.pt||d.n)===' + J(g) + ';})||{meals:[]}).meals[3].title'));
     return /peperonata/i.test(titoli[0]) && /[Ss]almone alla piastra/.test(titoli[1])
       && /songino/i.test(titoli[2]) && /[Tt]onno alla piastra/.test(titoli[3])
       && /[Tt]acos/.test(titoli[4]) && /salmone affumicato/i.test(titoli[5]) && /[Pp]oke/.test(titoli[6]);
-  })(), h.run('JSON.stringify(DIET_DAYS.map(function(d){return d.meals[3].title;}))'));
+  })(), J(ORDINE_PT.map(g => h.run('(DIET_DAYS.find(function(d){return (d.pt||d.n)===' + J(g) + ';})||{meals:[]}).meals[3].title'))));
   T('niente spagnolo rimasto nei piatti',
     !/boniato|pisto|aguacate|plátano|canónigos|ñoqui|calabac|langostino/i.test(h.run('JSON.stringify(DIET_DAYS)')));
   T('il MENU del diario è invariato', ref.run('JSON.stringify(MENU)') === h.run('JSON.stringify(MENU)'));
@@ -154,6 +157,44 @@ const J = JSON.stringify;
     T('e i valori del pasto si leggono subito', /740 kcal \u00b7 67 g di proteine/.test(home) || /640 kcal/.test(home));
   }
 
-  console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
+  // ---------- Allineamento menu' / allenamento (deciso il 2026-11-19) ----------
+// Il piano della PT non cambia di una parola: cambia solo su quale giorno cade.
+{
+  const h = H(REPO);
+  const giorni = JSON.parse(h.run('JSON.stringify(DIET_DAYS.map(function(d){return{k:d.k,n:d.n,pt:d.pt,titoli:d.meals.map(function(m){return m.title;})};}))'));
+  const kcal = {}; giorni.forEach(d => { kcal[d.n] = JSON.parse(h.run('JSON.stringify(dietDayNutrition(dietDayByKey(' + d.k + ')))')).kcal; });
+
+  T('ogni giorno ricorda da quale giorno della PT viene il suo menu', giorni.every(d => !!d.pt));
+  T('solo giovedi e venerdi sono scambiati', giorni.filter(d => d.pt !== d.n).map(d => d.n).sort().join(',') === 'Giovedì,Venerdì',
+    giorni.filter(d => d.pt !== d.n).map(d => d.n + '<-' + d.pt).join(' '));
+  T('giovedi prende il menu del venerdi', giorni.find(d => d.n === 'Giovedì').pt === 'Venerdì');
+
+  // la settimana e' la stessa: stessi piatti, stesse calorie totali
+  const titoli = giorni.reduce((a, d) => a.concat(d.titoli), []).sort();
+  T('i piatti della settimana sono gli stessi 28', titoli.length === 28);
+  T('il totale settimanale non cambia', Object.keys(kcal).reduce((a, k) => a + kcal[k], 0) === 16787,
+    String(Object.keys(kcal).reduce((a, k) => a + kcal[k], 0)));
+
+  // la regola che Federica ha chiesto
+  const sched = JSON.parse(h.run('JSON.stringify(WEEK_PRESETS.weekend.sched)'));
+  const nome = { 1: 'Lunedì', 2: 'Martedì', 3: 'Mercoledì', 4: 'Giovedì', 5: 'Venerdì', 6: 'Sabato', 0: 'Domenica' };
+  const lower = Object.keys(sched).filter(k => sched[k] === 'Giorno 2' || sched[k] === 'Giorno 4').map(k => nome[k]);
+  const riposo = Object.keys(sched).filter(k => sched[k] === 'Riposo').map(k => nome[k]);
+  const ordinati = Object.keys(kcal).sort((a, b) => kcal[b] - kcal[a]);
+  T('i due menu piu ricchi cadono sui due giorni di gambe',
+    lower.every(g => ordinati.slice(0, 2).indexOf(g) > -1), lower.join(',') + ' vs ' + ordinati.slice(0, 2).join(','));
+  T('il menu piu leggero cade su un giorno di riposo',
+    riposo.indexOf(ordinati[ordinati.length - 1]) > -1, ordinati[ordinati.length - 1] + ' / riposo: ' + riposo.join(','));
+
+  // gli allergeni seguono i pasti, non il nome del giorno
+  const alGio = h.run('DIET_ALLERGENS[4]');
+  T('gli allergeni hanno seguito lo scambio', alGio === 'Uova · Latticini · Frutta a guscio · Arachidi · Soia', alGio);
+
+  // e lo dice a schermo, per non confondersi parlando con la nutrizionista
+  h.run('cur=new Date("2026-11-19T12:00:00");key="fede:2026-11-19";data=norm({day:"Giorno 4"});window.__dietSection="today";');
+  T('il giorno scambiato dichiara da quale menu della PT viene', /menù del venerdì nel piano della PT/.test(h.run('nutriHTML()')));
+}
+
+console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
 })();
