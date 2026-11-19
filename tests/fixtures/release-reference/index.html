@@ -804,8 +804,8 @@ const WARM={
   {n:"Scapole + deltoidi",d:"2 serie leggere · controllo scapolare e alzate laterali senza arrivare a fatica",u:""}
  ],
  lower:[
-  {n:"Lower Body Warm-up",d:"5 min · mobilità anca, ginocchia e caviglie + attivazione leggera di glutei e femorali",u:"https://www.tiktok.com/@mireiafiguerass/video/7582304003397094678"},
-  {n:"Glute activation",d:"2 giri · Monster Walk 15 passi/lato · Clamshell 15/gamba · Glute Bridge isometrico 20 sec",u:"https://www.tiktok.com/@mireiafiguerass/video/7507333123307310358"}
+  {n:"Mobilità anca",d:"10 affondi laterali · 10 affondi dalle ginocchia · 10 aperture d’anca · 10 squat con tocco del ginocchio · 10 clamshell/lato · 10 ponti monopodalici/lato",u:"https://www.tiktok.com/@mireiafiguerass/video/7582304003397094678"},
+  {n:"Monster Walk",d:"2 giri · 15 passi a destra e 15 a sinistra · banda sopra le ginocchia, mezzo squat",u:"https://www.tiktok.com/@mireiafiguerass/video/7507333123307310358"}
  ],
  d3:[
   {n:"Wrist / Shoulder Warm-up",d:"3-5 min · mobilità polsi e spalle, scapular push-ups e preparazione progressiva al carico",u:""}
@@ -815,7 +815,7 @@ function warmFor(day){
   if(day==="Giorno 3")return WARM.d3;
   // Il Giorno 5 ha Bulgarian Split Squat e Leg Extension: oltre alla parte alta
   // vuole la stessa attivazione glutei degli altri giorni con lavoro sulle gambe.
-  if(day==="Giorno 5")return WARM.upper.concat(WARM.lower.filter(function(w){return /Glute activation/i.test(w.n);}));
+  if(day==="Giorno 5")return WARM.upper.concat(WARM.lower.filter(function(w){return /Monster Walk/i.test(w.n);}));
   if(day==="Giorno 1")return WARM.upper;
   if(["Giorno 2","Giorno 4","Casa"].indexOf(day)>-1)return WARM.lower;
   return [];
@@ -4214,6 +4214,9 @@ function APP_LOCALE(){return getAppLanguage()==='en'?'en-GB':'it-IT';}
 function tr(it,en){return getAppLanguage()==='en'?en:it;}
 function setAppLanguage(lang){localStorage.setItem('fede:lang',lang==='en'?'en':'it');render();}
 const APP_EN={
+ 'Mobilità anca':'Hip mobility',
+ '10 affondi laterali · 10 affondi dalle ginocchia · 10 aperture d’anca · 10 squat con tocco del ginocchio · 10 clamshell/lato · 10 ponti monopodalici/lato':'10 lateral lunges · 10 kneeling lunges · 10 hip openings · 10 squats with knee touch · 10 clamshells/side · 10 single-leg bridges/side',
+ '2 giri · 15 passi a destra e 15 a sinistra · banda sopra le ginocchia, mezzo squat':'2 rounds · 15 steps right and 15 left · band above the knees, half squat',
  '🗓️ Weekend libero':'🗓️ Free weekend',
  '5 giorni da lunedì a venerdì, lower martedì e giovedì':'5 days Monday to Friday, lower on Tuesday and Thursday',
  'Tapis roulant inclinato':'Incline treadmill',
