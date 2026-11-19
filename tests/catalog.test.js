@@ -54,9 +54,13 @@ const J = JSON.stringify;
     J(inventati));
   T('il cardio che fa davvero è il primo della sezione',
     (cat.find(g => g.k === 'cardio') || {}).items[0] === 'Tapis roulant inclinato');
-  T('il cardio si misura a tempo e senza carico',
+  T('il cardio ha una misura sua: minuti, non serie',
     ['Tapis roulant inclinato', 'Cyclette', 'Vogatore', 'Corda'].every(n =>
-      h.run('exMeasure([' + J(n) + ',""])') === 'time' && h.run('exLoad([' + J(n) + ',""])') === 'bodyweight'));
+      h.run('exMeasure([' + J(n) + ',""])') === 'cardio' && h.run('exLoad([' + J(n) + ',""])') === 'bodyweight'));
+  T('solo il tapis e la camminata chiedono l\'inclinazione',
+    h.run('JSON.stringify(cardioFields(["Tapis roulant inclinato",""]).map(function(c){return c.f;}))') === J(['min', 'inc', 'kcal']) &&
+    h.run('JSON.stringify(cardioFields(["Vogatore",""]).map(function(c){return c.f;}))') === J(['min', 'kcal']),
+    h.run('JSON.stringify(cardioFields(["Vogatore",""]).map(function(c){return c.f;}))'));
   T('ognuno dichiara i muscoli che usa',
     ['Tapis roulant inclinato', 'Cyclette', 'Vogatore'].every(n => h.run('!!CARDIO_MUSCLES[' + J(n) + ']')));
   T('nessun doppione fra le sezioni', new Set(tutti).size === tutti.length,
@@ -122,6 +126,35 @@ const J = JSON.stringify;
     T('e non più i quattro extra', !/data-go="(power|finishers|accessories|mobility)"/.test(w));
   }
 
-  console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
+  // ---------- Il cardio si registra in minuti, non in serie ----------
+{
+  const h = H(REPO);
+  h.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});exIdx=6;exCtx=null;');
+  const html = h.run('exerciseHTML()');
+  T('una riga sola, non venti lette dai minuti della descrizione', (html.match(/cardio-row/g) || []).length === 1,
+    String((html.match(/cardio-row/g) || []).length));
+  T('i campi sono minuti, inclinazione e calorie',
+    /data-f="min"/.test(html) && /data-f="inc"/.test(html) && /data-f="kcal"/.test(html));
+  T('niente reps e niente kg sul tapis', !/data-f="r"/.test(html) && !/data-f="kg"/.test(html));
+  T('la sezione non si chiama piu\' "Le tue serie"', /Il tuo cardio/.test(html) && !/Le tue serie/.test(html));
+  T('i campi hanno un esempio, non un valore gia\' scritto', /placeholder="20"/.test(html) && /value=""/.test(html));
+
+  // quello che resta scritto
+  const id = h.run('setKey("Giorno 1",6,PLAN["Giorno 1"].ex[6],1)');
+  h.run('data.sets[' + J(id) + ']={min:"25",inc:"10",kcal:"180"};');
+  const rec = JSON.parse(h.run('JSON.stringify({day:"Giorno 1",sets:data.sets})'));
+  T('una sessione di cardio conta come serie registrata', JSON.parse(h.run('JSON.stringify(vol(' + J(rec) + '))')).s === 1);
+  T('ma non gonfia il volume di kg', JSON.parse(h.run('JSON.stringify(vol(' + J(rec) + '))')).v === 0);
+  T('i valori restano dove sono stati scritti', /value="25"/.test(h.run('exerciseHTML()')) && /value="180"/.test(h.run('exerciseHTML()')));
+  T('se una riga vecchia ha un dato non sparisce', (() => {
+    h.run('data.sets["Giorno 1|giorno-1__tapis-roulant-inclinato|3"]={min:"30"};');
+    return (h.run('exerciseHTML()').match(/cardio-row/g) || []).length === 3;
+  })());
+
+  // il coach non propone carichi su una cosa che non ha carichi
+  T('il coach non suggerisce kg sul tapis', h.run('coachLoadHint("Giorno 1",6,PLAN["Giorno 1"].ex[6])') === '');
+}
+
+console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
 })();
