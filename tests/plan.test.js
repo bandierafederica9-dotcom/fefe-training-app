@@ -192,22 +192,21 @@ const customPlan = {
   {
     const h = H(REPO);
     const lower = JSON.parse(h.run('JSON.stringify(warmFor("Giorno 2"))'));
-    T('i giorni gambe hanno due blocchi di riscaldamento', lower.length === 2, J(lower.map(x => x.n)));
-    T('il primo e\' la mobilita\' anca, con i sei esercizi scritti per nome',
+    T('i giorni gambe hanno un solo blocco: la routine che Federica usa davvero', lower.length === 1, J(lower.map(x => x.n)));
+    T('e\' la mobilita\' anca, con i sei esercizi scritti per nome',
       lower[0].n === 'Mobilità anca' &&
       ['affondi laterali', 'affondi dalle ginocchia', 'aperture d’anca', 'squat con tocco del ginocchio', 'clamshell', 'ponti monopodalici']
         .every(x => lower[0].d.indexOf(x) > -1), lower[0].d);
     T('ogni esercizio dice quante ripetizioni', (lower[0].d.match(/10 /g) || []).length === 6, lower[0].d);
-    T('il secondo e\' il Monster Walk con la banda', lower[1].n === 'Monster Walk' && /banda sopra le ginocchia/.test(lower[1].d));
-    T('niente doppioni fra i due blocchi: il clamshell sta in uno solo',
-      (lower[0].d + lower[1].d).split('clamshell').length - 1 === 1);
+    T('il vecchio blocco di attivazione non c\'e\' piu\'', !/Monster Walk|Glute activation/.test(J(lower)), J(lower.map(x => x.n)));
+    T('il clamshell compare una volta sola', lower[0].d.split('clamshell').length - 1 === 1);
     T('il video di riferimento resta allegato', /tiktok\.com/.test(lower[0].u));
-    T('anche il Giorno 4 e la giornata Casa lo hanno',
-      h.run('warmFor("Giorno 4").length') === 2 && h.run('warmFor("Casa").length') === 2);
-    T('il Giorno 5 ha la parte alta piu\' il Monster Walk, non la mobilita\' anca',
-      J(JSON.parse(h.run('JSON.stringify(warmFor("Giorno 5").map(function(w){return w.n;}))'))) === J(['Upper Body Warm-up', 'Scapole + deltoidi', 'Monster Walk']));
-    T('i giorni upper puri restano senza attivazione glutei',
-      h.run('warmFor("Giorno 1").every(function(w){return !/Monster/.test(w.n);})') === true);
+    T('anche il Giorno 4 e la giornata Casa hanno la stessa routine',
+      h.run('warmFor("Giorno 4")[0].n') === 'Mobilit\u00e0 anca' && h.run('warmFor("Casa")[0].n') === 'Mobilit\u00e0 anca');
+    T('il Giorno 5 ha la parte alta piu\' la mobilita\' anca, perche\' ha lavoro monopodalico sulle gambe',
+      J(JSON.parse(h.run('JSON.stringify(warmFor("Giorno 5").map(function(w){return w.n;}))'))) === J(['Upper Body Warm-up', 'Scapole + deltoidi', 'Mobilit\u00e0 anca']));
+    T('i giorni upper puri restano senza mobilita\' anca',
+      h.run('warmFor("Giorno 1").every(function(w){return !/Mobilit/.test(w.n);})') === true);
   }
 
   console.log(fail === 0 ? '\nALL PLAN/COACH CHECKS PASSED' : '\nFAILURES: ' + fail); process.exit(fail ? 1 : 0);

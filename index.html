@@ -804,8 +804,8 @@ const WARM={
   {n:"Scapole + deltoidi",d:"2 serie leggere · controllo scapolare e alzate laterali senza arrivare a fatica",u:""}
  ],
  lower:[
-  {n:"Mobilità anca",d:"10 affondi laterali · 10 affondi dalle ginocchia · 10 aperture d’anca · 10 squat con tocco del ginocchio · 10 clamshell/lato · 10 ponti monopodalici/lato",u:"https://www.tiktok.com/@mireiafiguerass/video/7582304003397094678"},
-  {n:"Monster Walk",d:"2 giri · 15 passi a destra e 15 a sinistra · banda sopra le ginocchia, mezzo squat",u:"https://www.tiktok.com/@mireiafiguerass/video/7507333123307310358"}
+  {n:"Mobilità anca",d:"10 affondi laterali · 10 affondi dalle ginocchia · 10 aperture d’anca · 10 squat con tocco del ginocchio · 10 clamshell/lato · 10 ponti monopodalici/lato",u:"https://www.tiktok.com/@mireiafiguerass/video/7582304003397094678"}
+
  ],
  d3:[
   {n:"Wrist / Shoulder Warm-up",d:"3-5 min · mobilità polsi e spalle, scapular push-ups e preparazione progressiva al carico",u:""}
@@ -815,7 +815,7 @@ function warmFor(day){
   if(day==="Giorno 3")return WARM.d3;
   // Il Giorno 5 ha Bulgarian Split Squat e Leg Extension: oltre alla parte alta
   // vuole la stessa attivazione glutei degli altri giorni con lavoro sulle gambe.
-  if(day==="Giorno 5")return WARM.upper.concat(WARM.lower.filter(function(w){return /Monster Walk/i.test(w.n);}));
+  if(day==="Giorno 5")return WARM.upper.concat(WARM.lower);
   if(day==="Giorno 1")return WARM.upper;
   if(["Giorno 2","Giorno 4","Casa"].indexOf(day)>-1)return WARM.lower;
   return [];
