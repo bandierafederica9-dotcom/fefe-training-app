@@ -3868,17 +3868,52 @@ function trendDelta(weeks){
 /* Barre: sedute per settimana. Una serie sola, quindi nessuna legenda.
    Estremi arrotondati di 4px ancorati alla linea di base, 2px di distacco fra
    le barre, assi discreti. */
+// Andamento: quanto storico si guarda, e cosa si e' toccato. Stato di schermo,
+// non un dato: non viene salvato da nessuna parte.
+let trendRange=8;              // settimane mostrate; 0 = tutto lo storico
+let trendSel={kind:'',id:''};  // 'week' + lunedi ISO, oppure 'sess' + chiave della seduta
+function isoKey(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+function trendWeeksAvailable(sess,today){
+  if(!sess.length)return 1;
+  const first=weekStartOf(sess[0].date), ref=weekStartOf(today||new Date());
+  return Math.max(1,Math.round((ref-first)/604800000)+1);
+}
+// Oltre le dodici settimane la barra settimanale diventa illeggibile a 390px:
+// venti colonne da 17px, etichette sovrapposte e niente da toccare. Allora la
+// grana giusta e' il mese.
+function monthlySessions(records,months,today){
+  const sess=sessionSummaries(records), ref=today||new Date(), out=[];
+  for(let i=months-1;i>=0;i--){
+    const ms=new Date(ref.getFullYear(),ref.getMonth()-i,1,12,0,0);
+    const me=new Date(ms.getFullYear(),ms.getMonth()+1,1,12,0,0);
+    const dentro=sess.filter(function(x){return x.date>=ms&&x.date<me;});
+    out.push({start:ms,month:true,sessions:dentro.length,
+      series:dentro.reduce(function(a,x){return a+x.series;},0),
+      volume:dentro.reduce(function(a,x){return a+x.volume;},0),
+      current:i===0});
+  }
+  return out;
+}
+function trendMonthsAvailable(sess,today){
+  if(!sess.length)return 1;
+  const f=sess[0].date, r=today||new Date();
+  return Math.max(1,(r.getFullYear()-f.getFullYear())*12+(r.getMonth()-f.getMonth())+1);
+}
 function weeklyBarsHTML(weeks){
   if(!weeks.length)return '';
   const max=Math.max(1,Math.max.apply(null,weeks.map(function(w){return w.sessions;})));
   const H=96;
   let bars='';
   weeks.forEach(function(w){
-    const hgt=Math.round(w.sessions/max*H);
-    bars+='<div class="tb-col"'+(w.sessions?' title="'+w.sessions+' sedute"':'')+'>'+
+    const hgt=Math.round(w.sessions/max*H), iso=isoKey(w.start), sel=(w.month?trendSel.kind==='month':trendSel.kind==='week')&&trendSel.id===iso;
+    // Una barra si tocca: sotto si apre la settimana. Niente title: su un telefono
+    // non esiste il passaggio del mouse, e un'etichetta che non compare mai e' una bugia.
+    bars+='<button class="tb-col'+(sel?' sel':'')+'" data-'+(w.month?'trendmonth':'trendweek')+'="'+iso+'" aria-label="'+
+      (w.month?w.start.toLocaleDateString(APP_LOCALE(),{month:'long',year:'numeric'})
+             :tr('Settimana del ','Week of ')+w.start.getDate()+'/'+(w.start.getMonth()+1))+', '+w.sessions+tr(' sedute',' sessions')+'">'+
       '<div class="tb-val">'+(w.sessions||'')+'</div>'+
-      '<div class="tb-track"><i class="tb-bar'+(w.current?' now':'')+'" style="height:'+(w.sessions?Math.max(hgt,6):0)+'px"></i></div>'+
-      '<div class="tb-lab">'+w.start.getDate()+'/'+(w.start.getMonth()+1)+'</div></div>';
+      '<div class="tb-track"><i class="tb-bar'+(w.current?' now':'')+(sel?' sel':'')+'" style="height:'+(w.sessions?Math.max(hgt,6):0)+'px"></i></div>'+
+      '<div class="tb-lab">'+(w.month?w.start.toLocaleDateString(APP_LOCALE(),{month:'short'}):w.start.getDate()+'/'+(w.start.getMonth()+1))+'</div></button>';
   });
   return '<div class="trend-bars">'+bars+'</div>';
 }
@@ -3892,7 +3927,8 @@ function sessionVolumeHTML(sess){
   const xy=pts.map(function(x,i){return [(i/(pts.length-1))*W, H-((x.volume-mn)/rg)*(H-14)-7];});
   const line=xy.map(function(c){return c[0].toFixed(1)+','+c[1].toFixed(1);}).join(' ');
   let dots='';
-  xy.forEach(function(c,i){dots+='<circle cx="'+c[0].toFixed(1)+'" cy="'+c[1].toFixed(1)+'" r="4.5" fill="#fff" stroke="var(--chart)" stroke-width="2"><title>'+pts[i].volume+' kg · '+pts[i].date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</title></circle>';});
+  xy.forEach(function(c,i){const sel=trendSel.kind==='sess'&&trendSel.id===pts[i].key;
+    dots+='<circle class="trend-dot'+(sel?' sel':'')+'" data-trendsess="'+pts[i].key+'" cx="'+c[0].toFixed(1)+'" cy="'+c[1].toFixed(1)+'" r="'+(sel?7:4.5)+'" fill="'+(sel?'var(--chart)':'#fff')+'" stroke="var(--chart)" stroke-width="2"><title>'+pts[i].volume+' kg · '+pts[i].date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</title></circle>';});
   return '<svg class="trend-line" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+tr('Volume per seduta, ultime ','Volume per session, last ')+pts.length+tr(' sedute',' sessions')+'">'+
     '<polygon points="0,'+H+' '+line+' '+W+','+H+'" fill="var(--chart-fill)"/>'+
     '<polyline points="'+line+'" fill="none" stroke="var(--chart)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
@@ -3901,18 +3937,93 @@ function sessionVolumeHTML(sess){
     '<span>'+pts[pts.length-1].volume+' kg · '+pts[pts.length-1].date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</span></div>';
 }
 
+// Cosa c'e' dentro una barra o un punto. Solo dati gia' salvati: nessuna stima.
+function trendWeekDetail(sess,iso){
+  const ws=dateFromKey(iso), we=new Date(ws); we.setDate(we.getDate()+7);
+  const dentro=sess.filter(function(x){return x.date>=ws&&x.date<we;});
+  const titolo=tr('Settimana del ','Week of ')+ws.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'long'});
+  if(!dentro.length)return trendCard(titolo,'<div class="note">'+tr('Nessuna seduta registrata in questa settimana.','No session logged in this week.')+'</div>');
+  const serie=dentro.reduce(function(a,x){return a+x.series;},0), vol=dentro.reduce(function(a,x){return a+x.volume;},0);
+  return trendCard(titolo,
+    '<div class="trend-sum"><b>'+dentro.length+'</b> '+(dentro.length===1?tr('seduta','session'):tr('sedute','sessions'))
+    +' · <b>'+serie+'</b> '+tr('serie','sets')+' · <b>'+Math.round(vol)+'</b> kg</div>'
+    +dentro.map(function(x){return '<button class="trend-line-row" data-trendsess="'+x.key+'"><span>'
+      +x.date.toLocaleDateString(APP_LOCALE(),{weekday:'short',day:'numeric',month:'short'})+' · '+esc(x.day||'')+'</span>'
+      +'<b>'+x.series+' '+tr('serie','sets')+' · '+Math.round(x.volume)+' kg</b></button>';}).join(''));
+}
+function trendSessionDetail(key){
+  const rec=recentRecords(400).filter(function(r){return r._date===key;})[0];
+  if(!rec)return '';
+  const d=norm(rec), giorno=d.day||'', v=vol(d);
+  const righe={};
+  Object.keys(d.sets).forEach(function(id){
+    const x=d.sets[id], pezzi=String(id).split('|'); if(pezzi.length<3)return;
+    if(!(x&&(x.r||x.sec||x.min)))return;
+    const nome=exNameFromId(pezzi[1])||pezzi[1];
+    (righe[nome]=righe[nome]||[]).push(x);
+  });
+  const corpo=Object.keys(righe).map(function(nome){
+    const set=righe[nome];
+    const dett=set.map(function(x){
+      if(x.min)return x.min+tr(' min',' min')+(x.kcal?' · '+x.kcal+' kcal':'');
+      if(x.sec)return x.sec+' sec';
+      return (x.kg?x.kg+' kg × ':'')+(x.r||'')+(x.r?tr(' rip',' reps'):'');
+    }).join(' · ');
+    return '<div class="trend-ex"><span>'+esc(nome)+'</span><b>'+esc(dett)+'</b></div>';
+  }).join('');
+  return trendCard(dateFromKey(key).toLocaleDateString(APP_LOCALE(),{weekday:'long',day:'numeric',month:'long'})+' · '+esc(giorno),
+    '<div class="trend-sum"><b>'+v.s+'</b> '+tr('serie','sets')+' · <b>'+v.v+'</b> kg'+tr(' di volume',' of volume')+'</div>'+corpo);
+}
+function trendMonthDetail(sess,iso){
+  const ms=dateFromKey(iso), me=new Date(ms.getFullYear(),ms.getMonth()+1,1,12,0,0);
+  const dentro=sess.filter(function(x){return x.date>=ms&&x.date<me;});
+  const titolo=ms.toLocaleDateString(APP_LOCALE(),{month:'long',year:'numeric'});
+  if(!dentro.length)return trendCard(titolo,'<div class="note">'+tr('Nessuna seduta registrata in questo mese.','No session logged in this month.')+'</div>');
+  const serie=dentro.reduce(function(a,x){return a+x.series;},0), vol=dentro.reduce(function(a,x){return a+x.volume;},0);
+  // Dentro un mese elenco le settimane, non trenta righe di sedute.
+  const perSett={};
+  dentro.forEach(function(x){const w=isoKey(weekStartOf(x.date));(perSett[w]=perSett[w]||[]).push(x);});
+  return trendCard(titolo,
+    '<div class="trend-sum"><b>'+dentro.length+'</b> '+(dentro.length===1?tr('seduta','session'):tr('sedute','sessions'))
+    +' · <b>'+serie+'</b> '+tr('serie','sets')+' · <b>'+Math.round(vol)+'</b> kg</div>'
+    +Object.keys(perSett).sort().map(function(w){const g=perSett[w];
+      return '<button class="trend-line-row" data-trendweek="'+w+'"><span>'+tr('settimana del ','week of ')
+        +dateFromKey(w).toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'</span><b>'
+        +g.length+' '+(g.length===1?tr('seduta','session'):tr('sedute','sessions'))+' · '
+        +Math.round(g.reduce(function(a,x){return a+x.volume;},0))+' kg</b></button>';}).join(''));
+}
+function trendCard(titolo,corpo){
+  return '<div class="card trend-detail"><div class="trend-detail-head"><b>'+esc(titolo)+'</b>'
+    +'<button class="trend-close" data-trendclose="1" aria-label="'+tr('Chiudi','Close')+'">×</button></div>'+corpo+'</div>';
+}
+function trendRangeHTML(){
+  const opz=[[8,tr('8 settimane','8 weeks')],[26,tr('6 mesi','6 months')],[0,tr('Tutto','All')]];
+  return '<div class="trend-range">'+opz.map(function(o){
+    return '<button class="'+(trendRange===o[0]?'on':'')+'" data-trendrange="'+o[0]+'">'+o[1]+'</button>';}).join('')+'</div>';
+}
 function trendHTML(){
-  const recs=recentRecords(90), sess=sessionSummaries(recs), weeks=weeklySessions(recs,8,cur);
+  const recs=recentRecords(400), sess=sessionSummaries(recs);
+  // Sotto le dodici settimane si ragiona a settimane; sopra, a mesi.
+  const aMesi=trendRange===0||trendRange>12;
+  const weeks=aMesi
+    ? monthlySessions(recs,trendRange===0?trendMonthsAvailable(sess,cur):Math.ceil(trendRange/4.345),cur)
+    : weeklySessions(recs,trendRange,cur);
+  // Il confronto fra mesi ha una finestra sua: non dipende da quanto storico stai guardando.
+  const confronto=weeklySessions(recs,9,cur);
   if(!sess.length){
     return '<div class="card"><div class="note">Qui compare l\u2019andamento appena registri la prima seduta: quante volte ti alleni ogni settimana e come cresce il volume. Non invento numeri che non hai ancora.</div></div>';
   }
-  const thisWeek=weeks[weeks.length-1], d=trendDelta(weeks);
-  let h='<div class="grid2"><div class="tile t-mint"><span>questa settimana</span><div><b>'+thisWeek.sessions+'</b><em>'+(thisWeek.sessions===1?'seduta':'sedute')+' \u00b7 '+thisWeek.series+' serie</em></div></div>'+
+  const thisWeek=weeks[weeks.length-1], d=trendDelta(confronto);
+  const settimanaCorrente=confronto[confronto.length-1];
+  let h='<div class="grid2"><div class="tile t-mint"><span>questa settimana</span><div><b>'+settimanaCorrente.sessions+'</b><em>'+(settimanaCorrente.sessions===1?'seduta':'sedute')+' \u00b7 '+settimanaCorrente.series+' serie</em></div></div>'+
     '<div class="tile t-pink"><span>in totale</span><div><b>'+sess.length+'</b><em>sedute registrate</em></div></div></div>';
-  h+='<div class="sect">Sedute per settimana</div><div class="card">'+weeklyBarsHTML(weeks);
-  if(d)h+='<div class="note" style="margin-top:10px">Ultime 4 settimane piene: <b>'+d.recent+'</b> sedute, contro <b>'+d.previous+'</b> nelle 4 precedenti'+(d.diff===0?'. Stesso ritmo.':(d.diff>0?' \u2014 '+d.diff+' in pi\u00f9.':' \u2014 '+(-d.diff)+' in meno.'))+'</div>';
+  h+='<div class="sect">'+(aMesi?tr('Sedute per mese','Sessions per month'):tr('Sedute per settimana','Sessions per week'))+'</div><div class="card">'+trendRangeHTML()+weeklyBarsHTML(weeks);
+  if(trendSel.kind==='week')h+=trendWeekDetail(sess,trendSel.id);
+  if(trendSel.kind==='month')h+=trendMonthDetail(sess,trendSel.id);
+  if(d)h+='<div class="note" style="margin-top:10px">'+tr('Ultime 4 settimane piene: ','Last 4 full weeks: ')+'<b>'+d.recent+'</b>'+tr(' sedute, contro ',' sessions, against ')+'<b>'+d.previous+'</b>'+tr(' nelle 4 precedenti',' in the 4 before')+(d.diff===0?tr('. Stesso ritmo.','. Same pace.'):(d.diff>0?' \u2014 '+d.diff+tr(' in pi\u00f9.',' more.'):' \u2014 '+(-d.diff)+tr(' in meno.',' fewer.')))+'</div>';
   else h+='<div class="note" style="margin-top:10px">Il confronto fra mesi compare dopo otto settimane piene di storico.</div>';
   h+='</div>';
+  if(trendSel.kind==='sess')h+=trendSessionDetail(trendSel.id);
   const vol2=sessionVolumeHTML(sess);
   if(vol2)h+='<div class="sect">Volume per seduta</div><div class="card">'+vol2+'<div class="note" style="margin-top:8px">Somma di kg \u00d7 ripetizioni delle serie segnate, Lab escluso. Serve a vedere il verso, non a confrontare giornate diverse fra loro.</div></div>';
   return h;
@@ -5502,6 +5613,23 @@ function bind(){
     if(el)el.oninput=function(){data.meas[f]=el.value;save();};});
 
   // evoluzione tabs
+  // Andamento: barre, punti e periodo. Cambiano solo cosa si vede, mai i dati.
+  document.querySelectorAll('[data-trendweek]').forEach(function(b){b.onclick=function(){
+    const iso=b.dataset.trendweek;
+    trendSel=(trendSel.kind==='week'&&trendSel.id===iso)?{kind:'',id:''}:{kind:'week',id:iso};
+    render();};});
+  document.querySelectorAll('[data-trendmonth]').forEach(function(b){b.onclick=function(){
+    const iso=b.dataset.trendmonth;
+    trendSel=(trendSel.kind==='month'&&trendSel.id===iso)?{kind:'',id:''}:{kind:'month',id:iso};
+    render();};});
+  document.querySelectorAll('[data-trendsess]').forEach(function(b){b.onclick=function(){
+    const kk=b.dataset.trendsess;
+    trendSel=(trendSel.kind==='sess'&&trendSel.id===kk)?{kind:'',id:''}:{kind:'sess',id:kk};
+    render();};});
+  document.querySelectorAll('[data-trendclose]').forEach(function(b){b.onclick=function(){
+    trendSel={kind:'',id:''};render();};});
+  document.querySelectorAll('[data-trendrange]').forEach(function(b){b.onclick=function(){
+    trendRange=+b.dataset.trendrange||0; trendSel={kind:'',id:''}; render();};});
   document.querySelectorAll('[data-evo]').forEach(function(b){b.onclick=function(){
     evoTab=b.dataset.evo;
     if(evoTab==='carichi'){

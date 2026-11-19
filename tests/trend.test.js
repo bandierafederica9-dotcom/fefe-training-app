@@ -94,6 +94,65 @@ const put = (h, date, n) => h.run('localStorage.setItem("fede:' + date + '",' + 
     return ['andamento', 'metriche', 'carichi', 'obiettivi', 'backup'].every(t => html.indexOf('data-evo="' + t + '"') > -1);
   })());
 
-  console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
+  // ---------- 9) I grafici si toccano, e il periodo si sceglie ----------
+{
+  const h9 = H(REPO);
+  h9.run('cur=new Date("2026-01-21T12:00:00");key="fede:2026-01-21";data=norm({day:"Giorno 1"});evoTab="andamento";');
+  // storico su quattro mesi
+  const put2 = (d, n) => h9.run('localStorage.setItem("fede:' + d + '",' + J(J({ day: 'Giorno 1', sets: sets(n) })) + ')');
+  ['2025-10-07', '2025-10-14', '2025-11-04', '2025-11-18', '2025-12-02', '2026-01-07', '2026-01-14', '2026-01-21'].forEach(d => put2(d, 3));
+
+  const html = h9.run('trendHTML()');
+  T('ogni barra e\' un pulsante con la sua settimana', (html.match(/data-trendweek="/g) || []).length === 8,
+    String((html.match(/data-trendweek="/g) || []).length));
+  T('le barre dicono a voce cosa sono', /aria-label="Settimana del/.test(html));
+  T('niente title: su un telefono non esiste il passaggio del mouse', !/<div class="tb-col"[^>]*title=/.test(html));
+  T('il selettore di periodo c\'e\'', /data-trendrange="8"/.test(html) && /data-trendrange="26"/.test(html) && /data-trendrange="0"/.test(html));
+
+  // la settimana toccata
+  const iso = (html.match(/data-trendweek="(\d{4}-\d{2}-\d{2})"/g) || []).pop().match(/"([\d-]+)"/)[1];
+  h9.run('trendSel={kind:"week",id:' + J(iso) + '};');
+  const conSel = h9.run('trendHTML()');
+  T('toccata una barra si apre il dettaglio della settimana', /trend-detail/.test(conSel) && /Settimana del/.test(conSel));
+  T('il dettaglio elenca le sedute di quella settimana', /trend-line-row/.test(conSel) && /data-trendsess="2026-01-21"/.test(conSel), '');
+  T('e la barra scelta resta evidenziata', /class="tb-col sel"/.test(conSel));
+  T('con una riga per chiudere', /data-trendclose/.test(conSel));
+
+  // la seduta toccata
+  h9.run('trendSel={kind:"sess",id:"2026-01-21"};');
+  const sessHtml = h9.run('trendHTML()');
+  T('toccato un punto si apre quella seduta', /trend-detail/.test(sessHtml) && /trend-ex/.test(sessHtml));
+  T('e mostra gli esercizi con carichi e ripetizioni', /40 kg × 10 rip/.test(sessHtml), sessHtml.replace(/<[^>]*>/g, ' ').slice(0, 120));
+
+  // il cardio si legge in minuti, non in kg
+  h9.run('localStorage.setItem("fede:2026-01-19",' + J(J({ day: 'Giorno 1', sets: { 'Giorno 1|giorno-1__tapis-roulant-inclinato|1': { min: '25', inc: '10', kcal: '180' } } })) + ');trendSel={kind:"sess",id:"2026-01-19"};');
+  const card = h9.run('trendHTML()');
+  T('una seduta di cardio si legge in minuti e calorie', /25 min/.test(card) && /180 kcal/.test(card), card.replace(/<[^>]*>/g, ' ').slice(0, 120));
+
+  // periodo
+  h9.run('trendSel={kind:"",id:""};trendRange=0;');
+  const tutto = h9.run('trendHTML()');
+  T('su "Tutto" le barre diventano mesi, non settimane strette', /data-trendmonth="/.test(tutto) && !/data-trendweek="/.test(tutto));
+  T('e il titolo lo dice', /Sedute per mese/.test(tutto));
+  T('i mesi sono quelli davvero coperti dallo storico', (tutto.match(/data-trendmonth="/g) || []).length === 4,
+    String((tutto.match(/data-trendmonth="/g) || []).length));
+  h9.run('trendSel={kind:"month",id:"2025-11-01"};');
+  T('toccato un mese si aprono le sue settimane', /trend-detail/.test(h9.run('trendHTML()')) && /settimana del/.test(h9.run('trendHTML()')));
+
+  // il confronto non dipende da quanto storico stai guardando
+  h9.run('trendSel={kind:"",id:""};trendRange=8;');
+  const a8 = /Ultime 4 settimane piene/.test(h9.run('trendHTML()'));
+  h9.run('trendRange=0;');
+  const a0 = /Ultime 4 settimane piene/.test(h9.run('trendHTML()'));
+  T('il confronto fra mesi compare in entrambi i periodi', a8 === a0, 'a8=' + a8 + ' a0=' + a0);
+
+  // niente scritture
+  h9.run('trendRange=8;trendSel={kind:"",id:""};');
+  const prima = JSON.stringify(h9.store);
+  h9.run('trendHTML();trendSel={kind:"week",id:' + J(iso) + '};trendHTML();');
+  T('guardare i grafici non scrive niente', JSON.stringify(h9.store) === prima);
+}
+
+console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
   process.exit(fail ? 1 : 0);
 })();

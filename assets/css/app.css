@@ -813,3 +813,28 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 /* Cardio: minuti, inclinazione e calorie al posto di serie e carico. */
 .cardio-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr)) 34px;gap:7px;align-items:end;padding:9px 0;border-top:1px solid var(--line)}
 .cardio-row .fld input{min-height:44px}
+
+/* Andamento toccabile: periodo, barra o punto selezionati, scheda del dettaglio. */
+.trend-range{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:12px}
+.trend-range button{min-height:40px;border:1px solid #ece3e6;background:#fff;color:var(--navy);
+  -webkit-appearance:none;appearance:none;border-radius:11px;font-size:11px;font-weight:800}
+.trend-range button.on{background:var(--rose);color:#fff;border-color:var(--rose)}
+.tb-col{-webkit-appearance:none;appearance:none;border:0;background:transparent;padding:0;cursor:pointer}
+.tb-bar.sel{background:var(--navy)}
+.tb-col.sel .tb-val{color:var(--navy)}
+.trend-dot{cursor:pointer}
+.trend-detail{margin-top:12px}
+.trend-detail-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.trend-detail-head b{font-size:12.5px;color:var(--navy)}
+.trend-close{-webkit-appearance:none;appearance:none;border:0;background:transparent;color:var(--dim);
+  font-size:20px;line-height:1;width:34px;height:34px;border-radius:50%}
+.trend-sum{font-size:12px;font-weight:800;color:var(--rose-d);margin-bottom:9px}
+.trend-line-row,.trend-ex{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+  min-height:42px;padding:7px 0;border-top:1px solid #efe6e9;font-size:11.5px;text-align:left;
+  -webkit-appearance:none;appearance:none;background:transparent;border-left:0;border-right:0;border-bottom:0}
+.trend-line-row span,.trend-ex span{color:var(--dim);font-weight:700}
+.trend-line-row b,.trend-ex b{color:var(--navy);font-weight:800;white-space:nowrap}
+/* Nessuna animazione d'ingresso sulla scheda: si ridisegna a ogni tocco al suo
+   interno, e un movimento che si ripete a ogni tocco diventa fastidio. */
+.trend-range button:active,.tb-col:active{transform:scale(.96);opacity:.85}
+.trend-range button,.tb-col{transition:transform var(--d-press) var(--ease-out),opacity var(--d-press) var(--ease-out)}
