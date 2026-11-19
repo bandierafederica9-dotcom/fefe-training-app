@@ -839,7 +839,7 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .trend-range button:active,.tb-col:active{transform:scale(.96);opacity:.85}
 .trend-range button,.tb-col{transition:transform var(--d-press) var(--ease-out),opacity var(--d-press) var(--ease-out)}
 
-/* L'avviso quando calendario e pasti non si parlano. Informa, non blocca. */
-.sync-notice{border:1px solid var(--rose-b);background:var(--rose-l);margin-bottom:12px}
-.sync-notice b{font-size:13px;color:var(--navy)}
-.sync-notice .btn{width:100%}
+/* Quando la settimana non torna: informa e propone, non blocca. */
+.sched-issue{border:1px solid var(--rose-b);background:var(--rose-l);margin-bottom:12px}
+.sched-issue b{font-size:13px;color:var(--navy)}
+.sched-issue .btn{width:100%}

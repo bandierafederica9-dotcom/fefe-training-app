@@ -49,8 +49,12 @@ const J = JSON.stringify;
   // ---------- 5) I numeri arrivano sullo schermo ----------
   h.run('cur=new Date("2026-01-19T12:00:00");key="fede:2026-01-19";data=norm({day:"Giorno 1"});window.__dietSection="today";');
   const today = h.run('nutriHTML()');
-  T('la giornata mostra il proprio totale', today.indexOf('2402 kcal') > -1 && today.indexOf('129 g') > -1);
-  T('la giornata mostra la differenza dal target', today.indexOf('+402 kcal') > -1);
+  // I numeri attesi si ricavano dal menu' che quel giorno riceve: il menu' segue
+  // l'allenamento, quindi fissarli a mano renderebbe il test una copia del codice.
+  const nOggi = JSON.parse(h.run('JSON.stringify(dietDayNutrition(dietDayForDate(cur)))'));
+  T('la giornata mostra il proprio totale', today.indexOf(nOggi.kcal + ' kcal') > -1 && today.indexOf(nOggi.prot + ' g') > -1,
+    nOggi.kcal + '/' + nOggi.prot);
+  T('la giornata mostra la differenza dal target', today.indexOf(h.run('dietGapLabel(dietDayNutrition(dietDayForDate(cur)))').split(' \u00b7 ')[0]) > -1);
   T('ogni pasto porta il proprio numero', (today.match(/nutri-chip/g) || []).length === 4);
   T('la provenienza dei numeri è dichiarata sullo schermo', today.indexOf('CREA/USDA') > -1 && today.indexOf('2000 kcal') > -1 && today.indexOf('11 marzo 2025') > -1);
   T('la stima è dichiarata come stima', /stima con un margine/.test(today));
@@ -61,7 +65,12 @@ const J = JSON.stringify;
 
   h.run('window.__dietSection="week";');
   const week = h.run('nutriHTML()');
-  T('la settimana mostra i sette totali', (week.match(/nutri-week-n/g) || []).length === 7 && week.indexOf('2412 kcal') > -1);
+  T('la settimana mostra i sette totali', (week.match(/nutri-week-n/g) || []).length === 7);
+  T('e sono i sette del piano, nessuno perso per strada', (() => {
+    const attesi = JSON.parse(h.run('JSON.stringify(DIET_DAYS.map(function(d){return dietDayNutrition(d).kcal;}))')).sort();
+    const visti = (week.match(/nutri-week-n">(\d+) kcal/g) || []).map(x => +x.match(/(\d+)/)[1]).sort();
+    return J(attesi) === J(visti);
+  })());
 
   // ---------- 6) Niente è stato toccato nel piano stesso ----------
   const ref = H(REPO, {}, require('./reference').indexHtml);
@@ -112,7 +121,13 @@ const J = JSON.stringify;
     const home = hh.run('homeMealsHTML()');
     T('in cima c\'è un pasto solo, in grande', (home.match(/class="meal-now/g) || []).length >= 1);
     T('gli altri tre stanno sotto', (home.match(/<div class="hm[ "]/g) || []).length === 3);
-    T('ognuno porta orario, nome e valori', /09:00/.test(home) && /Tostata senza glutine/.test(home) && /640 kcal \u00b7 29 g/.test(home));
+    // Il piatto dipende dal menu' che quel giorno riceve: lo chiedo all'app invece di fissarlo.
+    const nGiorno = JSON.parse(hh.run('JSON.stringify(dietDayNutrition(dietDayForDate(cur)))'));
+    const m0 = JSON.parse(hh.run('JSON.stringify(dietDayForDate(cur).meals[0])'));
+    const v0 = JSON.parse(hh.run('JSON.stringify(dietMealNutrition(dietDayForDate(cur).meals[0]))'));
+    T('ognuno porta orario, nome e valori',
+      home.indexOf(m0.time) > -1 && home.indexOf(m0.title.slice(0, 18)) > -1 && home.indexOf(v0.kcal + ' kcal \u00b7 ' + v0.prot + ' g') > -1,
+      m0.time + ' / ' + v0.kcal);
     T('ognuno ha la sua spunta, compreso quello in grande', (home.match(/data-diet-done="/g) || []).length === 4);
     T('ogni pasto ha la sua icona', (home.match(/\ud83e\udd5e|\ud83c\udf4e|\ud83e\udd57|\ud83e\udd64|\ud83c\udf4c|\ud83c\udf72/g) || []).length >= 4);
 
@@ -126,7 +141,8 @@ const J = JSON.stringify;
     T('prima del primo pasto vale il primo, non il nulla', att(hh, 5 * 60) === 'Colazione');
     T('e un modo per aprire il piano intero', /data-go="nutri"/.test(home));
     T('in fondo il totale della giornata contro il target della PT',
-      /2402 kcal e 129 g/.test(home) && /2000 kcal e 110 g/.test(home));
+      home.indexOf(nGiorno.kcal + ' kcal e ' + nGiorno.prot + ' g') > -1 && /2000 kcal e 110 g/.test(home),
+      nGiorno.kcal + '/' + nGiorno.prot);
 
     // la spunta e' la stessa della scheda Nutrizione
     hh.run('setDietDone(cur,"Colazione",true);');
@@ -154,45 +170,79 @@ const J = JSON.stringify;
     T('le tendine sono chiuse di partenza', !/<details class="fold[^"]*" open/.test(home));
     T('ma il pasto di adesso resta visibile senza aprire niente',
       home.indexOf('meal-now') < home.indexOf('<details'), 'ordine');
-    T('e i valori del pasto si leggono subito', /740 kcal \u00b7 67 g di proteine/.test(home) || /640 kcal/.test(home));
+    T('e i valori del pasto si leggono subito', (() => {
+      const i = JSON.parse(ht.run('JSON.stringify(dietMealIndexAt(dietDayForDate(cur),dietMinutes()))'));
+      const v = JSON.parse(ht.run('JSON.stringify(dietMealNutrition(dietDayForDate(cur).meals[' + i + ']))'));
+      return home.indexOf(v.kcal + ' kcal') > -1;
+    })());
   }
 
-  // ---------- Allineamento menu' / allenamento (deciso il 2026-11-19) ----------
-// Il piano della PT non cambia di una parola: cambia solo su quale giorno cade.
+  // ---------- Il menu' segue l'allenamento (deciso il 19 novembre 2026) ----------
+// Il piano della PT non cambia: cambia su quale giorno cade un menu', e cambia
+// da solo quando Federica sposta una giornata.
 {
   const h = H(REPO);
-  const giorni = JSON.parse(h.run('JSON.stringify(DIET_DAYS.map(function(d){return{k:d.k,n:d.n,pt:d.pt,titoli:d.meals.map(function(m){return m.title;})};}))'));
-  const kcal = {}; giorni.forEach(d => { kcal[d.n] = JSON.parse(h.run('JSON.stringify(dietDayNutrition(dietDayByKey(' + d.k + ')))')).kcal; });
+  h.run('cur=new Date("2026-11-19T12:00:00");key="fede:2026-11-19";data=norm({day:"Riposo"});');
 
-  T('ogni giorno ricorda da quale giorno della PT viene il suo menu', giorni.every(d => !!d.pt));
-  T('solo giovedi e venerdi sono scambiati', giorni.filter(d => d.pt !== d.n).map(d => d.n).sort().join(',') === 'Giovedì,Venerdì',
-    giorni.filter(d => d.pt !== d.n).map(d => d.n + '<-' + d.pt).join(' '));
-  T('giovedi prende il menu del venerdi', giorni.find(d => d.n === 'Giovedì').pt === 'Venerdì');
+  // il piano resta intero
+  const titoli = JSON.parse(h.run('JSON.stringify(DIET_DAYS.reduce(function(a,d){return a.concat(d.meals.map(function(m){return m.title;}));},[]))'));
+  T('i piatti della settimana restano 28', titoli.length === 28);
+  T('il totale settimanale non cambia',
+    h.run('DIET_DAYS.reduce(function(a,d){return a+dietDayNutrition(d).kcal;},0)') === 16787);
+  T('ogni menu ricorda da quale giorno della PT viene',
+    h.run('DIET_DAYS.every(function(d){return !!d.pt;})') === true);
 
-  // la settimana e' la stessa: stessi piatti, stesse calorie totali
-  const titoli = giorni.reduce((a, d) => a.concat(d.titoli), []).sort();
-  T('i piatti della settimana sono gli stessi 28', titoli.length === 28);
-  T('il totale settimanale non cambia', Object.keys(kcal).reduce((a, k) => a + kcal[k], 0) === 16787,
-    String(Object.keys(kcal).reduce((a, k) => a + kcal[k], 0)));
+  // la regola, su qualunque calendario
+  const verifica = (sched, nome) => {
+    h.run('goals.sched=' + J(sched) + ';');
+    const kcal = {}, chi = {};
+    for (let w = 0; w < 7; w++) { kcal[w] = JSON.parse(h.run('JSON.stringify(dietDayNutrition(dietMenuForWeekday(' + w + ')))')).kcal; chi[w] = sched[w] || 'Riposo'; }
+    const ordinati = Object.keys(kcal).sort((a, b) => kcal[b] - kcal[a]).map(Number);
+    const lower = [0, 1, 2, 3, 4, 5, 6].filter(w => chi[w] === 'Giorno 2' || chi[w] === 'Giorno 4');
+    const ricchi = ordinati.slice(0, 2);
+    T(nome + ': i due menu piu ricchi vanno sui giorni di gambe',
+      lower.every(w => ricchi.indexOf(w) > -1), 'gambe=' + lower + ' ricchi=' + ricchi);
+    T(nome + ': il piu leggero cade su un giorno di riposo',
+      chi[ordinati[ordinati.length - 1]] === 'Riposo', String(chi[ordinati[ordinati.length - 1]]));
+  };
+  verifica({ 0: 'Riposo', 1: 'Giorno 1', 2: 'Giorno 2', 3: 'Giorno 3', 4: 'Giorno 4', 5: 'Giorno 5', 6: 'Riposo' }, 'weekend libero');
+  verifica({ 0: 'Riposo', 1: 'Giorno 1', 2: 'Giorno 2', 3: 'Giorno 3', 4: 'Riposo', 5: 'Giorno 4', 6: 'Giorno 5' }, 'calendario vecchio');
+  verifica({ 0: 'Giorno 4', 1: 'Riposo', 2: 'Giorno 1', 3: 'Giorno 2', 4: 'Riposo', 5: 'Giorno 3', 6: 'Riposo' }, 'calendario sparso');
 
-  // la regola che Federica ha chiesto
-  const sched = JSON.parse(h.run('JSON.stringify(WEEK_PRESETS.weekend.sched)'));
-  const nome = { 1: 'Lunedì', 2: 'Martedì', 3: 'Mercoledì', 4: 'Giovedì', 5: 'Venerdì', 6: 'Sabato', 0: 'Domenica' };
-  const lower = Object.keys(sched).filter(k => sched[k] === 'Giorno 2' || sched[k] === 'Giorno 4').map(k => nome[k]);
-  const riposo = Object.keys(sched).filter(k => sched[k] === 'Riposo').map(k => nome[k]);
-  const ordinati = Object.keys(kcal).sort((a, b) => kcal[b] - kcal[a]);
-  T('i due menu piu ricchi cadono sui due giorni di gambe',
-    lower.every(g => ordinati.slice(0, 2).indexOf(g) > -1), lower.join(',') + ' vs ' + ordinati.slice(0, 2).join(','));
-  T('il menu piu leggero cade su un giorno di riposo',
-    riposo.indexOf(ordinati[ordinati.length - 1]) > -1, ordinati[ordinati.length - 1] + ' / riposo: ' + riposo.join(','));
+  // spostando una giornata, il menu la segue
+  {
+    h.run('goals.sched={0:"Riposo",1:"Giorno 1",2:"Giorno 2",3:"Giorno 3",4:"Giorno 4",5:"Giorno 5",6:"Riposo"};');
+    const martediPrima = h.run('dietDayNutrition(dietMenuForWeekday(2)).kcal');
+    h.run('goals.sched={0:"Riposo",1:"Giorno 1",2:"Giorno 3",3:"Giorno 2",4:"Giorno 4",5:"Giorno 5",6:"Riposo"};');
+    const mercolediDopo = h.run('dietDayNutrition(dietMenuForWeekday(3)).kcal');
+    T('spostato il Giorno 2 al mercoledi, il menu ricco lo segue', mercolediDopo === martediPrima,
+      martediPrima + ' -> ' + mercolediDopo);
+    T('e il martedi, diventato upper, prende un menu piu leggero',
+      h.run('dietDayNutrition(dietMenuForWeekday(2)).kcal') < martediPrima);
+  }
 
-  // gli allergeni seguono i pasti, non il nome del giorno
-  const alGio = h.run('DIET_ALLERGENS[4]');
-  T('gli allergeni hanno seguito lo scambio', alGio === 'Uova · Latticini · Frutta a guscio · Arachidi · Soia', alGio);
+  // niente giorni di gambe: non si inventa niente, i menu ci sono comunque tutti
+  h.run('goals.sched={0:"Riposo",1:"Riposo",2:"Riposo",3:"Riposo",4:"Riposo",5:"Riposo",6:"Riposo"};');
+  T('anche a settimana vuota ogni giorno ha il suo menu', (() => {
+    const k = []; for (let w = 0; w < 7; w++) k.push(h.run('dietMenuForWeekday(' + w + ').k'));
+    return new Set(k).size === 7;
+  })());
 
-  // e lo dice a schermo, per non confondersi parlando con la nutrizionista
-  h.run('cur=new Date("2026-11-19T12:00:00");key="fede:2026-11-19";data=norm({day:"Giorno 4"});window.__dietSection="today";');
-  T('il giorno scambiato dichiara da quale menu della PT viene', /menù del venerdì nel piano della PT/.test(h.run('nutriHTML()')));
+  // a schermo: il giorno e' quello del calendario, e dice da dove viene il menu
+  h.run('goals.sched={0:"Riposo",1:"Giorno 1",2:"Giorno 2",3:"Giorno 3",4:"Giorno 4",5:"Giorno 5",6:"Riposo"};');
+  h.run('cur=new Date("2026-11-19T12:00:00");window.__dietSection="today";');   // giovedi
+  const oggi = h.run('nutriHTML()');
+  T('il titolo e il giorno vero della settimana', /Giovedì/.test(oggi), oggi.replace(/<[^>]*>/g, ' ').slice(0, 90));
+  T('e dichiara da quale menu della PT viene', /menù del .* nel piano della PT/.test(oggi));
+
+  // gli allergeni seguono il menu, non il nome del giorno
+  T('gli allergeni sono quelli del menu servito quel giorno',
+    h.run('DIET_ALLERGENS[dietMenuForWeekday(4).k]') === h.run('DIET_ALLERGENS[dietDayForDate(new Date("2026-11-19T12:00:00")).k]'));
+
+  // leggere non scrive
+  const prima = J(h.store);
+  h.run('nutriHTML();dietMapping();dietMenuForWeekday(3);');
+  T('calcolare l’accoppiamento non scrive niente', J(h.store) === prima);
 }
 
 console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');

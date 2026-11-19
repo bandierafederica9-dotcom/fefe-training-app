@@ -1269,71 +1269,69 @@ const WEEK_PRESETS={
     sched:{1:'Giorno 1',2:'Giorno 2',3:'Giorno 3',4:'Riposo',5:'Giorno 4',6:'Giorno 5',0:'Riposo'}},
   weekend:{label:'🗓️ Weekend libero',sub:'5 giorni da lunedì a venerdì, lower martedì e giovedì',calisthenics:true,
     sched:{1:'Giorno 1',2:'Giorno 2',3:'Giorno 3',4:'Giorno 4',5:'Giorno 5',6:'Riposo',0:'Riposo'}}};
-/* Calendario e menu' devono dirsi la stessa cosa. La regola, decisa con
-   Federica il 19 novembre 2026: i due menu' piu' ricchi vanno sui giorni di
-   gambe, il piu' leggero su un giorno di riposo. Qui si controlla soltanto;
-   cambiare il calendario resta un suo tocco. */
-const LOWER_DAYS=['Giorno 2','Giorno 4'];
-const SYNC_KEY='fede:syncoff';
-function schedKcal(sched){
-  const out=[];
-  for(let w=0;w<7;w++){
-    const d=dietDayByKey(w);
-    out.push({w:w,kcal:dietDayNutrition(d).kcal,giorno:(sched||{})[String(w)]||'Riposo',nome:getAppLanguage()==='en'?d.en:d.n});
+/* La regola che teneva allineati calendario e pasti ora e' dentro
+   dietMapping(): il menu' segue l'allenamento da solo, quindi l'avviso che
+   segnalava il disallineamento non ha piu' niente da segnalare. Tolto. */
+/* Se sposti una giornata, il resto della settimana puo' non tornare piu'.
+   Qui si guardano tre cose soltanto, e si propone il rimedio piu' piccolo:
+   due giornate di gambe attaccate, una giornata ripetuta, una sparita.
+   Propone: non cambia niente da solo. */
+let __schedIssueOff=false;   // "lascia cosi'" vale per questa sessione: nessuna chiave salvata
+const SCHED_ORDER=[1,2,3,4,5,6,0];
+function schedOf(){const g=(typeof goals!=='undefined'&&goals&&goals.sched)||{};const o={};SCHED_ORDER.forEach(function(w){o[w]=g[String(w)]||'Riposo';});return o;}
+function schedIssue(sched){
+  const s=sched||schedOf();
+  const gambe=function(w){return LOWER_DAYS.indexOf(s[w])>-1;};
+  // 1) due giornate di gambe attaccate: la settimana e' un cerchio, domenica tocca lunedi'
+  for(let i=0;i<SCHED_ORDER.length;i++){
+    const a=SCHED_ORDER[i], b=SCHED_ORDER[(i+1)%SCHED_ORDER.length];
+    if(gambe(a)&&gambe(b)){
+      // la sposto sul primo riposo che non finisca di nuovo accanto alle gambe
+      const liberi=SCHED_ORDER.filter(function(w){
+        if(s[w]!=='Riposo'||w===b)return false;
+        const j=SCHED_ORDER.indexOf(w);
+        const pre=SCHED_ORDER[(j-1+SCHED_ORDER.length)%SCHED_ORDER.length], post=SCHED_ORDER[(j+1)%SCHED_ORDER.length];
+        return !gambe(pre)&&!gambe(post);});
+      return {kind:'gambe',a:a,b:b,giorno:s[b],verso:liberi.length?liberi[0]:null};
+    }
   }
-  return out;
-}
-function syncRespected(sched){
-  const g=schedKcal(sched).filter(function(x){return x.kcal>0;});
-  if(g.length<7)return true;                       // senza il piano intero non giudico
-  const perKcal=g.slice().sort(function(a,b){return b.kcal-a.kcal;});
-  const ricchi=perKcal.slice(0,2).map(function(x){return x.w;});
-  const leggero=perKcal[perKcal.length-1];
-  const lower=g.filter(function(x){return LOWER_DAYS.indexOf(x.giorno)>-1;});
-  if(!lower.length)return true;                    // nessun giorno di gambe programmato
-  const lowerOk=lower.every(function(x){return ricchi.indexOf(x.w)>-1;});
-  const riposoOk=leggero.giorno==='Riposo';
-  return lowerOk&&riposoOk;
-}
-function syncSignature(sched){
-  return [0,1,2,3,4,5,6].map(function(w){return (sched||{})[String(w)]||'Riposo';}).join('|');
-}
-function syncDismissed(sched){
-  try{return localStorage.getItem(SYNC_KEY)===syncSignature(sched);}catch(e){return false;}
-}
-// Quale schema rispetterebbe la regola, fra quelli che gia' esistono.
-function syncSuggestion(){
-  const ids=Object.keys(WEEK_PRESETS);
-  for(let i=0;i<ids.length;i++){
-    const pr=WEEK_PRESETS[ids[i]];
-    if(syncRespected(pr.sched))return {id:ids[i],preset:pr};
+  // 2) la stessa giornata due volte
+  const visti={};
+  for(let i=0;i<SCHED_ORDER.length;i++){
+    const w=SCHED_ORDER[i], g=s[w]; if(g==='Riposo')continue;
+    if(visti[g]!==undefined)return {kind:'doppia',a:visti[g],b:w,giorno:g};
+    visti[g]=w;
+  }
+  // 3) una giornata del piano che non compare piu'
+  const previste=Object.keys(planForUser()).filter(function(d){return /^Giorno \d$/.test(d);});
+  const manca=previste.filter(function(d){return !visti[d];});
+  if(manca.length===1){
+    const liberi=SCHED_ORDER.filter(function(w){return s[w]==='Riposo';});
+    return {kind:'manca',giorno:manca[0],verso:liberi.length?liberi[0]:null};
   }
   return null;
 }
-function syncNoticeHTML(){
-  const sched=(goals&&goals.sched)||{};
-  if(syncRespected(sched)||syncDismissed(sched))return '';
-  const sugg=syncSuggestion();
-  // Dico esattamente quale giorno non torna, non un elenco in cui metà va bene.
-  const g=schedKcal(sched).filter(function(x){return x.kcal>0;});
-  const perKcal=g.slice().sort(function(a,b){return b.kcal-a.kcal;});
-  const ricchi=perKcal.slice(0,2).map(function(x){return x.w;});
-  const leggero=perKcal[perKcal.length-1];
-  const fuori=g.filter(function(x){return LOWER_DAYS.indexOf(x.giorno)>-1&&ricchi.indexOf(x.w)<0;});
-  const rubato=perKcal.filter(function(y){return ricchi.indexOf(y.w)>-1&&LOWER_DAYS.indexOf(y.giorno)<0;})[0];
-  const righe=fuori.map(function(x){
-    return esc(x.nome)+' · '+esc(x.giorno)+': '+x.kcal+' kcal'
-      +(rubato?', '+tr('mentre il menù da ','while the ')+rubato.kcal+tr(' kcal cade di ',' kcal menu falls on ')
-        +esc(rubato.nome)+' ('+esc(rubato.giorno)+')':'');});
-  if(leggero.giorno!=='Riposo')righe.push(tr('Il menù più leggero (','The lightest menu (')+leggero.kcal
-    +tr(' kcal) cade di ',' kcal) falls on ')+esc(leggero.nome)+', '+esc(leggero.giorno)+'.');
-  let h='<div class="card sync-notice"><b>'+tr('Calendario e pasti non si parlano','Your calendar and your meals disagree')+'</b>'
-    +'<div class="note" style="margin-top:6px">'
-    +tr('I menù sono messi perché i giorni di gambe prendano i due più ricchi e il riposo il più leggero. Adesso non torna:','The menus are arranged so your leg days get the two richest and your rest day the lightest. Right now that doesn’t hold:')
-    +'<br>'+righe.join('<br>')+'</div>';
-  if(sugg)h+='<button class="btn" data-syncfix="'+esc(sugg.id)+'" style="margin-top:10px">'
-    +tr('Allinea il calendario','Line up the calendar')+' →</button>';
-  h+='<button class="btn ghost" data-syncoff="1" style="margin-top:8px">'+tr('Lascia così','Leave it')+'</button></div>';
+function schedIssueHTML(){
+  if(__schedIssueOff)return '';
+  const s=schedOf(), p=schedIssue(s);
+  if(!p)return '';
+  const nome=function(w){return weekdayName(w);};
+  let testo='', azione='';
+  if(p.kind==='gambe'){
+    testo=tr('Due giornate di gambe attaccate: ','Two leg days back to back: ')+esc(p.giorno)+tr(' cade di ',' falls on ')+nome(p.b)
+      +tr(', subito dopo quella di ',', right after the one on ')+nome(p.a)+'.';
+    azione=p.verso!=null?tr('Sposto ','Move ')+esc(p.giorno)+tr(' a ',' to ')+nome(p.verso):'';
+  }else if(p.kind==='doppia'){
+    testo=esc(p.giorno)+tr(' compare due volte, ',' appears twice, ')+nome(p.a)+tr(' e ',' and ')+nome(p.b)+'.';
+  }else{
+    testo=esc(p.giorno)+tr(' non compare in nessun giorno della settimana.',' is not on any day of the week.');
+    azione=p.verso!=null?tr('Mettilo ','Put it on ')+nome(p.verso):'';
+  }
+  let h='<div class="card sched-issue"><b>'+tr('La settimana non torna','Your week doesn’t add up')+'</b>'
+    +'<div class="note" style="margin-top:6px">'+testo+'</div>';
+  if(azione&&p.verso!=null)h+='<button class="btn" data-schedfix="'+p.verso+'" data-schedday="'+esc(p.giorno)+'"'
+    +(p.kind==='gambe'?' data-schedfrom="'+p.b+'"':'')+' style="margin-top:10px">'+azione+' →</button>';
+  h+='<button class="btn ghost" data-schedoff="1" style="margin-top:8px">'+tr('Lascia così','Leave it')+'</button></div>';
   return h;
 }
 function applyWeekPreset(id){
@@ -2751,7 +2749,7 @@ function agendaHTML(){
       return '<option value="'+d+'"'+(d===data.day?' selected':'')+'>'+dayPlan(d).em+' '+d+' — '+dayPlan(d).t+'</option>';}).join('')+
     '</select></div>';
 
-  h+='<div class="sect">Pianificazione settimanale</div>'+syncNoticeHTML()+'<div class="card">'+
+  h+='<div class="sect">Pianificazione settimanale</div>'+schedIssueHTML()+'<div class="card">'+
     '<div class="note" style="margin-bottom:12px">Scegli uno schema suggerito, poi aggiusta i singoli giorni se serve. Lower = glutei e gambe (Giorno 2, 4, 5), upper = dorso e spalle (Giorno 1, 3).</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'+Object.keys(WEEK_PRESETS).map(function(id){
       const pr=WEEK_PRESETS[id], on=goals.weekPreset===id;
@@ -3325,23 +3323,46 @@ const DIET_DAYS=[
 const DIET_SHOPPING={"Verdura e frutta":["Aglio 3 g","Aneto secco 3 g","Asparagi 75 g","Avocado 275 g","Banana 1.1 kg","Basilico 1 g","Carota 60 g","Cetriolo 50 g","Cipolla 440 g","Coriandolo 1 g","Funghi champignon 100 g","Lime 45 g","Mela rossa 600 g","Mirtilli 225 g","Olive verdi 25 g","Origano 1 g","Peperone rosso 350 g","Peperone verde 190 g","Pomodorini 225 g","Pomodoro 505 g","Pomodoro triturato naturale 420 g","Porro 60 g","Prezzemolo 5 g","Ravanelli 80 g","Rucola 90 g","Songino 100 g","Spinaci 150 g","Zucchine 375 g"],"Dispensa":["Anacardi 20 g","Bevanda di mandorle 2.5 kg","Burro di arachidi 56 g","Cioccolato fondente 70 g","Curry 3 g","Hummus 90 g","Mandorle 56 g","Miele 90 g","Noci 110 g","Olio di oliva 155 g","Pepe bianco 2 g","Pepe nero 3 g","Sale 0 g","Salsa di soia 8 g","Semi di lino 56 g","Semi di zucca 15 g","Succo di limone 10 g"],"Carboidrati":["Avena 135 g","Ceci cotti 175 g","Fajitas di mais 60 g","Gnocchi 250 g","Mais dolce 40 g","Pane di mais 480 g","Pane tostato senza glutine 40 g","Pasta senza glutine 80 g","Patata 640 g","Patata dolce 250 g","Quinoa 60 g","Riso basmati crudo 180 g","Riso integrale 80 g"],"Proteine":["Brodo di pollo 250 g","Feta 50 g","Formaggio Havarti Light 100 g","Gamberoni 100 g","Hamburger di pollo 150 g","Manzo magro 150 g","Petto di tacchino 60 g","Pollo 470 g","Proteina ISO ChocoMonkey 210 g","Salmone 290 g","Salmone affumicato 60 g","Tonno 200 g","Tonno in acqua 75 g","Uovo di gallina 785 g"]};
 const DIET_ALLERGENS={0:"Uova · Latticini · Pesce · Frutta a guscio · Arachidi · Soia",1:"Uova · Latticini · Frutta a guscio · Arachidi · Soia",2:"Pesce · Frutta a guscio · Arachidi · Soia · Glutine",3:"Uova · Latticini · Pesce · Crostacei · Frutta a guscio · Arachidi · Soia · Sesamo",4:"Uova · Pesce · Frutta a guscio · Arachidi · Soia · Glutine",5:"Uova · Latticini · Frutta a guscio · Arachidi · Soia",6:"Uova · Pesce · Frutta a guscio · Arachidi · Soia · Sesamo · Glutine"};
 
-/* Allineamento menu' / allenamento, deciso da Federica il 2026-11-19.
-   Il piano della PT resta parola per parola: cambia solo su quale giorno della
-   settimana cade un menu', perche' i giorni di gambe vogliono il menu' piu'
-   ricco e il riposo quello piu' leggero. Ogni voce ricorda da dove viene (pt),
-   cosi' nel parlare con la nutrizionista si sa sempre di quale giorno parla. */
-(function allineaMenuAllAllenamento(){
-  DIET_DAYS.forEach(function(d){ if(!d.pt)d.pt=d.n; });
-  const scambi=[[4,5]];  // giovedi' <-> venerdi': il lower si sposta al giovedi'
-  scambi.forEach(function(coppia){
-    const a=DIET_DAYS.find(function(d){return d.k===coppia[0];});
-    const b=DIET_DAYS.find(function(d){return d.k===coppia[1];});
-    if(!a||!b)return;
-    const m=a.meals; a.meals=b.meals; b.meals=m;
-    const t=a.pt; a.pt=b.pt; b.pt=t;
-    const al=DIET_ALLERGENS[a.k]; DIET_ALLERGENS[a.k]=DIET_ALLERGENS[b.k]; DIET_ALLERGENS[b.k]=al;
-  });
-})();
+/* Il menu' segue l'allenamento, non il giorno della settimana.
+   Deciso con Federica il 19 novembre 2026: i giorni di gambe prendono i menu'
+   piu' ricchi, il riposo il piu' leggero. La regola si applica al calendario
+   di adesso, quindi spostando una giornata il menu' la segue da solo.
+   Il piano della nutrizionista resta parola per parola: cambia solo il giorno
+   in cui lo mangi, e ogni menu' ricorda da dove viene (pt). */
+(function ricordaOrigineMenu(){ DIET_DAYS.forEach(function(d){ if(!d.pt)d.pt=d.n; }); })();
+const LOWER_DAYS=['Giorno 2','Giorno 4'];   // le giornate di gambe: decidono il menu'
+// Quanto chiede una giornata: gambe 3, resto allenato 2, nuoto/recupero 1, riposo 0.
+function dietNeed(giorno){
+  if(!giorno||giorno==='Riposo')return 0;
+  if(LOWER_DAYS.indexOf(giorno)>-1)return 3;
+  if(giorno==='Nuoto')return 1;
+  return 2;
+}
+let __dietMapCache={sig:'',map:null};
+function dietMapping(){
+  const sched=(typeof goals!=='undefined'&&goals&&goals.sched)||{};
+  const sig=[0,1,2,3,4,5,6].map(function(w){return sched[String(w)]||'Riposo';}).join('|');
+  if(__dietMapCache.sig===sig&&__dietMapCache.map)return __dietMapCache.map;
+  // Menu' dal piu' ricco al piu' leggero; a parita' vince il piu' proteico, poi
+  // l'ordine del piano: l'accoppiamento non deve cambiare a ogni ridisegno.
+  const menus=DIET_DAYS.slice().sort(function(a,b){
+    const na=dietDayNutrition(a), nb=dietDayNutrition(b);
+    return (nb.kcal-na.kcal)||(nb.prot-na.prot)||(a.k-b.k);});
+  // Giorni dal piu' esigente al meno, lunedi' per primo a parita'.
+  const ordine=[1,2,3,4,5,6,0];
+  const giorni=ordine.slice().sort(function(a,b){
+    const d=dietNeed(sched[String(b)])-dietNeed(sched[String(a)]);
+    return d||(ordine.indexOf(a)-ordine.indexOf(b));});
+  const map={};
+  giorni.forEach(function(w,i){map[w]=menus[i]?menus[i].k:w;});
+  __dietMapCache={sig:sig,map:map};
+  return map;
+}
+function dietMenuForWeekday(w){return dietDayByKey(dietMapping()[w]);}
+// Il nome del giorno e' quello vero del calendario, non quello del menu'.
+const WEEKDAY_IT=['Domenica','Luned\u00ec','Marted\u00ec','Mercoled\u00ec','Gioved\u00ec','Venerd\u00ec','Sabato'];
+const WEEKDAY_EN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function weekdayName(w){return getAppLanguage()==='en'?WEEKDAY_EN[w]:WEEKDAY_IT[w];}
 
 const DIET_SLOT_KEYS={
  'Colazione':{it:'Colazione',en:'Breakfast'},'Spuntino mattutino':{it:'Spuntino mattutino',en:'Morning snack'},'Pranzo':{it:'Pranzo',en:'Lunch'},'Merenda':{it:'Merenda',en:'Afternoon snack'},'Merenda 2':{it:'Merenda 2',en:'Snack 2'},'Cena':{it:'Cena',en:'Dinner'}
@@ -3388,7 +3409,7 @@ function dietDayByKey(kv){return DIET_DAYS.find(function(d){return d.k===kv;})||
 function dietDoneKey(date,slot){return 'fede:dietdone:'+k(date)+'|'+slot;}
 function isDietDone(date,slot){return localStorage.getItem(dietDoneKey(date,slot))==='1';}
 function setDietDone(date,slot,on){if(on)localStorage.setItem(dietDoneKey(date,slot),'1');else localStorage.removeItem(dietDoneKey(date,slot));}
-function dietDayForDate(d){return dietDayByKey(d.getDay());}
+function dietDayForDate(d){return dietMenuForWeekday(d.getDay());}
 function dietSummaryForDate(d){const day=dietDayForDate(d),done=day.meals.filter(function(m){return isDietDone(d,m.slot);}).length;return{done:done,total:day.meals.length};}
 function dietMealLabel(m){return getAppLanguage()==='en'?m.en:m.slot;}
 function dietProgressBar(pct){return '<div style="height:7px;border-radius:8px;background:#f1eaec;overflow:hidden;margin-top:8px"><i style="display:block;height:100%;width:'+pct+'%;background:var(--rose)"></i></div>';}
@@ -3801,7 +3822,7 @@ function nutriHTML(){
   const dayNutri=dietDayNutrition(d);
   let h=hdr(getAppLanguage()==='en'?'Nutrition plan':'Piano nutrizionale',(getAppLanguage()==='en'?'Official 7-day plan':'Piano ufficiale 7 giorni')+' · 11 marzo 2025');
   h+='<div class="wrap">';
-  h+='<div class="nutri-hero"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><div style="font-size:10px;color:var(--rose-d);font-weight:900;text-transform:uppercase;letter-spacing:.06em">'+(getAppLanguage()==='en'?'Today':'Oggi')+'</div><h2 style="margin:3px 0 0">'+esc(getAppLanguage()==='en'?d.en:d.n)+'</h2><div class="note" style="margin-top:5px">'+sum.done+'/'+sum.total+' '+(getAppLanguage()==='en'?'meals completed':'pasti completati')+(d.pt&&d.pt!==d.n?' \u00b7 '+tr('men\u00f9 del ','menu from ')+esc(d.pt.toLowerCase())+tr(' nel piano della PT',' in the PT\u2019s plan'):'')+'</div><div class="nutri-totals">'+dayNutri.kcal+' kcal \u00b7 '+dayNutri.prot+' g '+(getAppLanguage()==='en'?'protein':'proteine')+'<span>'+dietGapLabel(dayNutri)+'</span></div></div><div style="font-size:28px;font-weight:900">'+pct+'%</div></div>'+dietProgressBar(pct)+'</div>';
+  h+='<div class="nutri-hero"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><div style="font-size:10px;color:var(--rose-d);font-weight:900;text-transform:uppercase;letter-spacing:.06em">'+(getAppLanguage()==='en'?'Today':'Oggi')+'</div><h2 style="margin:3px 0 0">'+esc(weekdayName(cur.getDay()))+'</h2><div class="note" style="margin-top:5px">'+sum.done+'/'+sum.total+' '+(getAppLanguage()==='en'?'meals completed':'pasti completati')+((d.pt||d.n)!==weekdayName(cur.getDay())?' \u00b7 '+tr('men\u00f9 del ','menu from ')+esc(String(d.pt||d.n).toLowerCase())+tr(' nel piano della PT',' in the PT\u2019s plan'):'')+'</div><div class="nutri-totals">'+dayNutri.kcal+' kcal \u00b7 '+dayNutri.prot+' g '+(getAppLanguage()==='en'?'protein':'proteine')+'<span>'+dietGapLabel(dayNutri)+'</span></div></div><div style="font-size:28px;font-weight:900">'+pct+'%</div></div>'+dietProgressBar(pct)+'</div>';
   h+='<div class="diet-section-tabs">'+[['today',getAppLanguage()==='en'?'Today':'Oggi'],['week',getAppLanguage()==='en'?'Week':'Settimana'],['recipes',getAppLanguage()==='en'?'Recipes':'Ricette'],['shopping',getAppLanguage()==='en'?'Shopping':'Spesa'],['allergens',getAppLanguage()==='en'?'Allergens':'Allergeni'],['build',getAppLanguage()==='en'?'Build dinner':'Costruisci'],['diary',getAppLanguage()==='en'?'Diary':'Diario']].map(function(x){return '<button data-diet-section="'+x[0]+'" class="'+(section===x[0]?'on':'')+'">'+x[1]+'</button>';}).join('')+'</div>';
   if(section==='today'){
     // Sette giorni in sette colonne: a 390px il nome intero non ci sta ("Mercoled\u00ec" da solo
@@ -5684,11 +5705,15 @@ function bind(){
 
   // evoluzione tabs
   // Andamento: barre, punti e periodo. Cambiano solo cosa si vede, mai i dati.
-  document.querySelectorAll('[data-syncfix]').forEach(function(b){b.onclick=function(){
-    applyWeekPreset(b.dataset.syncfix); render();};});
-  document.querySelectorAll('[data-syncoff]').forEach(function(b){b.onclick=function(){
-    try{localStorage.setItem(SYNC_KEY,syncSignature((goals&&goals.sched)||{}));}catch(e){}
-    render();};});
+  document.querySelectorAll('[data-schedfix]').forEach(function(b){b.onclick=function(){
+    const verso=b.dataset.schedfix, giorno=b.dataset.schedday, da=b.dataset.schedfrom;
+    goals.sched=Object.assign({},goals.sched||{});
+    if(da!==undefined&&da!=='')goals.sched[String(da)]='Riposo';
+    goals.sched[String(verso)]=giorno;
+    goals.weekPreset='';
+    saveGoals(); render();};});
+  document.querySelectorAll('[data-schedoff]').forEach(function(b){b.onclick=function(){
+    __schedIssueOff=true; render();};});
   document.querySelectorAll('[data-trendweek]').forEach(function(b){b.onclick=function(){
     const iso=b.dataset.trendweek;
     trendSel=(trendSel.kind==='week'&&trendSel.id===iso)?{kind:'',id:''}:{kind:'week',id:iso};
