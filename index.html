@@ -3040,7 +3040,7 @@ function exerciseHTML(){
   if(isCardioExercise(e)){
     sets=Math.max(1,+e[2]||1);
     for(let k=sets+1;k<=24;k++){const vv=getSetValue(data,day,exIdx,e,k);
-      if(vv&&(vv.min||vv.kcal||vv.inc||vv.sec||vv.r||vv.kg))sets=k;}
+      if(vv&&(vv.min||vv.kcal||vv.inc||vv.laps||vv.sec||vv.r||vv.kg))sets=k;}
   }else sets=Math.max(+e[2]||0,m?+m[1]:3);
   const unilateral=isUnilateralExercise(e), cf=countField(e,day);
   for(let sn=1;sn<=sets;sn++){
@@ -3102,7 +3102,7 @@ function exerciseHTML(){
    another, and a bodyweight hold still asked for kilos. Both are now properties
    of the exercise. Anything not listed keeps the old prose rule, so no day
    changes by accident. */
-const EX_MEASURE={'Tapis roulant inclinato':'cardio','Cyclette':'cardio','Camminata all\u2019aperto':'cardio','Vogatore':'cardio','Corsa leggera':'cardio','Corda':'cardio',            // 'time' = seconds, 'reps' = repetitions
+const EX_MEASURE={'Nuoto':'cardio','Tapis roulant inclinato':'cardio','Cyclette':'cardio','Camminata all\u2019aperto':'cardio','Vogatore':'cardio','Corsa leggera':'cardio','Corda':'cardio',            // 'time' = seconds, 'reps' = repetitions
   'L-Sit':'time','Tuck Support':'time','Tuck L-Sit':'time','Single-Leg L-Sit':'time','L-Sit on Parallettes':'time',
   'Frog Stand':'time','Frog Stand Weight Shift':'reps','Frog Stand Toe Lift':'reps',
   'Vacuum addominale':'time','Plank':'time','CORE · Plank':'time','Hollow Body Hold':'time',
@@ -3111,7 +3111,7 @@ const EX_MEASURE={'Tapis roulant inclinato':'cardio','Cyclette':'cardio','Cammin
   'Dead Bug':'reps','CORE · Dead Bug':'reps','Hanging Knee Raise':'reps','CORE · Hanging Knee Raise':'reps',
   'Cable Crunch':'reps','CORE · Cable Crunch':'reps','Pallof Press (anti-rotazione)':'reps'
 };
-const EX_LOAD={'Tapis roulant inclinato':'bodyweight','Cyclette':'bodyweight','Camminata all\u2019aperto':'bodyweight','Vogatore':'bodyweight','Corsa leggera':'bodyweight','Corda':'bodyweight',               // 'bodyweight' = no kg field, 'external' = a load is entered
+const EX_LOAD={'Nuoto':'bodyweight','Tapis roulant inclinato':'bodyweight','Cyclette':'bodyweight','Camminata all\u2019aperto':'bodyweight','Vogatore':'bodyweight','Corsa leggera':'bodyweight','Corda':'bodyweight',               // 'bodyweight' = no kg field, 'external' = a load is entered
   // Only the holds and the wall work: things that genuinely never take a load in
   // this plan. Pull-up can be assisted or weighted, and her own history has Dead Bug
   // at 16 and 18 kg, so neither is listed — anything unlisted keeps its kg field.
@@ -3190,6 +3190,8 @@ function isCardioExercise(e){return exMeasure(e)==='cardio';}
 function cardioFields(e){
   const n=exName(e), f=[{f:'min',l:'Minuti',en:'Minutes',ph:'20'}];
   if(/tapis|treadmill|camminata|salita|incline/i.test(n))f.push({f:'inc',l:'Inclin. %',en:'Incline %',ph:'10'});
+  // Nuotando non c'e' inclinazione: si contano le vasche.
+  if(/nuoto|swim|vasche/i.test(n))f.push({f:'laps',l:'Vasche',en:'Laps',ph:''});
   f.push({f:'kcal',l:'Kcal',en:'Kcal',ph:''});
   return f;
 }
@@ -3965,7 +3967,7 @@ function trendSessionDetail(key){
   const corpo=Object.keys(righe).map(function(nome){
     const set=righe[nome];
     const dett=set.map(function(x){
-      if(x.min)return x.min+tr(' min',' min')+(x.kcal?' · '+x.kcal+' kcal':'');
+      if(x.min)return x.min+tr(' min',' min')+(x.laps?' · '+x.laps+tr(' vasche',' laps'):'')+(x.inc?' · '+x.inc+'%':'')+(x.kcal?' · '+x.kcal+' kcal':'');
       if(x.sec)return x.sec+' sec';
       return (x.kg?x.kg+' kg × ':'')+(x.r||'')+(x.r?tr(' rip',' reps'):'');
     }).join(' · ');
@@ -4357,6 +4359,7 @@ function APP_LOCALE(){return getAppLanguage()==='en'?'en-GB':'it-IT';}
 function tr(it,en){return getAppLanguage()==='en'?en:it;}
 function setAppLanguage(lang){localStorage.setItem('fede:lang',lang==='en'?'en':'it');render();}
 const APP_EN={
+ 'Vasche':'Laps',
  'Mobilità anca':'Hip mobility',
  '10 affondi laterali · 10 affondi dalle ginocchia · 10 aperture d’anca · 10 squat con tocco del ginocchio · 10 clamshell/lato · 10 ponti monopodalici/lato':'10 lateral lunges · 10 kneeling lunges · 10 hip openings · 10 squats with knee touch · 10 clamshells/side · 10 single-leg bridges/side',
  '2 giri · 15 passi a destra e 15 a sinistra · banda sopra le ginocchia, mezzo squat':'2 rounds · 15 steps right and 15 left · band above the knees, half squat',

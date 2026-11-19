@@ -157,6 +157,16 @@ const J = JSON.stringify;
   // il cronometro del recupero non ha senso su venti minuti di tapis
   T('sul cardio non compare il recupero fra le serie', !/rest-box/.test(h.run('exerciseHTML()')));
   T('ma resta su tutto il resto', (() => { h.run('exIdx=1;'); return /rest-box/.test(h.run('exerciseHTML()')); })());
+  // il nuoto: minuti e vasche, non ripetizioni e chili
+  h.run('data=norm({day:"Nuoto"});exIdx=0;exCtx=null;');
+  const nuoto = h.run('exerciseHTML()');
+  T('il nuoto ha una riga sola, non tre', (nuoto.match(/cardio-row/g) || []).length === 1,
+    String((nuoto.match(/cardio-row/g) || []).length));
+  T('e chiede minuti, vasche e calorie', /data-f="min"/.test(nuoto) && /data-f="laps"/.test(nuoto) && /data-f="kcal"/.test(nuoto));
+  T('niente reps e niente kg nuotando', !/data-f="r"/.test(nuoto) && !/data-f="kg"/.test(nuoto));
+  T('e niente inclinazione in piscina', !/data-f="inc"/.test(nuoto));
+  T('il tapis invece l\'inclinazione ce l\'ha',
+    h.run('JSON.stringify(cardioFields(["Tapis roulant inclinato",""]).map(function(c){return c.f;}))') === J(['min', 'inc', 'kcal']));
 }
 
 console.log(fail ? '\n' + fail + ' FAIL' : '\nall pass');
