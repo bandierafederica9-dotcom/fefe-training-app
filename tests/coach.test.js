@@ -172,6 +172,52 @@ const OTTO = ['2026-01-02', '2026-01-05', '2026-01-07', '2026-01-09', '2026-01-1
     T('e dice quante sedute mancano', /ne mancano 4/.test(c), c.slice(0, 90));
   }
 
+  // ---------- 9ter) Le domande vere finiscono nella risposta giusta ----------
+  {
+    const h = H(REPO);
+    seed(h, OTTO.map(d => [d, 40, 8]));
+    const chiedi = async q => { h.run('coachPending=null;'); const r = await h.run('coachHandleMessage(' + J(q) + ')'); return (r && r.text || '').replace(/<[^>]*>/g, ' '); };
+
+    const casi = [
+      ['Quanto devo riposare tra le serie', /recupero va da \d+ a \d+ secondi|secondi di recupero/, 'recupero'],
+      ['Quante proteine devo mangiare oggi', /g di proteine.*target della PT/, 'nutrizione'],
+      ['Cosa mangio prima di allenarmi', /non distingue pre e post/, 'pasti intorno alla seduta'],
+      ['Mi fa male la spalla', /non sono la persona giusta/, 'dolore'],
+      ['Sono stanca, mi alleno lo stesso?', /riduci, non salti/, 'stanchezza'],
+      ['Devo fare cardio', /cardio ce l’hai già|non c’è cardio/, 'cardio'],
+      ['Quante volte a settimana devo allenarmi', /calendario prevede/, 'frequenza'],
+      ['Ho saltato due settimane, ricomincio da capo?', /ultima seduta registrata/, 'ripartenza'],
+      ['Perché non vedo risultati', /diffida di chi te lo promette/, 'risultati'],
+      ['Cosa posso fare a casa senza attrezzi', /senza attrezzi|Casa/, 'casa'],
+      ['Quanto dura la seduta', /circa\s+\d+\s+minuti/, 'durata'],
+      ['Che differenza c’è tra hip thrust e glute bridge', /Hip Thrust[\s\S]*Glute Bridge/, 'confronto'],
+      ['Mi aiuti a dormire meglio', /non la posso rispondere dai tuoi dati/, 'fuori perimetro'],
+      ['Posso bere caffè prima', /non la posso rispondere dai tuoi dati/, 'caffeina fuori perimetro'],
+    ];
+    for (const [q, re, nome] of casi) { const t = await chiedi(q); T('“' + q + '” → ' + nome, re.test(t), t.slice(0, 80)); }
+
+    // niente promesse e niente prescrizioni inventate
+    const nutr = await chiedi('Quante proteine devo mangiare oggi');
+    T('la nutrizione cita il piano e i target, non numeri propri', /Non invento numeri miei/.test(nutr));
+    const ris = await chiedi('Quanto ci metto a vedere i risultati');
+    T('sui risultati non promette tempi', !/settiman[ae] (vedrai|avrai)/.test(ris) && /non so dirti quando/i.test(ris));
+    const male = await chiedi('Mi fa male il ginocchio');
+    T('sul dolore non diagnostica e offre la cosa che sa fare', /fermati/.test(male) && /sostituis/.test(male));
+
+    // quando davvero non sa: tre proposte, non un muro
+    const boh = await chiedi('qwerty asdf');
+    T('se non capisce propone tre cose che sa fare', /non la so/.test(boh) && (boh.match(/data-mini=/g) || []).length === 0, boh.slice(0, 60));
+    const bohHtml = (await h.run('coachHandleMessage("qwerty asdf")')).text;
+    T('e sono pulsanti, non una frase da leggere', (bohHtml.match(/data-mini="/g) || []).length === 3, String((bohHtml.match(/data-mini="/g) || []).length));
+    const bohTema = (await h.run('coachHandleMessage("boh qualcosa sulle proteine e le calorie")')).text;
+    T('le proposte seguono le parole della domanda', /protein/i.test(bohTema), bohTema.replace(/<[^>]*>/g, ' ').slice(0, 90));
+
+    // leggere non scrive
+    const prima = J(h.store);
+    await chiedi('Quante proteine devo mangiare oggi'); await chiedi('Devo fare cardio');
+    T('rispondere non scrive niente sul telefono', J(h.store) === prima);
+  }
+
   // ---------- 9bis) La sfera resta attaccata allo schermo ----------
   {
     const css = require('fs').readFileSync(REPO + '/assets/css/app.css', 'utf8');

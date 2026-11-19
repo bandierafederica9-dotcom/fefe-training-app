@@ -1738,6 +1738,178 @@ function coachTodayReply(){
     'Volume is the sum of kg \u00d7 reps: it shows the direction of travel, not a score.');
   return {text:txt};
 }
+/* ============ COACH: RISPOSTE SUI DATI ============
+   Dieci argomenti che Federica chiede davvero. Ogni risposta esce dal suo
+   piano, dai suoi numeri salvati e dai target della PT: niente prescrizioni
+   inventate, niente rete, niente modelli. Se il dato non c'e', lo dico. */
+function coachAllNames(text){
+  const l=' '+String(text||'').toLowerCase()+' ', out=[];
+  Object.keys(MUSCLE_DB).concat(Object.keys(EXDB)).forEach(function(n){
+    if(out.indexOf(n)>-1)return;
+    const low=n.toLowerCase(), pezzi=low.split(/[^a-z0-9]+/).filter(Boolean);
+    // il nome intero, oppure le ultime due parole: "hip thrust" vale per "Machine Hip Thrust"
+    const coda=pezzi.length>2?pezzi.slice(-2).join(' '):low;
+    if(l.indexOf(low)>-1||(coda.length>6&&l.indexOf(coda)>-1))out.push(n);});
+  return out;
+}
+function coachLastSessionDate(){
+  const ss=sessionSummaries(recentRecords(180));
+  return ss.length?ss[ss.length-1].date:null;
+}
+function coachLastWeight(){
+  const r=recentRecords(180).filter(function(x){return x&&x.weight&&parseFloat(x.weight)>0;});
+  if(!r.length)return null;
+  const u=r[r.length-1];
+  return {kg:parseFloat(u.weight), date:dateFromKey(u._date)};
+}
+function coachRestReply(day,name){
+  if(name){
+    const d=day||data&&data.day, p=d?coachPlan()[d]:null, i=d?coachFindInDay(d,name):-1;
+    const e=i>-1?p.ex[i]:null;
+    if(e)return {text:'<b>'+esc(name)+'</b>: '+restSecondsForExercise(e[1])+tr(' secondi di recupero, come li ha scritti la tua scheda (',' seconds of rest, as your plan writes it (')+esc(e[1])+').'};
+  }
+  const d=day||(data&&data.day), p=d?coachPlan()[d]:null;
+  if(!p)return {text:tr('Il recupero \u00e8 scritto in ogni esercizio della scheda, dopo le serie. Dimmi quale esercizio e te lo leggo.','The rest time is written on every exercise in your plan, after the sets. Name an exercise and I\u2019ll read it to you.')};
+  const r=(p.ex||[]).map(function(e){return restSecondsForExercise(e[1]);}).filter(Boolean);
+  const min=Math.min.apply(null,r), max=Math.max.apply(null,r);
+  return {text:tr('Nel ','In ')+coachDayLabel(d)+tr(' il recupero va da ',' the rest goes from ')+min+tr(' a ',' to ')+max+tr(' secondi: sta scritto su ogni esercizio, dopo le serie. I fondamentali pesanti stanno in alto, gli accessori in basso.',' seconds: it is written on each exercise, after the sets. The heavy lifts sit at the top of that range, the accessories at the bottom.')};
+}
+function coachNutritionReply(){
+  const d=dietDayForDate(cur), n=dietDayNutrition(d);
+  return {text:tr('Il piano di oggi (','Today\u2019s plan (')+(getAppLanguage()==='en'?d.en:d.n)+'): <b>'+n.kcal+' kcal</b>'+tr(' e ',' and ')+'<b>'+n.prot+tr(' g di proteine',' g of protein')+'</b>.'
+    +tr(' Il target della PT \u00e8 ','  The PT\u2019s target is ')+DIET_TARGET.kcal+' kcal'+tr(' e almeno ',' and at least ')+DIET_TARGET.prot+tr(' g di proteine.',' g of protein.')
+    +'<br><br>'+tr('Non invento numeri miei: questi vengono dal piano del 11 marzo 2025 e dai target che hai salvato. Se vuoi cambiarli, si cambiano in Progressi \u203a Obiettivi.',
+      'I don\u2019t invent numbers: these come from the plan dated 11 March 2025 and the targets you saved. To change them, go to Progress \u203a Goals.')};
+}
+function coachMealAroundReply(){
+  const d=dietDayForDate(cur);
+  const righe=(d.meals||[]).map(function(m){return m.time+' \u00b7 '+(getAppLanguage()==='en'?dietEnglishText(m.title):m.title);}).join('<br>');
+  return {text:tr('Il tuo piano non distingue pre e post allenamento: ha quattro pasti a orario fisso.','Your plan doesn\u2019t separate pre and post workout: it has four meals at fixed times.')
+    +'<br><br>'+righe+'<br><br>'+tr('Allenati fra due di questi e il pasto pi\u00f9 vicino fa da pre o da post. Se vuoi una regola diversa va chiesta alla PT, non a me.',
+      'Train between two of them and the nearest meal is your pre or post. A different rule is a question for your PT, not for me.')};
+}
+function coachPainReply(){
+  return {text:tr('Se senti dolore acuto, fermati: non \u00e8 una cosa su cui posso darti una valutazione, e non sono la persona giusta a cui chiederla. Il fastidio muscolare del giorno dopo \u00e8 un\u2019altra cosa dal dolore a un\u2019articolazione.',
+      'If you feel sharp pain, stop: that is not something I can assess, and I am not the right one to ask. Next-day muscle soreness is a different thing from joint pain.')
+    +'<br><br>'+tr('Quello che posso fare io: togliere o sostituire l\u2019esercizio che ti d\u00e0 fastidio. Dimmi quale, per esempio \u201ctogli Face Pull\u201d oppure \u201csostituisci Machine Dip\u201d.',
+      'What I can do: remove or swap the exercise that bothers you. Tell me which, for example \u201cremove Face Pull\u201d or \u201cswap Machine Dip\u201d.')};
+}
+function coachTiredReply(){
+  const ss=sessionSummaries(recentRecords(30)), ultima=coachLastSessionDate();
+  const giorni=ultima?Math.round((cur-ultima)/86400000):null;
+  let t=tr('Non posso dirti come ti senti, posso dirti cosa dice il tuo storico. ','I can\u2019t tell you how you feel; I can tell you what your history says. ');
+  t+=giorni===null?tr('Non ho ancora sedute registrate.','I have no logged sessions yet.')
+    :giorni<=1?tr('Ti sei allenata ieri o oggi: due giornate pesanti di fila sulla stessa zona sono la cosa che stanca di pi\u00f9.','You trained yesterday or today: two heavy days in a row on the same area is what tires you most.')
+    :tr('L\u2019ultima seduta \u00e8 di ','Your last session was ')+giorni+tr(' giorni fa.',' days ago.');
+  t+='<br><br>'+tr('La regola della scheda: se sei stanca riduci, non salti. Tieni le prime serie pesanti e togli gli accessori, oppure fai solo il riscaldamento e il cardio. Posso accorciarti la giornata: scrivi \u201cfammi stare nei 45 minuti\u201d.',
+    'The plan\u2019s rule: when you\u2019re tired, cut it down rather than skip it. Keep the first heavy sets and drop the accessories, or do just the warm-up and the cardio. I can shorten the day for you: write \u201ckeep me under 45 minutes\u201d.');
+  return {text:t};
+}
+function coachCardioReply(){
+  const dove=[];
+  Object.keys(coachPlan()).forEach(function(d){(coachPlan()[d].ex||[]).forEach(function(e){
+    if(/tapis|cardio|camminata|treadmill/i.test(e[0]))dove.push(coachDayLabel(d)+' \u00b7 '+e[0]+' ('+e[1]+')');});});
+  if(!dove.length)return {text:tr('Nella tua scheda non c\u2019\u00e8 cardio programmato. Se lo vuoi fisso dimmi in quale giorno e te lo aggiungo.','There is no cardio in your plan. If you want it fixed, tell me which day and I\u2019ll add it.')};
+  return {text:tr('Il cardio ce l\u2019hai gi\u00e0 nella scheda:','You already have cardio in your plan:')+'<br>'+dove.join('<br>')
+    +'<br><br>'+tr('\u00c8 quello che facevi di tuo nei giorni upper, messo nero su bianco. Se ne vuoi altro, dimmi dove.','That\u2019s what you were already doing on upper days, written down. If you want more, tell me where.')};
+}
+function coachFrequencyReply(){
+  let previsti=0; try{Object.keys(goals.sched||{}).forEach(function(w){const g=goals.sched[w];if(g&&g!=='Riposo')previsti++;});}catch(e){}
+  const w=weeklySessions(recentRecords(90),5,cur).filter(function(x){return !x.current;});
+  const media=w.length?Math.round(w.reduce(function(a,x){return a+x.sessions;},0)/w.length*10)/10:0;
+  return {text:tr('Il tuo calendario prevede <b>','Your calendar plans <b>')+previsti+tr(' giorni a settimana</b>.',' days a week</b>.')
+    +(w.length?tr(' Nelle ultime ',' Over the last ')+w.length+tr(' settimane piene la media vera \u00e8 <b>',' full weeks your real average is <b>')+media+tr(' sedute</b>.',' sessions</b>.'):'')
+    +'<br><br>'+tr('Non ti dico un numero diverso da quello che hai deciso con la PT: ti dico se lo stai rispettando.','I won\u2019t give you a number different from the one you agreed with your PT: I tell you whether you\u2019re keeping to it.')};
+}
+function coachRestartReply(){
+  const ultima=coachLastSessionDate();
+  if(!ultima)return {text:tr('Non ho sedute registrate, quindi non so da quanto manchi. Registra la prossima e da l\u00ec comincio a misurare.','I have no logged sessions, so I don\u2019t know how long it\u2019s been. Log the next one and I\u2019ll start measuring from there.')};
+  const giorni=Math.round((cur-ultima)/86400000);
+  return {text:tr('L\u2019ultima seduta registrata \u00e8 di ','Your last logged session was ')+giorni+tr(' giorni fa (',' days ago (')+ultima.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+').'
+    +'<br><br>'+(giorni<=10
+      ?tr('Meno di due settimane: riprendi dai carichi che avevi, non ricominci da capo.','Under two weeks: pick up from the loads you had, you\u2019re not starting over.')
+      :tr('Oltre due settimane: la prima settimana tieni gli stessi esercizi e togli circa il 10% dal carico, poi torna dov\u2019eri. Non cambio io la scheda: te lo dico e basta.','Over two weeks: for the first week keep the same exercises and take about 10% off the load, then go back to where you were. I\u2019m not changing the plan, just telling you.'))};
+}
+function coachResultsReply(){
+  const w=weeklySessions(recentRecords(120),9,cur), d=trendDelta(w), peso=coachLastWeight();
+  let t=tr('Non so dirti quando vedrai i risultati, e diffida di chi te lo promette. Posso dirti cosa si muove nei tuoi dati.',
+    'I can\u2019t tell you when you\u2019ll see results, and be wary of anyone who promises that. I can tell you what is moving in your data.')+'<br><br>';
+  if(d)t+=tr('Sedute: ','Sessions: ')+d.recent+tr(' nelle ultime 4 settimane contro ',' in the last 4 weeks against ')+d.prev+tr(' nelle 4 precedenti.',' in the 4 before.')+'<br>';
+  else t+=tr('Per il confronto fra mesi servono otto settimane piene di storico.','The month-on-month comparison needs eight full weeks of history.')+'<br>';
+  t+=peso?tr('Peso: ','Weight: ')+peso.kg+tr(' kg, segnato il ',' kg, logged on ')+peso.date.toLocaleDateString(APP_LOCALE(),{day:'numeric',month:'short'})+'.'
+    :tr('Peso: non ne hai ancora segnato uno in Progressi.','Weight: you haven\u2019t logged one in Progress yet.');
+  t+='<br><br>'+tr('Quello che conta per la forma a clessidra \u00e8 la costanza e il carico che sale, non la settimana singola.','What counts for the hourglass shape is consistency and load going up, not any single week.');
+  return {text:t};
+}
+function coachCompareReply(nomi){
+  const righe=nomi.slice(0,2).map(function(n){
+    const m=MUSCLE_DB[n]||[], c=(EXDB[n]&&EXDB[n].c)||[];
+    return '<b>'+esc(n)+'</b>: '+(m.length?m.join(' \u00b7 '):tr('muscoli non in archivio','muscles not on file'))+(c.length?'. '+esc(c[0])+'.':'.');});
+  return {text:righe.join('<br><br>')+'<br><br>'+tr('Sono i muscoli che la scheda associa a ciascuno. Se vuoi scambiarne uno con l\u2019altro dimmi \u201csostituisci\u201d e il giorno.',
+    'These are the muscles the plan associates with each. If you want to swap one for the other, say \u201cswap\u201d and the day.')};
+}
+function coachHomeReply(){
+  const casa=coachPlan()['Casa'];
+  if(!casa)return {text:tr('Non ho una giornata senza attrezzi nella tua scheda.','I don\u2019t have an equipment-free day in your plan.')};
+  return {text:tr('Hai gi\u00e0 una giornata senza attrezzi: <b>Casa</b> \u2014 ','You already have an equipment-free day: <b>Home</b> \u2014 ')+esc(casa.t)+'.<br>'
+    +(casa.ex||[]).map(function(e){return esc(e[0])+' ('+esc(e[1])+')';}).join('<br>')
+    +'<br><br>'+tr('La trovi nel calendario scegliendo Casa come giornata.','Pick Home as the day in the calendar to use it.')};
+}
+function coachDurationReply(day){
+  const d=day||(data&&data.day), p=d?coachPlan()[d]:null;
+  if(!p)return {text:tr('Dimmi quale giorno e ti stimo la durata.','Tell me which day and I\u2019ll estimate the length.')};
+  let sec=0, serie=0;
+  (p.ex||[]).forEach(function(e){const n=+e[2]||0, r=restSecondsForExercise(e[1]); serie+=n; sec+=n*(r+40);});
+  const min=Math.round(sec/60);
+  return {text:coachDayLabel(d)+': <b>'+serie+tr(' serie',' sets')+'</b>'+tr(', circa ',', about ')+'<b>'+min+tr(' minuti</b>.',' minutes</b>.')
+    +'<br><br>'+tr('Stima: recupero scritto nella scheda pi\u00f9 circa 40 secondi di lavoro per serie. Riscaldamento escluso. Se \u00e8 troppo scrivi \u201cfammi stare nei 45 minuti\u201d.',
+      'Estimate: the rest written in the plan plus about 40 seconds of work per set. Warm-up not included. If that\u2019s too long, write \u201ckeep me under 45 minutes\u201d.')};
+}
+/* Quando non capisco: le tre cose piu' vicine, non un muro. */
+const COACH_SKILLS=[
+  {k:'consigli', it:'Che consigli mi dai', en:'Any recommendation?', w:/consigl|miglior|suggeriment|advice|improve|recomm/},
+  {k:'oggi', it:'Come sono andata oggi', en:'How did I do today', w:/oggi|today|seduta|session|andata/},
+  {k:'progressione', it:'Quando aumento i carichi', en:'When do I add weight', w:/carico|peso|kg|aument|progress|heav|weight/},
+  {k:'recupero', it:'Quanto recupero tra le serie', en:'How long do I rest', w:/recuper|riposo|pausa|rest|sec/},
+  {k:'nutrizione', it:'Quante proteine oggi', en:'How much protein today', w:/protein|kcal|calor|mangi|dieta|eat|food|diet/},
+  {k:'cardio', it:'Dove ho il cardio', en:'Where is my cardio', w:/cardio|tapis|corsa|camminat|run|treadmill/},
+  {k:'frequenza', it:'Quante volte a settimana', en:'How often per week', w:/settimana|volte|frequenz|week|often/},
+  {k:'durata', it:'Quanto dura la seduta', en:'How long is the session', w:/dura|minut|tempo|long|time/},
+  {k:'tecnica', it:'Come si fa questo esercizio', en:'How do I do this exercise', w:/come si fa|tecnica|esecuzione|form|technique|how do/},
+  {k:'piano', it:'Cosa faccio oggi', en:'What do I do today', w:/piano|scheda|esercizi|plan|workout/}
+];
+function coachFallbackReply(l){
+  const p=COACH_SKILLS.map(function(x){return {x:x,n:(String(l).match(new RegExp(x.w.source,'gi'))||[]).length};})
+    .sort(function(a,b){return b.n-a.n;});
+  const vicini=(p[0].n?p.filter(function(y){return y.n>0;}):p).slice(0,3)
+    .map(function(y){return '<button class="mini-action" data-mini="'+esc(getAppLanguage()==='en'?y.x.en:y.x.it)+'">'+esc(getAppLanguage()==='en'?y.x.en:y.x.it)+'</button>';});
+  return {text:tr('Questa non la so. Rispondo sui tuoi dati e sulla tua scheda: prova con una di queste.',
+      'I don\u2019t know that one. I answer from your data and your plan: try one of these.')
+    +'<div class="mini-actions" style="margin-top:9px">'+vicini.join('')+'</div>'};
+}
+function coachOutOfScopeReply(){
+  return {text:tr('Questa non la posso rispondere dai tuoi dati: l\u2019app sa cosa sollevi e cosa prevede il piano, non come dormi o come digerisci. Chiedere a me vorrebbe dire inventare.',
+      'I can\u2019t answer that from your data: the app knows what you lift and what the plan says, not how you sleep or digest. Answering would mean making it up.')
+    +'<br><br>'+tr('Quello che posso fare: dirti come \u00e8 andata la seduta, quando alzare i carichi, cosa prevede il piano oggi e quanto recuperare fra le serie.',
+      'What I can do: tell you how the session went, when to add load, what the plan says today, and how long to rest between sets.')};
+}
+function coachTopicReply(l,s,day,name){
+  if(/dorm|sonno|insonnia|gonfi|pancia|digest|ciclo|stress|ansia|caff|integrator|alcol|sleep|bloat|period|anxiety|coffee|caffeine|supplement|alcohol/.test(l))return coachOutOfScopeReply();
+  if(/dolor|male a|fa male|infortun|pain|hurts|injur/.test(l))return coachPainReply();
+  if(/(recuper|ripos|pausa)\w*\s+(tra|fra|between)|quanto (recupero|riposo)|rest between|how long.*rest|rest time|tempo di recupero/.test(l))return coachRestReply(day,name);
+  if(/prima di allen|dopo allen|pre.?workout|post.?workout|before train|after train|prima dell.allenamento/.test(l))return coachMealAroundReply();
+  if(/protein|kcal|calor|mangi|mangiare|dieta|abbastanza da mangiare|eat|eating|diet|food/.test(l))return coachNutritionReply();
+  if(/cardio|tapis|corsa|camminat|treadmill|running/.test(l))return coachCardioReply();
+  if(/quante volte|a settimana|frequenz|quanti giorni|per week|how often|times a week|how many days/.test(l))return coachFrequencyReply();
+  if(/stanc|spossat|doms|indolenz|tired|sore|exhaust|rest day|posso allenarmi/.test(l))return coachTiredReply();
+  if(/saltat|fermata|pausa di|ricomincio|ripart|break|time off|been away/.test(l))return coachRestartReply();
+  if(/risultat|quanto ci metto|quando vedr|non vedo|results|how long until|see results|not losing/.test(l))return coachResultsReply();
+  if(/casa|senza attrezzi|at home|no equipment/.test(l))return coachHomeReply();
+  if(/quanto dura|durata|quanto tempo|how long is|session length/.test(l))return coachDurationReply(day);
+  const nomi=coachAllNames(s);
+  if(nomi.length>=2&&/differenz|meglio|oppure|vs|difference|better than/.test(l))return coachCompareReply(nomi);
+  return null;
+}
 async function coachHandleMessage(text){
   const s=(text||'').trim(), l=s.toLowerCase(); if(!s)return null;
   if(coachPending&&coachPending.awaiting==='confirm'){
@@ -1790,9 +1962,9 @@ async function coachHandleMessage(text){
   // Com'e' andata oggi: la seduta di oggi, non il piano di oggi.
   if(/come sono andata|com.è andata|come è andata|com e andata|come è andato|andata oggi|how did i do|how was (my |the )?(session|workout|today)|how am i doing today/.test(l))return coachTodayReply();
   // Consigli sui dati: funziona anche senza un esercizio in contesto.
-  if(/consigli|suggeriment|raccomand|cosa miglior|come miglior|che ne pensi|come sto andando|recomm?end|advice|advise|suggestion|tips|how am i doing|what should i improve|what can i improve/.test(l))return coachAdviceReply();
-  if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred|progression|heavier|add weight/.test(l)&&!name)return coachProgressionOverview();
-  if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred|progression|heavier|add weight/.test(l)&&name){
+  if(/consigli|suggeriment|raccomand|cosa miglior|come miglior|che ne pensi|come sto andando|sto facendo bene|sto andando bene|basta così|recomm?end|advice|advise|suggestion|tips|how am i doing|what should i improve|what can i improve|am i doing (well|enough)|is my .* enough|am i (lifting|training) enough/.test(l))return coachAdviceReply();
+  if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred|progression|heavier|add weight|quanto peso|che peso metto|how much weight/.test(l)&&!name)return coachProgressionOverview();
+  if(/cosa dovrei aumentare|aumento|progressione|prossimo carico|next step|come progred|progression|heavier|add weight|quanto peso|che peso metto|how much weight/.test(l)&&name){
     const h=await miniLastSession(name,day);return {text:(h?coachProgressText(name,day,h)+' ': '')+(coachRepSuggestion(name,day,h)||tr('Per decidere il prossimo incremento mi serve almeno una sessione registrata con reps e carico.','To decide the next increase I need at least one logged session with reps and load.'))};
   }
   if(/ultima volta|scorsa|precedente|cosa ho fatto|che peso|last time|last session|what did i do/.test(l)&&name){const h=await miniLastSession(name,day);return {text:coachProgressText(name,day,h)};}
@@ -1846,9 +2018,10 @@ async function coachHandleMessage(text){
     const remove=accessories[accessories.length-1];
     if(remove){coachPending={type:'remove',day:d,index:p.ex.findIndex(function(e){return e===remove;}),name:remove[0],awaiting:'confirm'};return {text:tr('Per stare più vicino a ','To get closer to ')+(mins?mins+' minuti':tr('una sessione più corta','a shorter session'))+tr(', la prima cosa che toglierei è <b>',', the first thing I’d drop is <b>')+remove[0]+'</b>, lasciando intatte le skill e i fondamentali. '+coachConfirmText(coachPending),actions:[['Conferma','coach-confirm'],['Annulla','coach-cancel']]};}
   }
-  if(/cosa.*piano|mostra.*piano|che esercizi|programma|what.*plan|which exercises/.test(l)&&day){const p=coachPlan()[day]||{ex:[]};return {text:'Il '+coachDayLabel(day)+' contiene: '+p.ex.map(function(e){return e[0]+' ('+e[1]+')';}).join(' · ')+'.'};}
+  if(/cosa.*piano|mostra.*piano|che esercizi|programma|what.*plan|which exercises|show me the plan|show.*plan/.test(l)&&day){const p=coachPlan()[day]||{ex:[]};return {text:'Il '+coachDayLabel(day)+' contiene: '+p.ex.map(function(e){return e[0]+' ('+e[1]+')';}).join(' · ')+'.'};}
+  const topic=coachTopicReply(l,s,day,name); if(topic)return topic;
   if(!name&&/ciao|help|aiut|cosa puoi|hi\b|hello|what can you/.test(l))return {text:coachHelp()};
-  return {text:tr('Non ho capito la domanda. ','I didn’t catch that. ')+coachHelp()+tr(' Se vuoi un consiglio sui tuoi numeri, chiedimi “che consigli mi dai”.',' For advice from your own numbers, ask me “any recommendation?”.')};
+  return coachFallbackReply(l);
 }
 let __miniCoachWasOpen=false;
 function miniCoachHTML(){
