@@ -156,7 +156,10 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     // COACH_SEEN_KEY = 'fede:coachseen': quali avvisi ha gia' letto,
     // per non ripeterglieli. Nessun dato di allenamento.
     const COACH_WRITE_OK = /localStorage\.(setItem|removeItem)\(COACH_SEEN_KEY/;
-    const offending = (l) => /localStorage\.(removeItem|clear|setItem)|\.clear\(\)/.test(l) && !LAB_WRITE_OK.test(l) && !BUILD_WRITE_OK.test(l) && !COACH_WRITE_OK.test(l);
+    // SYNC_KEY = 'fede:syncoff': l'avviso "calendario e pasti non si parlano"
+    // che ha gia' scelto di ignorare, per non riproporglielo. Nessun dato.
+    const SYNC_WRITE_OK = /localStorage\.(setItem|removeItem)\(SYNC_KEY/;
+    const offending = (l) => /localStorage\.(removeItem|clear|setItem)|\.clear\(\)/.test(l) && !LAB_WRITE_OK.test(l) && !BUILD_WRITE_OK.test(l) && !COACH_WRITE_OK.test(l) && !SYNC_WRITE_OK.test(l);
     T('no storage write outside fede:lab:* / fede:exmeta:* in any added line', !added.some(offending), added.filter(offending).join(' | '));
     const fn = (src, name) => { const i = src.indexOf('function ' + name + '('); if (i < 0) return null; let d = 0, j = src.indexOf('{', i); for (let k = j; k < src.length; k++) { if (src[k] === '{') d++; else if (src[k] === '}') { d--; if (!d) return src.slice(i, k + 1); } } return null; };
     const guarded = ['doSave', 'doSaveNow', 'flushSave', 'save', 'getSetValue', 'getDoneValue', 'getSideSetValue', 'getSideDoneValue', 'setIsDone', 'setKey', 'sideSetKey', 'exerciseId', 'canonicalExerciseId', 'preparePlanExerciseIds', 'ensureUserPlan', 'setupDay5Variants', 'setDay5Variant', 'coachApplyPending', 'buildBackupObject', 'applyBackupImport', 'analyzeBackup', 'mergeDayRecord', 'parseBackupText', 'createSafetySnapshot', 'archiveStoredUserPlan', 'replaceUserPlanSafely', 'migrateLegacyHistory', 'syncRecordExerciseMap', 'load', 'applyServiceWorkerUpdate', 'onServiceWorkerControllerChange', 'showUpdateBanner'];

@@ -29,4 +29,42 @@ const prof = J({ name: 'Test', goal: 'Forma a clessidra', days: 5, duration: '',
   const agenda = h.run('agView="sett";agenda=[];agendaHTML()');
   T('agenda: both presets offered', agenda.indexOf('data-preset="clessidra"') > -1 && agenda.indexOf('data-preset="calisthenics"') > -1);
 }
+// ---------- Calendario e pasti: l'app se ne accorge, non decide ----------
+{
+  const h2 = H(REPO);
+  h2.run('cur=new Date("2026-11-19T12:00:00");key="fede:2026-11-19";data=norm({day:"Riposo"});');
+
+  T('lo schema "Weekend libero" rispetta la regola', h2.run('syncRespected(WEEK_PRESETS.weekend.sched)') === true);
+  T('quello vecchio no', h2.run('syncRespected(WEEK_PRESETS.clessidra.sched)') === false);
+  T('senza giorni di gambe programmati non giudica',
+    h2.run('syncRespected({0:"Riposo",1:"Giorno 1",2:"Giorno 3",3:"Riposo",4:"Riposo",5:"Riposo",6:"Riposo"})') === true);
+
+  const avviso = h2.run('syncNoticeHTML()');
+  T('con il calendario disallineato l’avviso compare', /sync-notice/.test(avviso));
+  T('nomina il giorno che non torna, non quelli giusti',
+    /Venerdì/.test(avviso) && avviso.indexOf('Martedì · Giorno 2') < 0, avviso.replace(/<[^>]*>/g, ' ').slice(0, 110));
+  T('dice dove e’ finito il menu piu’ ricco', /2487 kcal cade di Giovedì/.test(avviso), avviso.replace(/<[^>]*>/g, ' ').slice(0, 140));
+  T('propone lo schema che risolve', avviso.indexOf('data-syncfix="weekend"') > -1);
+  T('e lascia la via d’uscita', avviso.indexOf('data-syncoff') > -1);
+
+  h2.run('applyWeekPreset("weekend");');
+  T('allineato il calendario, l’avviso non c’e’ piu’', h2.run('syncNoticeHTML()') === '');
+  T('e il calendario e’ quello proposto', h2.run('goals.sched["4"]') === 'Giorno 4' && h2.run('goals.sched["6"]') === 'Riposo');
+
+  const h3 = H(REPO);
+  h3.run('cur=new Date("2026-11-19T12:00:00");key="fede:2026-11-19";data=norm({day:"Riposo"});');
+  h3.run('localStorage.setItem(SYNC_KEY,syncSignature(goals.sched));');
+  T('scelto "Lascia così" l’avviso tace', h3.run('syncNoticeHTML()') === '');
+  h3.run('goals.sched["2"]="Riposo";');
+  T('ma torna se il calendario cambia davvero', /sync-notice/.test(h3.run('syncNoticeHTML()')));
+  T('e la chiave salvata non contiene dati di allenamento',
+    !/\d{4}-\d{2}-\d{2}|kg/.test(h3.store['fede:syncoff'] || ''), h3.store['fede:syncoff']);
+
+  const h4 = H(REPO);
+  h4.run('cur=new Date("2026-11-19T12:00:00");key="fede:2026-11-19";data=norm({day:"Riposo"});');
+  const prima = JSON.stringify(h4.store);
+  h4.run('syncNoticeHTML();syncRespected(goals.sched);syncSuggestion();');
+  T('controllare l’allineamento non scrive niente', JSON.stringify(h4.store) === prima);
+}
+
 process.exit(fail ? 1 : 0);

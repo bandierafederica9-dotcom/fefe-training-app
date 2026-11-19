@@ -180,7 +180,9 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     // COACH_SEEN_KEY = 'fede:coachseen': quali avvisi ha gia' letto,
     // per non ripeterglieli. Nessun dato di allenamento.
     const COACH_WRITE_OK = /localStorage\.(setItem|removeItem)\(COACH_SEEN_KEY/;
-    const offending = (l) => /localStorage\.(removeItem|clear|setItem)|\.clear\(\)/.test(l) && !LAB_WRITE_OK.test(l) && !BUILD_WRITE_OK.test(l) && !COACH_WRITE_OK.test(l);
+    // SYNC_KEY = 'fede:syncoff': l'avviso che ha gia' scelto di ignorare. Nessun dato.
+    const SYNC_WRITE_OK = /localStorage\.(setItem|removeItem)\(SYNC_KEY/;
+    const offending = (l) => /localStorage\.(removeItem|clear|setItem)|\.clear\(\)/.test(l) && !LAB_WRITE_OK.test(l) && !BUILD_WRITE_OK.test(l) && !COACH_WRITE_OK.test(l) && !SYNC_WRITE_OK.test(l);
     T('no storage write outside fede:lab:* / fede:exmeta:* added by the Lab phase', !added.some(offending), added.filter(offending).join(' | '));
     const hh = H(REPO); boot(hh); const before = J(hh.store);
     hh.run(`exCtx={day:${J(LAB)},back:"calisthenics"};exIdx=0;calisthenicsHTML();exerciseHTML();`);
