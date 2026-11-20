@@ -880,3 +880,12 @@ body{background:linear-gradient(180deg,#fdfbfc 0%,#faf5f7 100%)}
 .build-slots button.on{background:var(--rose);color:#fff;border-color:var(--rose)}
 .build-slots button:active{transform:scale(.96);opacity:.85}
 .build-slots button{transition:transform var(--d-press) var(--ease-out),opacity var(--d-press) var(--ease-out)}
+
+/* Giornata saltata: si legge come scelta, non come errore. Niente rosso. */
+.agrow.skipped{opacity:.72}
+.agrow.skipped .info b{text-decoration:line-through;text-decoration-thickness:1px}
+.agrow.skipped .tarrow{color:var(--dim)}
+.skip-card{margin-top:12px}
+.skip-card.on{border:1px solid var(--rose-b);background:var(--rose-l)}
+.skip-card.on b{font-size:13px;color:var(--navy)}
+.skip-card .btn{width:100%}

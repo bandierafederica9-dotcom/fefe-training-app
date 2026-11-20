@@ -170,5 +170,36 @@ const boot = (h, rec) => h.run(`profile=getProfile();cur=new Date("2026-01-20T12
     ['home', 'workout', 'agenda', 'calisthenics', 'mobility', 'nutri', 'evo', 'profile', 'power', 'finishers', 'accessories', 'exercise'].forEach(v => h.run(`view=${J(v)};exIdx=0;renderCore();`));
     T('rendering every view writes nothing', J(h.store) === before); }
 
+  // ---------- Giornata saltata: una scelta, non un vuoto ----------
+  {
+    const h = H(REPO); boot(h, { day: 'Giorno 2' });
+    T('una giornata nasce non saltata', h.run('daySkipped(data)') === false);
+    T('si segna con un tocco', h.run('toggleDaySkipped()') === true && h.run('daySkipped(data)') === true);
+    T('e si toglie con un altro', h.run('toggleDaySkipped()') === false && h.run('daySkipped(data)') === false);
+    T('togliendola non resta un campo appeso', h.run('("skipped" in data)') === false);
+
+    // una giornata con del lavoro dentro non puo' essere saltata
+    h.run('(function(){const e=dayPlan("Giorno 2").ex[0];data.sets[setKey("Giorno 2",0,e,1)]={kg:"40",r:"8"};})();');
+    T('con delle serie registrate non si puo\' marcare', h.run('toggleDaySkipped()') === false && h.run('daySkipped(data)') === false);
+    T('e la schermata lo spiega invece di nascondere il pulsante',
+      /quindi non può essere saltata/.test(h.run('workoutHTML()')));
+
+    // il pulsante c'e' quando serve
+    const h2 = H(REPO); boot(h2, { day: 'Giorno 2' });
+    T('a giornata vuota il pulsante c\'e\'', /data-skipday/.test(h2.run('workoutHTML()')) && /Segna giornata saltata/.test(h2.run('workoutHTML()')));
+    h2.run('toggleDaySkipped();');
+    const segnata = h2.run('workoutHTML()');
+    T('una volta segnata lo dice e offre di tornare indietro',
+      /Giornata saltata/.test(segnata) && /Non l’ho saltata/.test(segnata));
+    T('e dichiara che non falsa i Progressi', /non falsa i Progressi/.test(segnata));
+
+    // nel calendario
+    h2.run('doSaveNow&&doSaveNow();');
+    const giorno = Object.keys(h2.store).filter(x => /^fede:\d{4}-/.test(x))[0];
+    T('finisce nel giorno salvato', JSON.parse(h2.store[giorno] || '{}').skipped === true, giorno);
+    T('una giornata saltata non conta come seduta',
+      JSON.parse(h2.run('JSON.stringify(vol(data))')).s === 0);
+  }
+
   console.log(fail === 0 ? '\nALL FINISH-PASS CHECKS PASSED' : '\nFAILURES: ' + fail); process.exit(fail ? 1 : 0);
 })().catch(e => { console.log('FAIL harness error: ' + (e && e.stack || e)); process.exit(1); });

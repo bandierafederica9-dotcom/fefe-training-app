@@ -2234,6 +2234,9 @@ function coachNotices(){
   const prev={}; try{Object.keys(goals.sched||{}).forEach(function(w){const g=goals.sched[w];
     if(g&&g!=='Riposo')prev[g]=(prev[g]||0)+1;});}catch(e){}
   const due=new Date(cur); due.setDate(due.getDate()-14);
+  // Le giornate che ha segnato lei come saltate non sono dimenticanze: lo dico.
+  const segnate=recentRecords(30).filter(function(r){
+    return daySkipped(r)&&dateFromKey(r._date)>=due;}).length;
   const fatti={}; sess.filter(function(s){return s.date>=due;}).forEach(function(s){fatti[s.day]=(fatti[s.day]||0)+1;});
   Object.keys(prev).forEach(function(g){
     const attesi=prev[g]*2, veri=fatti[g]||0;
@@ -2243,7 +2246,8 @@ function coachNotices(){
   if(saltati.length>2){
     items.push({id:'saltato:molti',kind:'saltato',
       text:saltati.map(function(x){return x.g;}).join(', ')+tr(': nessuna o quasi nelle ultime due settimane.',': none or almost none in the last two weeks.'),
-      why:tr('Sono ','That is ')+saltati.length+tr(' giornate su ',' days out of ')+Object.keys(prev).length+tr(' previste dal calendario.',' the calendar plans.'),urgenza:1});
+      why:tr('Sono ','That is ')+saltati.length+tr(' giornate su ',' days out of ')+Object.keys(prev).length+tr(' previste dal calendario.',' the calendar plans.')
+        +(segnate?tr(' Ne hai segnate ',' You marked ')+segnate+tr(' come saltate: lo so, non e\u2019 una dimenticanza.',' as skipped yourself, so I know it wasn\u2019t forgetfulness.'):''),urgenza:1});
   }else saltati.forEach(function(x){
     items.push({id:'saltato:'+x.g,kind:'saltato',
       text:x.g+': '+x.veri+tr(' sedute su ',' sessions out of ')+x.attesi+tr(' nelle ultime due settimane.',' in the last two weeks.'),
@@ -2737,12 +2741,13 @@ function agendaHTML(){
     const dc=a.x?doneCount(a.x,day):{done:0,tot:0};
     const isT=k(a.d)===k(cur);
     const done=dc.tot>0&&dc.done===dc.tot;
-    h+='<div class="agrow'+(isT?' today':'')+'" data-date="'+k(a.d)+'">'+
+    const skip=daySkipped(a.x);
+    h+='<div class="agrow'+(isT?' today':'')+(skip?' skipped':'')+'" data-date="'+k(a.d)+'">'+
       '<div class="d"><u>'+a.d.toLocaleDateString(APP_LOCALE(),{weekday:'short'}).slice(0,3)+'</u><b>'+a.d.getDate()+'</b></div>'+
       '<div class="info"><b>'+pl.em+' '+day+'</b>'+
-      '<span>'+pl.t+(dc.tot?' · '+dc.done+'/'+dc.tot+' serie':'')+
-      (saved?'':' · da fare')+'</span></div>'+
-      '<div class="tarrow">'+(done?'✓':'›')+'</div></div>';
+      '<span>'+pl.t+(skip?'':(dc.tot?' · '+dc.done+'/'+dc.tot+' serie':''))+
+      (skip?' · '+tr('saltata','skipped'):(saved?'':' · da fare'))+'</span></div>'+
+      '<div class="tarrow">'+(skip?'⊘':(done?'✓':'›'))+'</div></div>';
   });
 
   h+='<div class="sect">Allenamento di oggi</div><div class="card">'+
@@ -2965,9 +2970,33 @@ function workoutHTML(){
   h+='<button class="btn ghost" data-go="catalog" style="margin-top:4px">\u2795 Aggiungi dal catalogo</button>';
   h+='<button class="see-one" data-seeone="1">▶ Uno alla volta</button>';
   h+=addPanelHTML(data.day);
-  h+='<div class="sect">Note della sessione</div><div class="card" style="padding:14px"><textarea id="note" style="min-height:70px" placeholder="Sensazioni, PR, energia...">'+esc(data.note)+'</textarea></div></div>'; return h;
+  h+='<div class="sect">Note della sessione</div><div class="card" style="padding:14px"><textarea id="note" style="min-height:70px" placeholder="Sensazioni, PR, energia...">'+esc(data.note)+'</textarea></div>';
+  // Segnare la giornata come saltata: possibile finche' non hai registrato niente.
+  if(dayHasWork(data)){
+    h+='<div class="card skip-card"><div class="note">'+tr('Hai gi\u00e0 registrato delle serie in questa giornata, quindi non pu\u00f2 essere saltata.','You have already logged sets on this day, so it can\u2019t be marked as skipped.')+'</div></div>';
+  }else if(daySkipped(data)){
+    h+='<div class="card skip-card on"><b>'+tr('Giornata saltata','Day skipped')+'</b>'
+      +'<div class="note" style="margin-top:5px">'+tr('Resta nel calendario come saltata. Non conta come seduta e non falsa i Progressi.','It stays in the calendar as skipped. It doesn\u2019t count as a session and doesn\u2019t skew Progress.')+'</div>'
+      +'<button class="btn ghost" data-skipday="1" style="margin-top:10px">'+tr('Non l\u2019ho saltata','I didn\u2019t skip it')+'</button></div>';
+  }else{
+    h+='<div class="card skip-card"><button class="btn ghost" data-skipday="1">'+tr('Segna giornata saltata','Mark day as skipped')+'</button></div>';
+  }
+  h+='</div>'; return h;
 }
 
+/* Una giornata saltata e' un'informazione, non un vuoto: "non l'ho fatta" e
+   "non l'ho ancora fatta" sono due cose diverse, e solo la prima la decidi tu.
+   Vive nel record del giorno, come le serie e le note. */
+function daySkipped(rec){return !!(rec&&rec.skipped);}
+function dayHasWork(rec){try{return vol(norm(rec||{})).s>0;}catch(e){return false;}}
+function toggleDaySkipped(){
+  if(!data)return false;
+  if(dayHasWork(data))return false;        // se hai gia' segnato delle serie non e' saltata
+  data.skipped=!data.skipped;
+  if(!data.skipped)delete data.skipped;
+  save();
+  return !!data.skipped;
+}
 function exercisePurpose(name,day){
   const n=(name||'').toLowerCase();
   if(/hip thrust|abduction|kickback|back extension|kas glute/.test(n))return 'Glutei e controllo del bacino · priorità alla tensione sul gluteo, non alla compensazione lombare.';
@@ -5760,6 +5789,8 @@ function bind(){
     if(data.done[id])segnalaGiornataChiusa();
     save();};});
 
+  document.querySelectorAll('[data-skipday]').forEach(function(b){b.onclick=function(){
+    toggleDaySkipped(); render();};});
   const n=document.getElementById('note');if(n)n.oninput=function(){data.note=n.value;save();};
 
   // acqua
